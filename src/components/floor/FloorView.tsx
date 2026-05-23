@@ -256,7 +256,7 @@ function KpiStrip({ tables }: { tables: TableWithStatus[] }) {
   return (
     <div style={{
       display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)',
-      height: 100, borderBottom: `1px solid ${T.line}`, flexShrink: 0,
+      height: 'clamp(80px, 9.3vh, 120px)', borderBottom: `1px solid ${T.line}`, flexShrink: 0,
     }}>
       {kpis.map((k, i) => (
         <div key={k.label} style={{
@@ -467,16 +467,16 @@ export default function FloorView({
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <KpiStrip tables={tables} />
 
-      {/* Body: 1280px left | 1px divider | right rail */}
-      <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '1280px 1px 1fr' }}>
+      {/* Body: 2fr left | 1px divider | 1fr right rail */}
+      <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) 1px minmax(0, 1fr)' }}>
         <FloorPanel
           tables={tables} tickets={tickets}
           layout={layout} setLayout={setLayout}
           onOpenTable={onOpenTable}
         />
         <div style={{ background: T.line }} />
-        {/* Right rail: KDS (1fr) + divider + Inventory (280px) */}
-        <div style={{ display: 'grid', gridTemplateRows: '1fr 1px 280px', minHeight: 0 }}>
+        {/* Right rail: KDS (1fr) + divider + Inventory (clamp) */}
+        <div style={{ display: 'grid', gridTemplateRows: `1fr 1px clamp(200px, 26vh, 360px)`, minHeight: 0 }}>
           <KdsPanel tickets={tickets} tick={tick} onBump={onBump} />
           <div style={{ background: T.line }} />
           <InventoryPanel />

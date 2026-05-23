@@ -5,7 +5,7 @@ import { THEME } from '@/lib/theme'
 const T = THEME
 
 interface ModalBaseProps {
-  width:              number
+  width:              number | string
   onBackdropClick?:   () => void
   children:           React.ReactNode
 }

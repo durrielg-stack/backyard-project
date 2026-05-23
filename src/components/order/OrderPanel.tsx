@@ -61,7 +61,7 @@ export default function OrderPanel({
 
   return (
     <div style={{
-      width: 720, flexShrink: 0,
+      width: 'clamp(480px, 37.5vw, 960px)', flexShrink: 0,
       display: 'flex', flexDirection: 'column',
       background: T.surface, borderLeft: `1px solid ${T.line}`,
       height: '100%',

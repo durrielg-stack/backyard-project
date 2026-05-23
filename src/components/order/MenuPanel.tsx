@@ -187,7 +187,7 @@ export default function MenuPanel({ byCategory, onAdd, onKeyboardShortcut }: Men
         {/* Search */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
-          width: 280, background: T.surface, border: `1px solid ${T.line2}`,
+          width: 'clamp(220px, 14.6vw, 360px)', background: T.surface, border: `1px solid ${T.line2}`,
           borderRadius: T.radius, color: T.textDim,
         }}>
           <svg viewBox="0 0 16 16" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={1.5}>
