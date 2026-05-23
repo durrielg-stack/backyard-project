@@ -14,11 +14,8 @@ interface OrderPanelProps {
   lines:           CartLine[]
   menuById:        Record<string, MenuItem>
   subtotal:        number
-  tax:             number
-  tipPct:          number
-  setTipPct:       (pct: number) => void
-  customTip:       number | null
-  setCustomTip:    (tip: number | null) => void
+  tip:             number
+  setTip:          (amount: number) => void
   total:           number
   selectedLine:    string | null
   setSelectedLine: (id: string | null) => void
@@ -36,7 +33,7 @@ interface OrderPanelProps {
 
 export default function OrderPanel({
   table, orderId, lines, menuById,
-  subtotal, tax, tipPct, setTipPct, customTip, setCustomTip, total,
+  subtotal, tip, setTip, total,
   selectedLine, setSelectedLine, selectedSeat, setSelectedSeat,
   onUpdateQty, onRemove, onSetNote, onToggleMod,
   onBack, onHold, onSplit, onCharge,
@@ -227,11 +224,8 @@ export default function OrderPanel({
       {/* ── Footer ──────────────────────────────────────────────────────── */}
       <OrderFooter
         subtotal={subtotal}
-        tax={tax}
-        tipPct={tipPct}
-        setTipPct={setTipPct}
-        customTip={customTip}
-        setCustomTip={setCustomTip}
+        tip={tip}
+        setTip={setTip}
         total={total}
         onHold={onHold}
         onSplit={onSplit}

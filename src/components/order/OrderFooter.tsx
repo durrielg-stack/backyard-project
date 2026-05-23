@@ -5,20 +5,15 @@ import { THEME } from '@/lib/theme'
 
 const T = THEME
 
-const TIP_PRESETS = [15, 18, 20, 25] as const
-
 interface OrderFooterProps {
-  subtotal:       number
-  tax:            number
-  tipPct:         number
-  setTipPct:      (pct: number) => void
-  customTip:      number | null
-  setCustomTip:   (tip: number | null) => void
-  total:          number
-  onHold:         () => void
-  onSplit:        () => void
-  onCharge:       () => void
-  disabled:       boolean    // true when cart is empty
+  subtotal:  number
+  tip:       number
+  setTip:    (amount: number) => void
+  total:     number
+  onHold:    () => void
+  onSplit:   () => void
+  onCharge:  () => void
+  disabled:  boolean    // true when cart is empty
 }
 
 function TotalsRow({ label, value, accent, large, mute }: {
@@ -52,18 +47,15 @@ function TotalsRow({ label, value, accent, large, mute }: {
 }
 
 export default function OrderFooter({
-  subtotal, tax, tipPct, setTipPct, customTip, setCustomTip,
-  total, onHold, onSplit, onCharge, disabled,
+  subtotal, tip, setTip, total, onHold, onSplit, onCharge, disabled,
 }: OrderFooterProps) {
-  const [customInput, setCustomInput] = useState(false)
-  const [customVal, setCustomVal]     = useState('')
+  const [editing, setEditing]   = useState(false)
+  const [inputVal, setInputVal] = useState('')
 
-  const tipAmt = customTip != null ? customTip : subtotal * (tipPct / 100)
-
-  function applyCustom() {
-    const v = parseFloat(customVal)
-    if (!isNaN(v) && v >= 0) { setCustomTip(v); setCustomInput(false) }
-    else                      { setCustomInput(false) }
+  function applyTip() {
+    const v = parseFloat(inputVal)
+    setTip(!isNaN(v) && v >= 0 ? v : 0)
+    setEditing(false)
   }
 
   return (
@@ -72,83 +64,67 @@ export default function OrderFooter({
       flexShrink: 0, background: T.surface,
     }}>
       {/* ── Totals ──────────────────────────────────────────────────── */}
-      <TotalsRow label="Subtotal"    value={`₱${subtotal.toFixed(2)}`} mute />
-      <TotalsRow label="Tax · 8.75%" value={`₱${tax.toFixed(2)}`}     mute />
+      <TotalsRow label="Subtotal" value={`₱${subtotal.toFixed(2)}`} mute />
 
-      {/* Tip row with selector */}
+      {/* Tip row — custom amount only */}
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         padding: '6px 0 10px',
       }}>
         <span style={{ fontSize: 12, color: T.textDim }}>
-          Tip · {customTip != null ? 'Custom' : `${tipPct}%`}
-          <span style={{
-            marginLeft: 6, fontFamily: T.mono, fontSize: 12,
-            color: T.textMute, fontVariantNumeric: 'tabular-nums',
-          }}>
-            ₱{tipAmt.toFixed(2)}
-          </span>
+          Tip
+          {tip > 0 && (
+            <span style={{
+              marginLeft: 6, fontFamily: T.mono, fontSize: 12,
+              color: T.accent, fontVariantNumeric: 'tabular-nums',
+            }}>
+              ₱{tip.toFixed(2)}
+            </span>
+          )}
         </span>
 
-        {/* Tip % segmented */}
-        <div style={{ display: 'flex', gap: 2 }}>
-          {TIP_PRESETS.map(pct => {
-            const active = customTip == null && tipPct === pct
-            return (
-              <button key={pct} onClick={() => { setTipPct(pct); setCustomTip(null); setCustomInput(false) }} style={{
-                padding: '4px 10px', fontSize: 12, fontFamily: 'inherit',
-                background: active ? `${T.accent}24` : 'transparent',
-                color:      active ? T.accent : T.textDim,
-                border:     `1px solid ${active ? T.accent : T.line2}`,
-                borderRadius: T.radius, cursor: 'pointer', fontWeight: active ? 600 : 400,
-                transition:   'background 0.12s ease, border-color 0.12s ease',
-              }}>
-                {pct}%
-              </button>
-            )
-          })}
-          {/* Custom */}
-          {customInput ? (
-            <input
-              autoFocus
-              value={customVal}
-              onChange={e => setCustomVal(e.target.value)}
-              onBlur={applyCustom}
-              onKeyDown={e => { if (e.key === 'Enter') applyCustom(); if (e.key === 'Escape') setCustomInput(false); e.stopPropagation() }}
-              placeholder="0.00"
-              style={{
-                width: 68, padding: '4px 8px', fontSize: 12,
-                background: T.surface2, border: `1px solid ${T.accent}`,
-                color: T.text, fontFamily: T.mono, borderRadius: T.radius, outline: 'none',
-              }}
-            />
-          ) : (
-            <button onClick={() => { setCustomInput(true); setCustomVal(customTip?.toFixed(2) ?? '') }} style={{
-              padding: '4px 10px', fontSize: 12, fontFamily: 'inherit',
-              background: customTip != null ? `${T.accent}24` : 'transparent',
-              color:      customTip != null ? T.accent : T.textDim,
-              border:     `1px solid ${customTip != null ? T.accent : T.line2}`,
+        {editing ? (
+          <input
+            autoFocus
+            value={inputVal}
+            onChange={e => setInputVal(e.target.value)}
+            onBlur={applyTip}
+            onKeyDown={e => {
+              if (e.key === 'Enter')  { applyTip(); e.stopPropagation() }
+              if (e.key === 'Escape') { setEditing(false); e.stopPropagation() }
+              e.stopPropagation()
+            }}
+            placeholder="0.00"
+            style={{
+              width: 80, padding: '4px 8px', fontSize: 12,
+              background: T.surface2, border: `1px solid ${T.accent}`,
+              color: T.text, fontFamily: T.mono, borderRadius: T.radius, outline: 'none',
+            }}
+          />
+        ) : (
+          <button
+            onClick={() => { setInputVal(tip > 0 ? tip.toFixed(2) : ''); setEditing(true) }}
+            style={{
+              padding: '4px 12px', fontSize: 12, fontFamily: 'inherit',
+              background: tip > 0 ? `${T.accent}24` : 'transparent',
+              color:      tip > 0 ? T.accent : T.textDim,
+              border:     `1px solid ${tip > 0 ? T.accent : T.line2}`,
               borderRadius: T.radius, cursor: 'pointer',
-              transition:   'background 0.12s ease',
-            }}>
-              Custom
-            </button>
-          )}
-        </div>
+              transition: 'background 0.12s ease',
+            }}
+          >
+            {tip > 0 ? 'Edit' : 'Add tip'}
+          </button>
+        )}
       </div>
 
       {/* ── Total row ───────────────────────────────────────────────── */}
       <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: 10, marginBottom: 16 }}>
-        <TotalsRow
-          label="Total"
-          value={`₱${total.toFixed(2)}`}
-          large accent
-        />
+        <TotalsRow label="Total" value={`₱${total.toFixed(2)}`} large accent />
       </div>
 
       {/* ── Action buttons — 1fr 1fr 2fr ────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: 8 }}>
-        {/* Hold */}
         <button onClick={onHold} disabled={disabled} style={{
           padding: '13px 0', fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
           background: 'transparent',
@@ -164,7 +140,6 @@ export default function OrderFooter({
           }}>H</span>
         </button>
 
-        {/* Split */}
         <button onClick={onSplit} disabled={disabled} style={{
           padding: '13px 0', fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
           background: 'transparent',
@@ -180,7 +155,6 @@ export default function OrderFooter({
           }}>S</span>
         </button>
 
-        {/* Charge — primary CTA */}
         <button onClick={onCharge} disabled={disabled} style={{
           padding: '13px 0', fontFamily: 'inherit', fontSize: 16,
           fontWeight: 700, letterSpacing: '-0.01em', textTransform: 'uppercase',

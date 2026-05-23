@@ -11,8 +11,6 @@ import SplitModal   from '@/components/modals/SplitModal'
 import PaidOverlay  from '@/components/modals/PaidOverlay'
 import type { SplitResult } from '@/components/modals/SplitModal'
 
-const TAX_RATE = 0.0875
-
 // ── Modal state discriminant ───────────────────────────────────────────────
 type ModalState =
   | { kind: 'none' }
@@ -35,9 +33,8 @@ export default function OrderView({ tableId, table, onBack, onCartSync }: OrderV
 
   const { byCategory, byId: menuById } = useMenuItems()
 
-  // ── Tip state ─────────────────────────────────────────────────────────────
-  const [tipPct,    setTipPct]    = useState(18)
-  const [customTip, setCustomTip] = useState<number | null>(null)
+  // ── Tip state — custom amount only, default 0 ────────────────────────────
+  const [tip, setTip] = useState(0)
 
   // ── Selected order line (expanded) ────────────────────────────────────────
   const [selectedLine, setSelectedLine] = useState<string | null>(null)
@@ -60,11 +57,9 @@ export default function OrderView({ tableId, table, onBack, onCartSync }: OrderV
     }
   }, [lines, selectedLine])
 
-  // ── Totals ────────────────────────────────────────────────────────────────
+  // ── Totals — prices are tax-inclusive ────────────────────────────────────
   const subtotal = lines.reduce((sum, l) => sum + l.unitPrice * l.qty, 0)
-  const tax      = subtotal * TAX_RATE
-  const tipAmt   = customTip != null ? customTip : subtotal * (tipPct / 100)
-  const total    = subtotal + tax + tipAmt
+  const total    = subtotal + tip
 
   // ── Action handlers ───────────────────────────────────────────────────────
   function handleHold()   { /* TODO: hold ticket persistence */ }
@@ -135,11 +130,8 @@ export default function OrderView({ tableId, table, onBack, onCartSync }: OrderV
           lines={lines}
           menuById={menuById}
           subtotal={subtotal}
-          tax={tax}
-          tipPct={tipPct}
-          setTipPct={setTipPct}
-          customTip={customTip}
-          setCustomTip={setCustomTip}
+          tip={tip}
+          setTip={setTip}
           total={total}
           selectedLine={selectedLine}
           setSelectedLine={setSelectedLine}
@@ -161,8 +153,7 @@ export default function OrderView({ tableId, table, onBack, onCartSync }: OrderV
         <PayModal
           total={total}
           subtotal={subtotal}
-          tax={tax}
-          tipAmt={tipAmt}
+          tipAmt={tip}
           onPaid={handlePaid}
           onClose={() => setModal({ kind: 'none' })}
         />

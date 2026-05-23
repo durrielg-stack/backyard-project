@@ -9,7 +9,7 @@ import type { RestaurantTable, Order, KdsTicket, TableWithStatus, CartLine } fro
 //   reserved   → table.status = 'reserved' in DB (manager-set, overrides all)
 //   attention  → any KDS ticket on table elapsed > 10:00
 //   aging      → any KDS ticket on table elapsed > 6:00
-//   occupied   → has cart items OR has an open order
+//   occupied   → has cart items (cart is source of truth; empty cart = available)
 //   available  → otherwise
 export function useAutoStatus(
   tables: RestaurantTable[],
@@ -48,7 +48,7 @@ export function useAutoStatus(
       const cart    = carts.get(table.id) ?? []
       const order   = orderByTable.get(table.id)
       const elapsed = maxElapsed.get(table.id) ?? 0
-      const hasActivity = cart.length > 0 || !!order
+      const hasActivity = cart.length > 0
 
       // 2–4. Derive status
       let status: TableWithStatus['status']

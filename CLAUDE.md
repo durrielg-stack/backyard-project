@@ -1,0 +1,72 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Commands
+
+```bash
+npm run dev      # Start Next.js dev server (http://localhost:3000)
+npm run build    # Production build
+npm run lint     # ESLint
+```
+
+No test suite exists yet. TypeScript type-checking runs via `tsc --noEmit`.
+
+## Architecture
+
+**Backyard POS** is a Next.js 15 (App Router) single-page point-of-sale app targeting a fixed 1920×1080 display. It is dark-only with no responsive/mobile layout.
+
+### App Shell (`src/app/page.tsx`)
+
+`POSApp` is the root client component. It owns:
+- **View routing** — a discriminant union (`'floor' | 'reports' | { kind: 'order'; tableId }`) with no URL router
+- **Global 1s tick** — `setInterval` drives all time-dependent derivations (table aging, KDS elapsed time, clock)
+- **Master cart map** — `Map<tableId, CartLine[]>` — `useOrder` owns per-table DB sync; `OrderView` propagates lines up via `onCartSync`
+- **`tablesWithStatus`** — derived in `useAutoStatus` from raw DB tables + open orders + KDS tickets + cart totals
+
+### Views
+
+| View | Component | Data |
+|------|-----------|------|
+| Floor | `FloorView` | `tablesWithStatus`, `tickets`; grid or floor-plan layout |
+| Order | `OrderView` | `useOrder(tableId)`, `useMenuItems()` |
+| Reports | `ReportsView` | `tablesWithStatus` |
+
+### Data Layer (`src/hooks/`)
+
+All hooks use the Supabase browser singleton from `src/lib/supabase.ts` (`getClient()`).
+
+- **`useOrder`** — loads open order + items on mount; writes optimistically with DB rollback on error
+- **`useTables`** — Supabase realtime subscription on `restaurant_tables`
+- **`useOpenOrders`** — all `status='open'` orders; used for auto-status derivation
+- **`useMenuItems`** — full menu, cached in module scope between renders
+- **`useTickets`** — KDS tickets derived from open order items; `bump()` marks items served
+- **`useAutoStatus`** — pure derivation: maps raw tables → `TableWithStatus` (aging at 6 min, attention at 10 min)
+
+### Types (`src/lib/types.ts`)
+
+Two tiers:
+1. **DB row types** — mirror Supabase schema (`RestaurantTable`, `MenuItem`, `Order`, `OrderItem`, `Payment`, `InventoryRow`)
+2. **App types** — `CartLine` (optimistic local cart), `KdsTicket` (derived for KDS display), `TableWithStatus` (derived with runtime status + totals)
+
+### Styling
+
+- **No CSS classes for layout** — all layout is inline `style` props with values from `THEME`
+- **`src/lib/theme.ts`** — single canonical token set (`THEME`). Dark-only. Do not add light-mode. `radius` is `2px` by design spec
+- **Global CSS** (`src/styles/globals.css`) — only scrollbar hiding (`.bp-no-scrollbar`) and the `@keyframes bp-attn` pulse for tables needing attention
+- Tailwind is installed but not used for component styles
+
+### Environment Variables
+
+```
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+```
+
+### Key Conventions
+
+- `CartLine.lineId` is a local temp ID (`'L1'`, `'L2'`, …); `CartLine.dbId` is set once the row is persisted
+- `MenuItem.category` is the display category (`category3` for Food items, `category2` for Bar items)
+- Prices are **tax-inclusive** — no separate tax calculation
+- `ItemStatus` `'voided'` is used instead of hard-deleting order items
+- The floor plan uses raw `pos_x`/`pos_y` DB values (range ~80–500) normalised against `COORD_MAX = 640`

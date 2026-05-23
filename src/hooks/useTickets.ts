@@ -7,7 +7,7 @@ import type { KdsTicket } from '@/lib/types'
 // ── Station routing ──────────────────────────────────────────────────────────
 // Bar categories — everything else goes to kitchen
 const BAR_CATS = new Set([
-  'Beer', 'Palit Bote', 'Cocktails', 'Hard', 'Cigarettes', 'Non-Alcohol',
+  'Beer', 'Cocktails/Hard', 'Non-Alcohol', 'Cigarettes',
 ])
 
 function getStation(category: string): 'kitchen' | 'bar' {

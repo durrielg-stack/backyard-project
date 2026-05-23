@@ -278,7 +278,6 @@ function QRFlow({ total, onPaid }: { total: number; onPaid: () => void }) {
 interface PayModalProps {
   total:    number
   subtotal: number
-  tax:      number
   tipAmt:   number
   onPaid:   (method: PayMethod, amount: number) => void
   onClose:  () => void
@@ -286,7 +285,7 @@ interface PayModalProps {
 
 type Method = 'cash' | 'card' | 'qr'
 
-export default function PayModal({ total, subtotal, tax, tipAmt, onPaid, onClose }: PayModalProps) {
+export default function PayModal({ total, subtotal, tipAmt, onPaid, onClose }: PayModalProps) {
   const [method, setMethod] = useState<Method>('cash')
   const [input,  setInput]  = useState('')
 
@@ -330,8 +329,7 @@ export default function PayModal({ total, subtotal, tax, tipAmt, onPaid, onClose
           fontFamily: T.mono, fontSize: 11, color: T.textMute, letterSpacing: '0.04em',
         }}>
           <span>Subtotal ₱{subtotal.toFixed(2)}</span>
-          <span>Tax ₱{tax.toFixed(2)}</span>
-          <span>Tip ₱{tipAmt.toFixed(2)}</span>
+          {tipAmt > 0 && <span>Tip ₱{tipAmt.toFixed(2)}</span>}
         </div>
       </div>
 

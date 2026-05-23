@@ -8,11 +8,11 @@ const T = THEME
 
 // ── DB category → tab group mapping ─────────────────────────────────────────
 const GROUPS = [
-  { id: 'food',     label: 'Food',               key: '1',
+  { id: 'food',     label: 'Food',    key: '1',
     cats: ['Meals','Pork','Starters','Chicken','Noodles','Seafood'] },
-  { id: 'bar',      label: 'Bar',                key: '2',
-    cats: ['Beer','Palit Bote','Cocktails','Hard','Cigarettes','Non-Alcohol'] },
-  { id: 'specials', label: 'Specials & Pulutan', key: '3',
+  { id: 'bar',      label: 'Bar',     key: '2',
+    cats: ['Beer','Cocktails/Hard','Non-Alcohol','Cigarettes'] },
+  { id: 'specials', label: 'Pulutan', key: '3',
     cats: ['Extra','Others'] },
 ] as const
 

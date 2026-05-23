@@ -19,15 +19,17 @@ export interface RestaurantTable {
 export interface MenuItem {
   id: string          // UUID
   name: string
-  category: string
-  category2: string | null
+  category: string    // generated: category3 for Food, category2 for Bar (Beer, Cocktails/Hard, etc.)
+  category2: string   // DB top-level: Beer | Cocktails/Hard | Non-Alcohol | Cigarettes | Food
+  category3: string   // DB sub-level: Meals | Pork | Chicken | Drinks | Palit Bote | etc.
   price: number
   cost: number | null
-  description: string | null
-  modifiers: string[]
+  description?: string | null
+  modifiers?: string[]
   is_available: boolean
   sort_order: number
   created_at: string
+  updated_at?: string
 }
 
 export interface Order {
