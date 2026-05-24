@@ -68,7 +68,7 @@ function KdsTicketRow({ ticket, onBump }: {
         </div>
       </div>
 
-      {/* Bump button */}
+      {/* Served button */}
       <button
         onClick={e => { e.stopPropagation(); onBump(ticket.orderId, ticket.station) }}
         style={{
@@ -78,7 +78,7 @@ function KdsTicketRow({ ticket, onBump }: {
           transition: 'background 0.12s ease, border-color 0.12s ease',
         }}
       >
-        Bump
+        Served
       </button>
     </div>
   )
