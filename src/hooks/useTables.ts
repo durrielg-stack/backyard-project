@@ -4,6 +4,19 @@ import { useEffect, useState } from 'react'
 import { getClient } from '@/lib/supabase'
 import type { RestaurantTable, DbTableStatus } from '@/lib/types'
 
+// Section display order: T (indoor) → B (bar) → OT (outdoor) → W (walkup/temp)
+const PREFIX_ORDER: Record<string, number> = { T: 0, B: 1, OT: 2, W: 3 }
+
+function sortTables<R extends { id: string }>(rows: R[]): R[] {
+  return rows.slice().sort((a, b) => {
+    const [, ap, an] = a.id.match(/^([A-Za-z]+)(\d+)$/) ?? ['', a.id, '0']
+    const [, bp, bn] = b.id.match(/^([A-Za-z]+)(\d+)$/) ?? ['', b.id, '0']
+    const ao = PREFIX_ORDER[ap] ?? 99
+    const bo = PREFIX_ORDER[bp] ?? 99
+    return ao !== bo ? ao - bo : parseInt(an) - parseInt(bn)
+  })
+}
+
 // Returns raw table rows from Supabase + realtime subscription.
 // Status derivation lives in useAutoStatus — NOT here.
 export function useTables() {
@@ -20,15 +33,7 @@ export function useTables() {
         .select('*')
 
       if (error) { setError(error.message) }
-      else {
-        // Natural sort: T1,T2…T11 then B1,B2… (section prefix alpha, then numeric)
-        const sorted = (data ?? []).slice().sort((a, b) => {
-          const [, ap, an] = a.id.match(/^([A-Za-z]+)(\d+)$/) ?? ['', a.id, '0']
-          const [, bp, bn] = b.id.match(/^([A-Za-z]+)(\d+)$/) ?? ['', b.id, '0']
-          return ap !== bp ? ap.localeCompare(bp) : parseInt(an) - parseInt(bn)
-        })
-        setTables(sorted)
-      }
+      else { setTables(sortTables(data ?? [])) }
       setLoading(false)
     }
 
@@ -42,14 +47,7 @@ export function useTables() {
             t.id === (payload.new as RestaurantTable).id ? (payload.new as RestaurantTable) : t
           ))
         } else if (payload.eventType === 'INSERT') {
-          setTables(prev => {
-            const next = [...prev, payload.new as RestaurantTable]
-            return next.sort((a, b) => {
-              const [, ap, an] = a.id.match(/^([A-Za-z]+)(\d+)$/) ?? ['', a.id, '0']
-              const [, bp, bn] = b.id.match(/^([A-Za-z]+)(\d+)$/) ?? ['', b.id, '0']
-              return ap !== bp ? ap.localeCompare(bp) : parseInt(an) - parseInt(bn)
-            })
-          })
+          setTables(prev => sortTables([...prev, payload.new as RestaurantTable]))
         } else if (payload.eventType === 'DELETE') {
           setTables(prev => prev.filter(t => t.id !== (payload.old as RestaurantTable).id))
         }

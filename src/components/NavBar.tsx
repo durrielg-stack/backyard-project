@@ -141,17 +141,16 @@ function NewTabPicker({
   const [label,   setLabel]   = useState('')
   const [cap,     setCap]     = useState('2')
   const [saving,  setSaving]  = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const ref        = useRef<HTMLDivElement>(null)
+  const tablesRef  = useRef(tables)
+  useEffect(() => { tablesRef.current = tables })
 
-  // Auto-suggest next walkup ID when opening
+  // Set default label only when modal opens — tablesRef avoids re-firing on every tick
   useEffect(() => {
     if (!open) return
-    const existing = tables
-      .filter(t => t.id.startsWith('W'))
-      .map(t => parseInt(t.id.slice(1)) || 0)
-    const next = existing.length > 0 ? Math.max(...existing) + 1 : 1
-    setLabel(`Walkup ${next}`)
-  }, [open, tables])
+    setLabel('Takeout')
+    setCap('2')
+  }, [open])
 
   async function create() {
     const trimmed = label.trim()
@@ -159,7 +158,7 @@ function NewTabPicker({
     setSaving(true)
 
     // Derive ID: W1, W2, … from existing walkup tables
-    const existing = tables
+    const existing = tablesRef.current
       .filter(t => t.id.startsWith('W'))
       .map(t => parseInt(t.id.slice(1)) || 0)
     const nextNum = existing.length > 0 ? Math.max(...existing) + 1 : 1
