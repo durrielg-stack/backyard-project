@@ -80,22 +80,21 @@ function ExpensesKpiStrip({ range, todayExpenses, weekExpenses, expCatBreakdown 
   const total   = isToday ? todayExpenses : weekExpenses
   const suffix  = isToday ? 'Today'       : 'Week'
 
+  const CAT_ORDER = ['OPEX', 'Food', 'Beer', 'Cocktails/Hard', 'Non-Alcohol', 'Cigarettes']
+  const catMap = Object.fromEntries(expCatBreakdown.map(c => [c.category, c]))
+
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr repeat(5, 1fr)', height: 88, borderBottom: `1px solid ${T.line}`, flexShrink: 0, background: T.surface }}>
-      <div style={{ padding: '10px 18px', borderRight: `2px solid ${T.line2}`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>Expenses · {suffix}</div>
-        <div style={{ fontSize: 19, fontWeight: 700, fontFamily: T.mono, color: T.bad, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fp(total)}</div>
-        <div style={{ fontSize: 10, color: T.textMute }}>total {suffix.toLowerCase()}</div>
-      </div>
-      {expCatBreakdown.map((c, i) => {
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', height: 88, borderBottom: `1px solid ${T.line}`, flexShrink: 0, background: T.surface }}>
+      {CAT_ORDER.map((cat, i) => {
+        const c   = catMap[cat] ?? { category: cat, today: 0, week: 0 }
         const val = isToday ? c.today : c.week
         return (
-          <div key={c.category} style={{
+          <div key={cat} style={{
             padding: '10px 18px',
-            borderRight: i < 4 ? `1px solid ${T.line}` : 'none',
+            borderRight: i < 5 ? `1px solid ${T.line}` : 'none',
             display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
           }}>
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: catColor[c.category] ?? T.textMute }}>{c.category}</div>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: catColor[cat] ?? T.textMute }}>{cat}</div>
             <div style={{ fontSize: 17, fontWeight: 700, fontFamily: T.mono, color: val > 0 ? T.bad : T.textMute, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fp(val)}</div>
             <div style={{ fontSize: 10, color: T.textMute }}>{isToday ? `wk ${fp(c.week)}` : `today ${fp(c.today)}`}</div>
           </div>
