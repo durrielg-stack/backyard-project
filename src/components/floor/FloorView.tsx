@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { THEME, statusColor, statusLabel } from '@/lib/theme'
 import { getClient } from '@/lib/supabase'
 import type { TableWithStatus, KdsTicket } from '@/lib/types'
@@ -240,18 +240,65 @@ export function PanelHd({ title, badge, action }: {
 }
 
 // ── KPI strip (100px, 6 equal columns) ───────────────────────────────────────
-function KpiStrip({ tables }: { tables: TableWithStatus[] }) {
+function KpiStrip({ tables, tickets }: { tables: TableWithStatus[]; tickets: KdsTicket[] }) {
+  const [todayRev,  setTodayRev]  = useState(0)
+  const [txCount,   setTxCount]   = useState(0)
+  const [avgTurnMin, setAvgTurnMin] = useState<number | null>(null)
+
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async function refresh() {
+      const sb = getClient() as any
+      const todayStart = new Date(); todayStart.setHours(0,0,0,0)
+      const { data: pmts } = await sb
+        .from('payments').select('amount')
+        .gte('processed_at', todayStart.toISOString())
+      const p = pmts ?? []
+      setTodayRev(p.reduce((s: number, r: any) => s + r.amount, 0))
+      setTxCount(p.length)
+
+      const { data: orders } = await sb
+        .from('orders').select('created_at, closed_at')
+        .eq('status', 'closed')
+        .gte('created_at', todayStart.toISOString())
+        .not('closed_at', 'is', null)
+      const os = orders ?? []
+      if (os.length > 0) {
+        const totalMin = os.reduce((s: number, o: any) =>
+          s + (new Date(o.closed_at).getTime() - new Date(o.created_at).getTime()) / 60000, 0)
+        setAvgTurnMin(Math.round(totalMin / os.length))
+      }
+    }
+    refresh()
+    const id = setInterval(refresh, 60_000)
+    return () => clearInterval(id)
+  }, [])
+
   const open     = tables.filter(t => ['occupied','aging','attention'].includes(t.status)).length
   const reserved = tables.filter(t => t.status === 'reserved').length
   const attn     = tables.filter(t => t.status === 'attention').length
+  const covers   = tables
+    .filter(t => ['occupied','aging','attention'].includes(t.status))
+    .reduce((s, t) => s + (t.capacity ?? 0), 0)
+
+  const fmtPeso = (v: number) => v >= 1000
+    ? `₱${(v / 1000).toFixed(1)}k`
+    : `₱${v.toFixed(0)}`
 
   const kpis = [
-    { label: 'Revenue · Today',  value: '—',                    note: 'tap Reports for detail', noteColor: T.textDim },
-    { label: 'Open Tables',      value: `${open}/${tables.length}`, note: `${reserved} reserved`, noteColor: T.textDim },
-    { label: 'Avg. Order',       value: '—',                    note: '—', noteColor: T.textDim },
-    { label: 'Staff on Floor',   value: '—',                    note: '4 svr · 2 bar · 1 expo', noteColor: T.textDim },
-    { label: 'Covers',           value: '—',                    note: `${attn} need attention`, noteColor: attn > 0 ? T.bad : T.textDim },
-    { label: 'Avg. Turn Time',   value: '—',                    note: '—', noteColor: T.textDim },
+    { label: 'Revenue · Today', value: todayRev > 0 ? fmtPeso(todayRev) : '₱0',
+      note: `${txCount} txn today`, noteColor: T.textDim },
+    { label: 'Open Tables',     value: `${open}/${tables.length}`,
+      note: `${reserved} reserved`, noteColor: T.textDim },
+    { label: 'Avg. Order',      value: txCount > 0 ? fmtPeso(todayRev / txCount) : '—',
+      note: 'today', noteColor: T.textDim },
+    { label: 'KDS Open',        value: `${tickets.length}`,
+      note: tickets.length > 0 ? `${tickets.filter(t => t.elapsedSec > 360).length} aging` : 'all clear',
+      noteColor: tickets.filter(t => t.elapsedSec > 360).length > 0 ? T.warn : T.textDim },
+    { label: 'Covers',          value: `${covers}`,
+      note: `${attn} need attention`, noteColor: attn > 0 ? T.bad : T.textDim },
+    { label: 'Avg. Turn Time',  value: avgTurnMin != null ? `${avgTurnMin}m` : '—',
+      note: 'closed orders today', noteColor: T.textDim },
   ]
 
   return (
@@ -364,7 +411,7 @@ function TableCard({
               fontSize: 13, fontWeight: 600, fontFamily: T.mono,
               color, fontVariantNumeric: 'tabular-nums',
             }}>
-              ${table.checkTotal.toFixed(2)}
+              ₱{table.checkTotal.toFixed(2)}
             </span>
           )}
         </div>
@@ -494,7 +541,7 @@ export default function FloorView({
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <KpiStrip tables={tables} />
+      <KpiStrip tables={tables} tickets={tickets} />
 
       {/* Body: 2fr left | 1px divider | 1fr right rail */}
       <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) 1px minmax(0, 1fr)' }}>
