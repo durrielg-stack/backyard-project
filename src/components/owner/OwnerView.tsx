@@ -249,80 +249,103 @@ function ReportsTab() {
     const sb  = getClient() as any
     const now = new Date()
 
-    // Today
+    // Date boundaries
     const todayStart = new Date(now); todayStart.setHours(0,0,0,0)
+    const weekStart  = new Date(now); weekStart.setDate(weekStart.getDate() - 6);  weekStart.setHours(0,0,0,0)
+    const monthStart = new Date(now); monthStart.setDate(monthStart.getDate() - 29); monthStart.setHours(0,0,0,0)
+
+    // All orders in last 30 days with their items (single fetch)
+    const { data: allOrders } = await sb
+      .from('orders').select('id, opened_at, status')
+      .gte('opened_at', monthStart.toISOString())
+    const allOrderIds = (allOrders ?? []).map((o: any) => o.id)
+
+    // Payments (method breakdown only — keep for payment method strip)
     const { data: todayPmts } = await sb
-      .from('payments').select('amount, method, processed_at')
+      .from('payments').select('amount, method')
       .gte('processed_at', todayStart.toISOString())
-    const tp = todayPmts ?? []
-    const todayTotal = tp.reduce((s: number, p: any) => s + p.amount, 0)
-    setTodayRev(todayTotal); setTxToday(tp.length)
-
-    // Today's gross sales + cost — via orders opened today (includes unpaid open tables)
-    const { data: todayOrderRows } = await sb
-      .from('orders').select('id').gte('opened_at', todayStart.toISOString())
-    const todayOIds = (todayOrderRows ?? []).map((o: any) => o.id)
-    if (todayOIds.length > 0) {
-      const { data: todayLineItems } = await sb
-        .from('order_items')
-        .select('qty, unit_price, menu_items(cost)')
-        .in('order_id', todayOIds)
-        .neq('status', 'voided')
-      let gross = 0; let cost = 0
-      for (const row of (todayLineItems ?? [])) {
-        const mi = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
-        gross += row.qty * row.unit_price
-        cost  += row.qty * (mi?.cost ?? 0)
-      }
-      setTodayGross(gross)
-      setTodayCost(cost)
-    } else {
-      setTodayGross(0); setTodayCost(0)
-    }
-
-    // Hourly
-    const hourBuckets: Record<number,number> = {}
-    for (const p of tp) { const h = new Date(p.processed_at).getHours(); hourBuckets[h] = (hourBuckets[h]??0) + p.amount }
-    const maxHour = now.getHours()
-    setHourlyBars(makePeak(Array.from({ length: maxHour + 1 }, (_,h) => ({ label: `${String(h).padStart(2,'0')}:00`, value: hourBuckets[h]??0 }))))
-
-    // Method breakdown (today)
     const mm: Record<string,number> = {}
-    for (const p of tp) { mm[p.method] = (mm[p.method]??0) + p.amount }
+    for (const p of (todayPmts ?? [])) { mm[p.method] = (mm[p.method]??0) + p.amount }
     setMethodMap(mm)
 
-    // Week (last 7 days)
-    const weekStart = new Date(now); weekStart.setDate(weekStart.getDate() - 6); weekStart.setHours(0,0,0,0)
-    const { data: weekPmts } = await sb
-      .from('payments').select('amount, processed_at')
-      .gte('processed_at', weekStart.toISOString())
-    const wp = weekPmts ?? []
-    setWeekRev(wp.reduce((s: number, p: any) => s + p.amount, 0)); setTxWeek(wp.length)
-    const dayBuckets: Record<string,number> = {}
-    for (const p of wp) {
-      const d = new Date(p.processed_at)
-      const key = d.toISOString().slice(0,10)
-      dayBuckets[key] = (dayBuckets[key]??0) + p.amount
-    }
-    setWeeklyBars(makePeak(Array.from({ length: 7 }, (_,i) => {
-      const d = new Date(weekStart); d.setDate(d.getDate() + i)
-      return { label: DAY_ABBR[d.getDay()], value: dayBuckets[d.toISOString().slice(0,10)]??0 }
-    })))
+    if (allOrderIds.length === 0) {
+      setTodayGross(0); setTodayCost(0); setTodayRev(0); setTxToday(0)
+      setWeekRev(0); setTxWeek(0); setMonthRev(0); setTxMonth(0)
+      setHourlyBars([]); setWeeklyBars([]); setMonthlyBars([])
+    } else {
+      // Fetch all non-voided order items for those orders
+      const { data: allLines } = await sb
+        .from('order_items')
+        .select('order_id, qty, unit_price, menu_items(name, category, cost)')
+        .in('order_id', allOrderIds)
+        .neq('status', 'voided')
+      const lines = allLines ?? []
 
-    // Month (last 30 days)
-    const monthStart = new Date(now); monthStart.setDate(monthStart.getDate() - 29); monthStart.setHours(0,0,0,0)
-    const { data: monthPmts } = await sb
-      .from('payments').select('amount, processed_at')
-      .gte('processed_at', monthStart.toISOString())
-    const mp = monthPmts ?? []
-    setMonthRev(mp.reduce((s: number, p: any) => s + p.amount, 0)); setTxMonth(mp.length)
-    const dateBuckets: Record<string,number> = {}
-    for (const p of mp) { const k = new Date(p.processed_at).toISOString().slice(0,10); dateBuckets[k]=(dateBuckets[k]??0)+p.amount }
-    setMonthlyBars(makePeak(Array.from({ length: 30 }, (_,i) => {
-      const d = new Date(monthStart); d.setDate(d.getDate() + i)
-      const k = d.toISOString().slice(0,10)
-      return { label: `${d.getDate()}`, value: dateBuckets[k]??0 }
-    })))
+      // Build a map: orderId → opened_at date string
+      const orderDateMap: Record<number, string> = {}
+      const orderOpenedAtMap: Record<number, Date> = {}
+      for (const o of (allOrders ?? [])) {
+        orderDateMap[o.id] = new Date(o.opened_at).toISOString().slice(0,10)
+        orderOpenedAtMap[o.id] = new Date(o.opened_at)
+      }
+
+      // Aggregate by day and hour
+      const hourBuckets: Record<number, number> = {}
+      const dayBuckets:  Record<string, number> = {}
+      let grossToday = 0; let costToday = 0
+      let grossWeek = 0;  let grossMonth = 0
+      const todayStartMs = todayStart.getTime()
+      const weekStartMs  = weekStart.getTime()
+
+      // Count orders per period
+      let txTodayN = 0; let txWeekN = 0; let txMonthN = 0
+      const countedOrders = new Set<number>()
+
+      for (const row of lines) {
+        const openedAt = orderOpenedAtMap[row.order_id]
+        if (!openedAt) continue
+        const ts = openedAt.getTime()
+        const val = row.qty * row.unit_price
+        const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
+
+        grossMonth += val
+        const dk = orderDateMap[row.order_id]
+        dayBuckets[dk] = (dayBuckets[dk] ?? 0) + val
+
+        if (ts >= weekStartMs) grossWeek += val
+        if (ts >= todayStartMs) {
+          grossToday += val
+          costToday  += row.qty * (mi?.cost ?? 0)
+          const h = openedAt.getHours()
+          hourBuckets[h] = (hourBuckets[h] ?? 0) + val
+        }
+
+        if (!countedOrders.has(row.order_id)) {
+          countedOrders.add(row.order_id)
+          if (ts >= todayStartMs) txTodayN++
+          if (ts >= weekStartMs)  txWeekN++
+          txMonthN++
+        }
+      }
+
+      setTodayGross(grossToday); setTodayCost(costToday)
+      setTodayRev(grossToday);   setTxToday(txTodayN)
+      setWeekRev(grossWeek);     setTxWeek(txWeekN)
+      setMonthRev(grossMonth);   setTxMonth(txMonthN)
+
+      const maxHour = now.getHours()
+      setHourlyBars(makePeak(Array.from({ length: maxHour + 1 }, (_,h) => ({
+        label: `${String(h).padStart(2,'0')}:00`, value: hourBuckets[h] ?? 0,
+      }))))
+      setWeeklyBars(makePeak(Array.from({ length: 7 }, (_,i) => {
+        const d = new Date(weekStart); d.setDate(d.getDate() + i)
+        return { label: DAY_ABBR[d.getDay()], value: dayBuckets[d.toISOString().slice(0,10)] ?? 0 }
+      })))
+      setMonthlyBars(makePeak(Array.from({ length: 30 }, (_,i) => {
+        const d = new Date(monthStart); d.setDate(d.getDate() + i)
+        return { label: `${d.getDate()}`, value: dayBuckets[d.toISOString().slice(0,10)] ?? 0 }
+      })))
+    }
 
     // Top items (last 30 days) + category breakdown — join menu_items for cost
     const { data: items } = await sb

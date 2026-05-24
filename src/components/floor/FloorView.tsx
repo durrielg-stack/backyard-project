@@ -250,12 +250,24 @@ function KpiStrip({ tables, tickets }: { tables: TableWithStatus[]; tickets: Kds
     async function refresh() {
       const sb = getClient() as any
       const todayStart = new Date(); todayStart.setHours(0,0,0,0)
-      const { data: pmts } = await sb
-        .from('payments').select('amount')
-        .gte('processed_at', todayStart.toISOString())
-      const p = pmts ?? []
-      setTodayRev(p.reduce((s: number, r: any) => s + r.amount, 0))
-      setTxCount(p.length)
+
+      // Revenue = sum of non-voided order item sales from today's orders
+      const { data: todayOrders } = await sb
+        .from('orders').select('id')
+        .gte('opened_at', todayStart.toISOString())
+      const todayOIds = (todayOrders ?? []).map((o: any) => o.id)
+      let gross = 0
+      let txCount = 0
+      if (todayOIds.length > 0) {
+        const { data: lines } = await sb
+          .from('order_items').select('qty, unit_price')
+          .in('order_id', todayOIds)
+          .neq('status', 'voided')
+        for (const r of (lines ?? [])) gross += r.qty * r.unit_price
+        txCount = todayOIds.length
+      }
+      setTodayRev(gross)
+      setTxCount(txCount)
 
       const { data: orders } = await sb
         .from('orders').select('opened_at, closed_at')
