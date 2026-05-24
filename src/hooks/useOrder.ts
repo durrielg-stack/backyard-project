@@ -16,6 +16,8 @@ interface UseOrderReturn {
   setNote:     (lineId: string, note: string) => Promise<void>
   toggleMod:   (lineId: string, mod: string) => void
   closeOrder:  (method: PayMethod, tendered: number, total: number, tip: number) => Promise<boolean>
+  // Pay a partial split — marks lineIds as paid; closes order when all lines paid
+  payPartial:  (lineIds: string[], method: PayMethod, amount: number, tendered: number) => Promise<'partial' | 'closed' | 'error'>
 }
 
 export function useOrder(tableId: string): UseOrderReturn {
@@ -255,5 +257,51 @@ export function useOrder(tableId: string): UseOrderReturn {
     return true
   }, [orderId, tableId])
 
-  return { orderId, lines, loading, error, addItem, updateQty, removeItem, voidItem, setNote, toggleMod, closeOrder }
+  // ── Pay partial — marks items paid, closes order when all items covered ──
+  const payPartial = useCallback(async (
+    lineIds: string[],
+    method: PayMethod,
+    amount: number,
+    tendered: number,
+  ): Promise<'partial' | 'closed' | 'error'> => {
+    if (!orderId) return 'error'
+    const sb = getClient()
+
+    // Insert payment row
+    const { data: payment, error: payErr } = await sb
+      .from('payments')
+      .insert({
+        order_id:   orderId,
+        method,
+        amount,
+        tendered:   method === 'cash' ? tendered : amount,
+        change_due: method === 'cash' ? Math.max(0, tendered - amount) : 0,
+      })
+      .select('id')
+      .single()
+
+    if (payErr || !payment) { setError(payErr?.message ?? 'Payment failed'); return 'error' }
+
+    // Get dbIds for the lineIds being paid
+    const dbIds = lines.filter(l => lineIds.includes(l.lineId) && l.dbId).map(l => l.dbId!)
+    if (dbIds.length > 0) {
+      await sb.from('order_items').update({ payment_id: payment.id }).in('id', dbIds)
+    }
+
+    // Check if all non-voided lines are now paid
+    const unpaidLines = lines.filter(l => !lineIds.includes(l.lineId))
+    if (unpaidLines.length === 0) {
+      await sb.from('orders').update({ status: 'closed', closed_at: new Date().toISOString() }).eq('id', orderId)
+      await sb.from('restaurant_tables').update({ status: 'available' }).eq('id', tableId)
+      setLines([])
+      setOrderId(null)
+      return 'closed'
+    }
+
+    // Remove paid lines from local state
+    setLines(prev => prev.filter(l => !lineIds.includes(l.lineId)))
+    return 'partial'
+  }, [orderId, tableId, lines])
+
+  return { orderId, lines, loading, error, addItem, updateQty, removeItem, voidItem, setNote, toggleMod, closeOrder, payPartial }
 }

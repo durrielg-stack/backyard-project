@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useOrder }     from '@/hooks/useOrder'
 import { useMenuItems } from '@/hooks/useMenuItems'
-import type { CartLine, TableWithStatus } from '@/lib/types'
+import type { CartLine, TableWithStatus, PayMethod } from '@/lib/types'
 import MenuPanel    from './MenuPanel'
 import OrderPanel   from './OrderPanel'
 import PayModal     from '@/components/modals/PayModal'
@@ -14,9 +14,9 @@ import type { SplitResult } from '@/components/modals/SplitModal'
 // ── Modal state discriminant ───────────────────────────────────────────────
 type ModalState =
   | { kind: 'none' }
-  | { kind: 'pay' }
+  | { kind: 'pay';   payAmount: number; splitLineIds: string[] | null }
   | { kind: 'split' }
-  | { kind: 'paid'; total: number }
+  | { kind: 'paid';  total: number }
 
 interface OrderViewProps {
   tableId:    string
@@ -28,7 +28,7 @@ interface OrderViewProps {
 export default function OrderView({ tableId, table, onBack, onCartSync }: OrderViewProps) {
   const {
     orderId, lines, loading,
-    addItem, updateQty, voidItem, setNote, toggleMod, closeOrder,
+    addItem, updateQty, voidItem, setNote, toggleMod, closeOrder, payPartial,
   } = useOrder(tableId)
 
   const { byCategory, byId: menuById } = useMenuItems()
@@ -64,24 +64,51 @@ export default function OrderView({ tableId, table, onBack, onCartSync }: OrderV
   // ── Action handlers ───────────────────────────────────────────────────────
   function handleHold()   { /* TODO: hold ticket persistence */ }
   function handleSplit()  { if (lines.length > 0) setModal({ kind: 'split' }) }
-  function handleCharge() { if (lines.length > 0) setModal({ kind: 'pay'   }) }
+  function handleCharge() {
+    if (lines.length > 0) setModal({ kind: 'pay', payAmount: total, splitLineIds: null })
+  }
 
-  async function handlePaid(method: import('@/lib/types').PayMethod, tendered: number) {
-    const ok = await closeOrder(method, tendered, total, tip)
-    if (ok) setModal({ kind: 'paid', total })
+  async function handlePaid(method: PayMethod, tendered: number) {
+    if (modal.kind !== 'pay') return
+    const { payAmount, splitLineIds } = modal
+
+    if (splitLineIds) {
+      // Partial split payment
+      const result = await payPartial(splitLineIds, method, payAmount, tendered)
+      if (result === 'closed') {
+        setModal({ kind: 'paid', total: payAmount })
+      } else if (result === 'partial') {
+        // Remaining items — re-open split modal
+        setModal({ kind: 'split' })
+      }
+    } else {
+      // Full order payment
+      const ok = await closeOrder(method, tendered, payAmount, tip)
+      if (ok) setModal({ kind: 'paid', total: payAmount })
+    }
   }
 
   function handleSplitConfirm(result: SplitResult) {
-    // Split chosen — open pay modal for the selected portion
-    // Full split-payment persistence is a future step; for now proceed to pay
-    console.log('Split result:', result)
-    setModal({ kind: 'pay' })
+    if (result.mode === 'equally') {
+      // Equally: pay total/ways per transaction — assign all remaining lines
+      const ways   = result.ways ?? 2
+      const amount = parseFloat((total / ways).toFixed(2))
+      setModal({ kind: 'pay', payAmount: amount, splitLineIds: lines.map(l => l.lineId) })
+    } else if (result.mode === 'by-item' && result.items) {
+      const amount = lines
+        .filter(l => result.items!.includes(l.lineId))
+        .reduce((s, l) => s + l.unitPrice * l.qty, 0)
+      setModal({ kind: 'pay', payAmount: amount, splitLineIds: result.items })
+    } else if (result.mode === 'by-seat' && result.seatMap) {
+      // Pay first seat's items
+      const firstSeat = Math.min(...Object.values(result.seatMap).filter(s => s > 0))
+      const seatLines = lines.filter(l => result.seatMap![l.lineId] === firstSeat)
+      const amount    = seatLines.reduce((s, l) => s + l.unitPrice * l.qty, 0)
+      setModal({ kind: 'pay', payAmount: amount, splitLineIds: seatLines.map(l => l.lineId) })
+    }
   }
 
-  function handlePaidOverlayDone() {
-    // Return to floor after successful payment
-    onBack()
-  }
+  function handlePaidOverlayDone() { onBack() }
 
   // ── Keyboard shortcuts (bubbled from MenuPanel inputs) ────────────────────
   const handleKeyboardShortcut = useCallback((key: string) => {
@@ -152,9 +179,9 @@ export default function OrderView({ tableId, table, onBack, onCartSync }: OrderV
       {/* ── Modals ──────────────────────────────────────────────────────────── */}
       {modal.kind === 'pay' && (
         <PayModal
-          total={total}
-          subtotal={subtotal}
-          tipAmt={tip}
+          total={modal.payAmount}
+          subtotal={modal.splitLineIds ? modal.payAmount : subtotal}
+          tipAmt={modal.splitLineIds ? 0 : tip}
           onPaid={handlePaid}
           onClose={() => setModal({ kind: 'none' })}
         />
