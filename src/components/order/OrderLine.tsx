@@ -6,6 +6,8 @@ import type { CartLine, MenuItem } from '@/lib/types'
 
 const T = THEME
 
+const VOID_REASONS = ['Wrong item', 'Changed mind', 'Unavailable', 'Duplicate'] as const
+
 interface OrderLineProps {
   line:       CartLine
   index:      number          // display index (1-based)
@@ -13,7 +15,7 @@ interface OrderLineProps {
   menuItem:   MenuItem | undefined
   onSelect:   () => void
   onUpdateQty:(lineId: string, delta: number) => void
-  onRemove:   (lineId: string) => void
+  onVoid:     (lineId: string, reason: string) => void
   onSetNote:  (lineId: string, note: string) => void
   onToggleMod:(lineId: string, mod: string) => void
 }
@@ -35,10 +37,11 @@ function NoteIcon() {
 
 export default function OrderLine({
   line, index, selected, menuItem,
-  onSelect, onUpdateQty, onRemove, onSetNote, onToggleMod,
+  onSelect, onUpdateQty, onVoid, onSetNote, onToggleMod,
 }: OrderLineProps) {
-  const [editNote, setEditNote] = useState(false)
-  const [noteVal, setNoteVal]   = useState(line.note)
+  const [editNote, setEditNote]       = useState(false)
+  const [noteVal, setNoteVal]         = useState(line.note)
+  const [confirmVoid, setConfirmVoid] = useState(false)
 
   const availableMods = menuItem?.modifiers ?? []
   const lineTotal     = line.unitPrice * line.qty
@@ -204,8 +207,8 @@ export default function OrderLine({
             >+</button>
           </div>
 
-          {/* Expanded: note + trash */}
-          {selected && (
+          {/* Expanded: note + void */}
+          {selected && !confirmVoid && (
             <div style={{ display: 'flex', gap: 4 }}>
               <button
                 onClick={e => { e.stopPropagation(); setEditNote(true) }}
@@ -220,17 +223,48 @@ export default function OrderLine({
                 <NoteIcon />
               </button>
               <button
-                onClick={e => { e.stopPropagation(); onRemove(line.lineId) }}
-                title="Remove item"
+                onClick={e => { e.stopPropagation(); setConfirmVoid(true) }}
+                title="Void item"
                 style={{
                   width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: `${T.bad}18`,
-                  border: `1px solid ${T.bad}44`,
-                  color: T.bad,
-                  borderRadius: T.radius, cursor: 'pointer',
+                  background: `${T.bad}18`, border: `1px solid ${T.bad}44`,
+                  color: T.bad, borderRadius: T.radius, cursor: 'pointer',
                 }}
               >
                 <TrashIcon />
+              </button>
+            </div>
+          )}
+
+          {/* Void reason picker */}
+          {selected && confirmVoid && (
+            <div onClick={e => e.stopPropagation()} style={{
+              marginTop: 4, padding: '8px 10px',
+              background: `${T.bad}0E`, border: `1px solid ${T.bad}44`,
+              borderRadius: T.radius,
+            }}>
+              <div style={{
+                fontSize: 10, fontWeight: 600, letterSpacing: '0.10em',
+                textTransform: 'uppercase', color: T.bad, marginBottom: 6,
+              }}>
+                Void reason
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
+                {VOID_REASONS.map(r => (
+                  <button key={r} onClick={() => onVoid(line.lineId, r)} style={{
+                    padding: '3px 9px', fontSize: 11, fontFamily: 'inherit',
+                    background: 'transparent', border: `1px solid ${T.bad}66`,
+                    color: T.bad, borderRadius: T.radius, cursor: 'pointer',
+                  }}>
+                    {r}
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => setConfirmVoid(false)} style={{
+                fontSize: 11, background: 'none', border: 'none',
+                color: T.textMute, cursor: 'pointer', padding: 0,
+              }}>
+                Cancel
               </button>
             </div>
           )}

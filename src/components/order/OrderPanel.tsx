@@ -22,7 +22,7 @@ interface OrderPanelProps {
   selectedSeat:    number
   setSelectedSeat: (seat: number) => void
   onUpdateQty:     (lineId: string, delta: number) => Promise<void>
-  onRemove:        (lineId: string) => Promise<void>
+  onVoid:          (lineId: string, reason: string) => Promise<void>
   onSetNote:       (lineId: string, note: string) => Promise<void>
   onToggleMod:     (lineId: string, mod: string) => void
   onBack:          () => void
@@ -35,7 +35,7 @@ export default function OrderPanel({
   table, orderId, lines, menuById,
   subtotal, tip, setTip, total,
   selectedLine, setSelectedLine, selectedSeat, setSelectedSeat,
-  onUpdateQty, onRemove, onSetNote, onToggleMod,
+  onUpdateQty, onVoid, onSetNote, onToggleMod,
   onBack, onHold, onSplit, onCharge,
 }: OrderPanelProps) {
   const listRef = useRef<HTMLDivElement>(null)
@@ -213,7 +213,7 @@ export default function OrderPanel({
                 selectedLine === line.lineId ? null : line.lineId
               )}
               onUpdateQty={onUpdateQty}
-              onRemove={onRemove}
+              onVoid={onVoid}
               onSetNote={onSetNote}
               onToggleMod={onToggleMod}
             />

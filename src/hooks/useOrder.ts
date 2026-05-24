@@ -12,6 +12,7 @@ interface UseOrderReturn {
   addItem:     (item: MenuItem, qty?: number, mods?: string[], seat?: number) => Promise<void>
   updateQty:   (lineId: string, delta: number) => Promise<void>
   removeItem:  (lineId: string) => Promise<void>
+  voidItem:    (lineId: string, reason: string) => Promise<void>
   setNote:     (lineId: string, note: string) => Promise<void>
   toggleMod:   (lineId: string, mod: string) => void
   closeOrder:  (method: PayMethod, tendered: number, total: number, tip: number) => Promise<boolean>
@@ -179,6 +180,22 @@ export function useOrder(tableId: string): UseOrderReturn {
     await updateQty(lineId, -999)
   }, [updateQty])
 
+  // ── Void item with reason ────────────────────────────────────────────────
+  const voidItem = useCallback(async (lineId: string, reason: string) => {
+    const sb   = getClient()
+    const line = lines.find(l => l.lineId === lineId)
+    if (!line) return
+
+    if (line.dbId) {
+      const { error } = await sb.from('order_items').update({
+        status:      'voided',
+        void_reason: reason,
+      }).eq('id', line.dbId)
+      if (error) { setError(error.message); return }
+    }
+    setLines(prev => prev.filter(l => l.lineId !== lineId))
+  }, [lines])
+
   // ── Set note on a line ───────────────────────────────────────────────────
   const setNote = useCallback(async (lineId: string, note: string) => {
     const sb   = getClient()
@@ -238,5 +255,5 @@ export function useOrder(tableId: string): UseOrderReturn {
     return true
   }, [orderId, tableId])
 
-  return { orderId, lines, loading, error, addItem, updateQty, removeItem, setNote, toggleMod, closeOrder }
+  return { orderId, lines, loading, error, addItem, updateQty, removeItem, voidItem, setNote, toggleMod, closeOrder }
 }

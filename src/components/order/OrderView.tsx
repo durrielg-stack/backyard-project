@@ -28,7 +28,7 @@ interface OrderViewProps {
 export default function OrderView({ tableId, table, onBack, onCartSync }: OrderViewProps) {
   const {
     orderId, lines, loading,
-    addItem, updateQty, removeItem, setNote, toggleMod, closeOrder,
+    addItem, updateQty, voidItem, setNote, toggleMod, closeOrder,
   } = useOrder(tableId)
 
   const { byCategory, byId: menuById } = useMenuItems()
@@ -139,7 +139,7 @@ export default function OrderView({ tableId, table, onBack, onCartSync }: OrderV
           selectedSeat={selectedSeat}
           setSelectedSeat={setSelectedSeat}
           onUpdateQty={updateQty}
-          onRemove={removeItem}
+          onVoid={voidItem}
           onSetNote={setNote}
           onToggleMod={toggleMod}
           onBack={onBack}
