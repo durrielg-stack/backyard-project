@@ -303,7 +303,7 @@ function ReportsTab() {
     // Top items (last 30 days) + category breakdown — join menu_items for cost
     const { data: items } = await sb
       .from('order_items')
-      .select('qty, unit_price, status, menu_items(name, category, cost)')
+      .select('qty, unit_price, status, created_at, menu_items(name, category, cost)')
       .gte('created_at', monthStart.toISOString())
     const itemAgg: Record<string, { qty: number; rev: number; cost: number }> = {}
     const catAgg:  Record<string, { gross: number; cost: number }> = {}
@@ -332,13 +332,19 @@ function ReportsTab() {
         .sort((a, b) => b.gross - a.gross)
     )
 
-    // Voided items — today
-    const { data: voidedItems } = await sb
-      .from('order_items')
-      .select('qty, unit_price')
-      .gte('created_at', todayStart.toISOString())
-      .eq('status', 'voided')
-    const vi = voidedItems ?? []
+    // Voided items — today: get today's order ids first, then query voided items
+    const { data: todayOrders } = await sb
+      .from('orders').select('id')
+      .gte('opened_at', todayStart.toISOString())
+    const todayOrderIds = (todayOrders ?? []).map((o: any) => o.id)
+    const vi: any[] = []
+    if (todayOrderIds.length > 0) {
+      const { data: voidedItems } = await sb
+        .from('order_items').select('qty, unit_price')
+        .eq('status', 'voided')
+        .in('order_id', todayOrderIds)
+      vi.push(...(voidedItems ?? []))
+    }
     setVoidedCount(vi.length)
     setVoidedAmount(vi.reduce((s: number, r: any) => s + r.qty * r.unit_price, 0))
 

@@ -258,14 +258,14 @@ function KpiStrip({ tables, tickets }: { tables: TableWithStatus[]; tickets: Kds
       setTxCount(p.length)
 
       const { data: orders } = await sb
-        .from('orders').select('created_at, closed_at')
+        .from('orders').select('opened_at, closed_at')
         .eq('status', 'closed')
-        .gte('created_at', todayStart.toISOString())
+        .gte('opened_at', todayStart.toISOString())
         .not('closed_at', 'is', null)
       const os = orders ?? []
       if (os.length > 0) {
         const totalMin = os.reduce((s: number, o: any) =>
-          s + (new Date(o.closed_at).getTime() - new Date(o.created_at).getTime()) / 60000, 0)
+          s + (new Date(o.closed_at).getTime() - new Date(o.opened_at).getTime()) / 60000, 0)
         setAvgTurnMin(Math.round(totalMin / os.length))
       }
     }
