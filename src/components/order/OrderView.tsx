@@ -28,7 +28,7 @@ interface OrderViewProps {
 export default function OrderView({ tableId, table, onBack, onCartSync }: OrderViewProps) {
   const {
     orderId, lines, loading,
-    addItem, updateQty, removeItem, setNote, toggleMod,
+    addItem, updateQty, removeItem, setNote, toggleMod, closeOrder,
   } = useOrder(tableId)
 
   const { byCategory, byId: menuById } = useMenuItems()
@@ -66,8 +66,9 @@ export default function OrderView({ tableId, table, onBack, onCartSync }: OrderV
   function handleSplit()  { if (lines.length > 0) setModal({ kind: 'split' }) }
   function handleCharge() { if (lines.length > 0) setModal({ kind: 'pay'   }) }
 
-  function handlePaid() {
-    setModal({ kind: 'paid', total })
+  async function handlePaid(method: import('@/lib/types').PayMethod, tendered: number) {
+    const ok = await closeOrder(method, tendered, total, tip)
+    if (ok) setModal({ kind: 'paid', total })
   }
 
   function handleSplitConfirm(result: SplitResult) {

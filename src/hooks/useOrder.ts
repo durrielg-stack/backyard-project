@@ -2,18 +2,19 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { getClient } from '@/lib/supabase'
-import type { CartLine, MenuItem } from '@/lib/types'
+import type { CartLine, MenuItem, PayMethod } from '@/lib/types'
 
 interface UseOrderReturn {
-  orderId:    number | null
-  lines:      CartLine[]
-  loading:    boolean
-  error:      string | null
-  addItem:    (item: MenuItem, qty?: number, mods?: string[], seat?: number) => Promise<void>
-  updateQty:  (lineId: string, delta: number) => Promise<void>
-  removeItem: (lineId: string) => Promise<void>
-  setNote:    (lineId: string, note: string) => Promise<void>
-  toggleMod:  (lineId: string, mod: string) => void
+  orderId:     number | null
+  lines:       CartLine[]
+  loading:     boolean
+  error:       string | null
+  addItem:     (item: MenuItem, qty?: number, mods?: string[], seat?: number) => Promise<void>
+  updateQty:   (lineId: string, delta: number) => Promise<void>
+  removeItem:  (lineId: string) => Promise<void>
+  setNote:     (lineId: string, note: string) => Promise<void>
+  toggleMod:   (lineId: string, mod: string) => void
+  closeOrder:  (method: PayMethod, tendered: number, total: number, tip: number) => Promise<boolean>
 }
 
 export function useOrder(tableId: string): UseOrderReturn {
@@ -200,5 +201,42 @@ export function useOrder(tableId: string): UseOrderReturn {
     }))
   }, [])
 
-  return { orderId, lines, loading, error, addItem, updateQty, removeItem, setNote, toggleMod }
+  // ── Close order: insert payment, close order, free table ────────────────
+  const closeOrder = useCallback(async (
+    method: PayMethod,
+    tendered: number,
+    total: number,
+    tip: number,
+  ): Promise<boolean> => {
+    if (!orderId) return false
+    const sb = getClient()
+
+    // 1. Insert payment row
+    const { error: payErr } = await sb.from('payments').insert({
+      order_id:   orderId,
+      method,
+      amount:     total,
+      tendered:   method === 'cash' ? tendered : total,
+      change_due: method === 'cash' ? Math.max(0, tendered - total) : 0,
+      notes:      tip > 0 ? `Tip: ₱${tip.toFixed(2)}` : null,
+    })
+    if (payErr) { setError(payErr.message); return false }
+
+    // 2. Close the order
+    const { error: orderErr } = await sb
+      .from('orders')
+      .update({ status: 'closed', closed_at: new Date().toISOString() })
+      .eq('id', orderId)
+    if (orderErr) { setError(orderErr.message); return false }
+
+    // 3. Free the table
+    await sb.from('restaurant_tables').update({ status: 'available' }).eq('id', tableId)
+
+    // 4. Clear local state
+    setLines([])
+    setOrderId(null)
+    return true
+  }, [orderId, tableId])
+
+  return { orderId, lines, loading, error, addItem, updateQty, removeItem, setNote, toggleMod, closeOrder }
 }
