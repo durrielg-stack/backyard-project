@@ -1,27 +1,29 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { THEME } from '@/lib/theme'
 
 const T = THEME
+const DELAY = 4
 
 interface PaidOverlayProps {
   total:   number
-  onDone:  () => void   // called after 1.5s — navigate back to floor
+  onDone:  () => void
 }
 
-/**
- * Fullscreen blurred overlay that pops a "Paid · ₱X.XX" card with a green check,
- * then auto-closes after 1.5s and calls onDone (which returns to Floor view).
- */
 export default function PaidOverlay({ total, onDone }: PaidOverlayProps) {
+  const onDoneRef = useRef(onDone)
+  const [remaining, setRemaining] = useState(DELAY)
+
   useEffect(() => {
-    const t = setTimeout(onDone, 1500)
-    return () => clearTimeout(t)
-  }, [onDone])
+    const dismiss = setTimeout(() => onDoneRef.current(), DELAY * 1000)
+    const tick    = setInterval(() => setRemaining(r => r - 1), 1000)
+    return () => { clearTimeout(dismiss); clearInterval(tick) }
+  }, [])
 
   return (
     <div
+      onClick={() => onDoneRef.current()}
       style={{
         position:  'fixed', inset: 0, zIndex: 2000,
         display:   'flex', alignItems: 'center', justifyContent: 'center',
@@ -29,6 +31,7 @@ export default function PaidOverlay({ total, onDone }: PaidOverlayProps) {
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         animation: 'bp-fade-in 0.15s ease forwards',
+        cursor: 'pointer',
       }}
     >
       <div style={{
@@ -73,12 +76,12 @@ export default function PaidOverlay({ total, onDone }: PaidOverlayProps) {
           ₱{total.toFixed(2)}
         </div>
 
-        {/* Auto-dismiss hint */}
+        {/* Countdown */}
         <div style={{
           fontFamily: T.mono, fontSize: 11, color: T.textMute,
           letterSpacing: '0.06em',
         }}>
-          Returning to floor…
+          Returning to floor in {remaining}s · tap to dismiss
         </div>
       </div>
     </div>
