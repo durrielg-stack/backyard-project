@@ -143,16 +143,6 @@ function NewTabPicker({
   const [saving,  setSaving]  = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
-  // Close on outside click
-  useEffect(() => {
-    if (!open) return
-    function handle(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handle)
-    return () => document.removeEventListener('mousedown', handle)
-  }, [open])
-
   // Auto-suggest next walkup ID when opening
   useEffect(() => {
     if (!open) return
@@ -196,7 +186,8 @@ function NewTabPicker({
   }
 
   return (
-    <div ref={ref} style={{ position: 'relative', display: 'flex', alignItems: 'stretch' }}>
+    <>
+      {/* NavBar trigger tab */}
       <div
         onClick={() => setOpen(v => !v)}
         style={{
@@ -221,72 +212,121 @@ function NewTabPicker({
         </span>
       </div>
 
+      {/* Fullscreen modal — sits above everything, not clipped by navbar */}
       {open && (
-        <div style={{
-          position: 'absolute', top: '100%', left: 0, zIndex: 200,
-          background: T.surface, border: `1px solid ${T.line2}`,
-          borderRadius: T.radius, boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-          width: 240, padding: '14px 16px',
-        }}>
-          <div style={{
-            fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
-            textTransform: 'uppercase', color: T.textMute, marginBottom: 10,
-          }}>
-            New Temporary Table
-          </div>
-
-          {/* Label */}
-          <div style={{ marginBottom: 8 }}>
-            <div style={{ fontSize: 10, color: T.textMute, marginBottom: 3 }}>Name / Label</div>
-            <input
-              autoFocus
-              value={label}
-              onChange={e => setLabel(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') create(); if (e.key === 'Escape') setOpen(false) }}
-              style={{
-                width: '100%', boxSizing: 'border-box',
-                fontFamily: 'inherit', fontSize: 13,
-                background: T.surface2, border: `1px solid ${T.line2}`,
-                color: T.text, borderRadius: T.radius,
-                padding: '6px 8px', outline: 'none',
-              }}
-            />
-          </div>
-
-          {/* Capacity */}
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 10, color: T.textMute, marginBottom: 3 }}>Capacity</div>
-            <div style={{ display: 'flex', gap: 4 }}>
-              {['1','2','4','6','8'].map(n => (
-                <button key={n} onClick={() => setCap(n)} style={{
-                  flex: 1, padding: '4px 0', fontSize: 12, fontFamily: T.mono, fontWeight: 600,
-                  background: cap === n ? T.accent : T.chip,
-                  color:      cap === n ? T.accentInk : T.textDim,
-                  border:     `1px solid ${cap === n ? T.accent : T.line2}`,
-                  borderRadius: T.radius, cursor: 'pointer',
-                }}>
-                  {n}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <button
-            onClick={create}
-            disabled={saving || !label.trim()}
+        <div
+          onClick={e => { if (e.target === e.currentTarget) setOpen(false) }}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 2000,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(0,0,0,0.72)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            animation: 'bp-fade-in 0.15s ease forwards',
+          }}
+        >
+          <div
+            ref={ref}
             style={{
-              width: '100%', padding: '7px 0', fontSize: 13,
-              fontFamily: 'inherit', fontWeight: 700,
-              background: T.accent, color: T.accentInk,
-              border: 'none', borderRadius: T.radius, cursor: 'pointer',
-              opacity: (!label.trim() || saving) ? 0.5 : 1,
+              background: T.surface, border: `1px solid ${T.line2}`,
+              borderRadius: T.radiusLg, boxShadow: T.shadowModal,
+              width: 360, padding: '32px 32px 28px',
+              animation: 'bp-modal-pop 0.22s ease forwards',
             }}
           >
-            {saving ? 'Creating…' : 'Add Table'}
-          </button>
+            {/* Header */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              marginBottom: 24,
+            }}>
+              <div style={{
+                fontSize: 16, fontWeight: 700, color: T.text, letterSpacing: '-0.01em',
+              }}>
+                New Temporary Table
+              </div>
+              <button onClick={() => setOpen(false)} style={{
+                background: 'none', border: 'none', color: T.textMute,
+                cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 4,
+              }}>×</button>
+            </div>
+
+            {/* Label */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{
+                fontSize: 10, fontWeight: 600, letterSpacing: '0.10em',
+                textTransform: 'uppercase', color: T.textMute, marginBottom: 6,
+              }}>
+                Name / Label
+              </div>
+              <input
+                autoFocus
+                value={label}
+                onChange={e => setLabel(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') create(); if (e.key === 'Escape') setOpen(false) }}
+                placeholder="e.g. Walkup 1, Bar Tab, Takeout"
+                style={{
+                  width: '100%', boxSizing: 'border-box',
+                  fontFamily: 'inherit', fontSize: 14,
+                  background: T.surface2, border: `1px solid ${T.line2}`,
+                  color: T.text, borderRadius: T.radius,
+                  padding: '9px 12px', outline: 'none',
+                }}
+              />
+            </div>
+
+            {/* Capacity */}
+            <div style={{ marginBottom: 24 }}>
+              <div style={{
+                fontSize: 10, fontWeight: 600, letterSpacing: '0.10em',
+                textTransform: 'uppercase', color: T.textMute, marginBottom: 6,
+              }}>
+                Capacity
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {['1','2','4','6','8'].map(n => (
+                  <button key={n} onClick={() => setCap(n)} style={{
+                    flex: 1, padding: '8px 0', fontSize: 13, fontFamily: T.mono, fontWeight: 600,
+                    background: cap === n ? T.accent : T.chip,
+                    color:      cap === n ? T.accentInk : T.textDim,
+                    border:     `1px solid ${cap === n ? T.accent : T.line2}`,
+                    borderRadius: T.radius, cursor: 'pointer',
+                    transition: 'background 0.1s ease',
+                  }}>
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setOpen(false)} style={{
+                flex: 1, padding: '10px 0', fontSize: 13,
+                fontFamily: 'inherit', fontWeight: 500,
+                background: T.chip, color: T.textDim,
+                border: `1px solid ${T.line2}`, borderRadius: T.radius, cursor: 'pointer',
+              }}>
+                Cancel
+              </button>
+              <button
+                onClick={create}
+                disabled={saving || !label.trim()}
+                style={{
+                  flex: 2, padding: '10px 0', fontSize: 14,
+                  fontFamily: 'inherit', fontWeight: 700,
+                  background: T.accent, color: T.accentInk,
+                  border: 'none', borderRadius: T.radius, cursor: 'pointer',
+                  opacity: (!label.trim() || saving) ? 0.5 : 1,
+                  transition: 'opacity 0.12s ease',
+                }}
+              >
+                {saving ? 'Creating…' : 'Add Table'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
-    </div>
+    </>
   )
 }
 
