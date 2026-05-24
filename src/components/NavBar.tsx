@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { THEME, statusColor } from '@/lib/theme'
+import { getClient } from '@/lib/supabase'
 import type { TableWithStatus, CartLine } from '@/lib/types'
 
 type View = 'floor' | 'reports' | 'owner' | { kind: 'order'; tableId: string }
@@ -128,7 +129,7 @@ function NavTab({ active, onClick, label, sub, dot, dashed, dimmed, onClose }: T
   )
 }
 
-// ── NewTabPicker — dropdown of available tables ───────────────────────────────
+// ── NewTabPicker — creates a temporary walkup table ───────────────────────────
 function NewTabPicker({
   tables,
   onOrder,
@@ -136,7 +137,10 @@ function NewTabPicker({
   tables: TableWithStatus[]
   onOrder: (tableId: string) => void
 }) {
-  const [open, setOpen] = useState(false)
+  const [open,    setOpen]    = useState(false)
+  const [label,   setLabel]   = useState('')
+  const [cap,     setCap]     = useState('2')
+  const [saving,  setSaving]  = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   // Close on outside click
@@ -149,13 +153,46 @@ function NewTabPicker({
     return () => document.removeEventListener('mousedown', handle)
   }, [open])
 
-  // Group available tables by section prefix
-  const available = tables.filter(t => t.status === 'available')
-  const groups: Record<string, TableWithStatus[]> = {}
-  for (const t of available) {
-    const prefix = t.id.match(/^([A-Za-z]+)/)?.[1] ?? '?'
-    const label = prefix === 'T' ? 'Indoor' : prefix === 'B' ? 'Bar' : prefix
-    ;(groups[label] ??= []).push(t)
+  // Auto-suggest next walkup ID when opening
+  useEffect(() => {
+    if (!open) return
+    const existing = tables
+      .filter(t => t.id.startsWith('W'))
+      .map(t => parseInt(t.id.slice(1)) || 0)
+    const next = existing.length > 0 ? Math.max(...existing) + 1 : 1
+    setLabel(`Walkup ${next}`)
+  }, [open, tables])
+
+  async function create() {
+    const trimmed = label.trim()
+    if (!trimmed || saving) return
+    setSaving(true)
+
+    // Derive ID: W1, W2, … from existing walkup tables
+    const existing = tables
+      .filter(t => t.id.startsWith('W'))
+      .map(t => parseInt(t.id.slice(1)) || 0)
+    const nextNum = existing.length > 0 ? Math.max(...existing) + 1 : 1
+    const newId = `W${nextNum}`
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (getClient() as any)
+      .from('restaurant_tables')
+      .insert({
+        id:       newId,
+        label:    trimmed,
+        section:  'walkup',
+        capacity: parseInt(cap) || 2,
+        status:   'available',
+        pos_x:    null,
+        pos_y:    null,
+      })
+
+    setSaving(false)
+    if (!error) {
+      setOpen(false)
+      onOrder(newId)
+    }
   }
 
   return (
@@ -180,7 +217,7 @@ function NewTabPicker({
           New
         </span>
         <span style={{ fontSize: 10, fontFamily: T.mono, color: T.textMute }}>
-          {available.length} free
+          Bar / Takeout
         </span>
       </div>
 
@@ -189,43 +226,64 @@ function NewTabPicker({
           position: 'absolute', top: '100%', left: 0, zIndex: 200,
           background: T.surface, border: `1px solid ${T.line2}`,
           borderRadius: T.radius, boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-          minWidth: 200, padding: '8px 0',
+          width: 240, padding: '14px 16px',
         }}>
-          {available.length === 0 ? (
-            <div style={{ padding: '10px 16px', fontSize: 12, color: T.textMute, fontFamily: T.mono }}>
-              No tables available
+          <div style={{
+            fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
+            textTransform: 'uppercase', color: T.textMute, marginBottom: 10,
+          }}>
+            New Temporary Table
+          </div>
+
+          {/* Label */}
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ fontSize: 10, color: T.textMute, marginBottom: 3 }}>Name / Label</div>
+            <input
+              autoFocus
+              value={label}
+              onChange={e => setLabel(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') create(); if (e.key === 'Escape') setOpen(false) }}
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                fontFamily: 'inherit', fontSize: 13,
+                background: T.surface2, border: `1px solid ${T.line2}`,
+                color: T.text, borderRadius: T.radius,
+                padding: '6px 8px', outline: 'none',
+              }}
+            />
+          </div>
+
+          {/* Capacity */}
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 10, color: T.textMute, marginBottom: 3 }}>Capacity</div>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {['1','2','4','6','8'].map(n => (
+                <button key={n} onClick={() => setCap(n)} style={{
+                  flex: 1, padding: '4px 0', fontSize: 12, fontFamily: T.mono, fontWeight: 600,
+                  background: cap === n ? T.accent : T.chip,
+                  color:      cap === n ? T.accentInk : T.textDim,
+                  border:     `1px solid ${cap === n ? T.accent : T.line2}`,
+                  borderRadius: T.radius, cursor: 'pointer',
+                }}>
+                  {n}
+                </button>
+              ))}
             </div>
-          ) : Object.entries(groups).map(([section, rows]) => (
-            <div key={section}>
-              <div style={{
-                padding: '4px 16px 2px',
-                fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
-                textTransform: 'uppercase', color: T.textMute,
-              }}>
-                {section}
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '4px 12px 8px' }}>
-                {rows.map(t => (
-                  <button
-                    key={t.id}
-                    onClick={() => { onOrder(t.id); setOpen(false) }}
-                    style={{
-                      padding: '5px 12px', fontSize: 12, fontFamily: T.mono, fontWeight: 600,
-                      background: T.chip, color: T.text,
-                      border: `1px solid ${T.line2}`,
-                      borderRadius: T.radius, cursor: 'pointer',
-                      transition: 'background 0.1s ease',
-                    }}
-                  >
-                    {t.id}
-                    <span style={{ fontWeight: 400, color: T.textMute, marginLeft: 4, fontSize: 10 }}>
-                      {t.capacity}p
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
+          </div>
+
+          <button
+            onClick={create}
+            disabled={saving || !label.trim()}
+            style={{
+              width: '100%', padding: '7px 0', fontSize: 13,
+              fontFamily: 'inherit', fontWeight: 700,
+              background: T.accent, color: T.accentInk,
+              border: 'none', borderRadius: T.radius, cursor: 'pointer',
+              opacity: (!label.trim() || saving) ? 0.5 : 1,
+            }}
+          >
+            {saving ? 'Creating…' : 'Add Table'}
+          </button>
         </div>
       )}
     </div>

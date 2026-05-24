@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { THEME, statusColor, statusLabel } from '@/lib/theme'
+import { getClient } from '@/lib/supabase'
 import type { TableWithStatus, KdsTicket } from '@/lib/types'
 import KdsPanel       from './KdsPanel'
 import InventoryPanel from './InventoryPanel'
@@ -282,10 +283,11 @@ function KpiStrip({ tables }: { tables: TableWithStatus[] }) {
 
 // ── Table grid card ───────────────────────────────────────────────────────────
 function TableCard({
-  table, onClick,
+  table, onClick, onRemove,
 }: {
-  table: TableWithStatus
-  onClick: () => void
+  table:    TableWithStatus
+  onClick:  () => void
+  onRemove?: () => void
 }) {
   const color     = statusColor(table.status)
   const isAttn    = table.status === 'attention'
@@ -308,16 +310,33 @@ function TableCard({
       onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = T.surface2; (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)' }}
       onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = T.surface;  (e.currentTarget as HTMLElement).style.transform = 'translateY(0)' }}
     >
-      {/* Top row: number + status dot */}
+      {/* Top row: label + status dot + optional remove */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <span style={{
           fontSize: 17, fontWeight: 700, fontFamily: T.mono, letterSpacing: '-0.01em',
           color: T.text,
-        }}>{table.id}</span>
-        <span style={{
-          width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0,
-          marginTop: 3,
-        }} />
+        }}>{table.label}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <span style={{
+            width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0,
+            marginTop: 3,
+          }} />
+          {onRemove && (
+            <button
+              onClick={e => { e.stopPropagation(); onRemove() }}
+              title="Remove temporary table"
+              style={{
+                width: 18, height: 18, borderRadius: T.radius,
+                background: `${T.bad}22`, border: `1px solid ${T.bad}44`,
+                color: T.bad, cursor: 'pointer', fontSize: 12, lineHeight: 1,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: 0, flexShrink: 0,
+              }}
+            >
+              ×
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Status label */}
@@ -366,6 +385,11 @@ function FloorPanel({
   setLayout:   (l: 'grid' | 'floor') => void
   onOpenTable: (id: string) => void
 }) {
+  async function removeWalkup(tableId: string) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (getClient() as any).from('restaurant_tables').delete().eq('id', tableId)
+  }
+
   const counts = {
     available: tables.filter(t => t.status === 'available').length,
     occupied:  tables.filter(t => t.status === 'occupied').length,
@@ -440,7 +464,12 @@ function FloorPanel({
         <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10 }}>
             {tables.map(t => (
-              <TableCard key={t.id} table={t} onClick={() => onOpenTable(t.id)} />
+              <TableCard
+                key={t.id}
+                table={t}
+                onClick={() => onOpenTable(t.id)}
+                onRemove={t.id.startsWith('W') ? () => removeWalkup(t.id) : undefined}
+              />
             ))}
           </div>
         </div>

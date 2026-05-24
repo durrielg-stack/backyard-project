@@ -75,7 +75,19 @@ function KdsTicketRow({ ticket, onBump }: {
           padding: '5px 12px', fontSize: 11, fontFamily: 'inherit', fontWeight: 600,
           background: 'transparent', border: `1px solid ${T.line2}`, color: T.textDim,
           borderRadius: T.radius, cursor: 'pointer', letterSpacing: '0.06em', textTransform: 'uppercase',
-          transition: 'background 0.12s ease, border-color 0.12s ease',
+          transition: 'background 0.12s ease, border-color 0.12s ease, color 0.12s ease',
+        }}
+        onMouseEnter={e => {
+          const b = e.currentTarget
+          b.style.background = T.ok + '22'
+          b.style.borderColor = T.ok
+          b.style.color = T.ok
+        }}
+        onMouseLeave={e => {
+          const b = e.currentTarget
+          b.style.background = 'transparent'
+          b.style.borderColor = T.line2
+          b.style.color = T.textDim
         }}
       >
         Served
