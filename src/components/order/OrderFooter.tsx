@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { THEME } from '@/lib/theme'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 
 const T = THEME
 
@@ -50,6 +51,8 @@ function TotalsRow({ label, value, accent, large, mute }: {
 export default function OrderFooter({
   subtotal, tip, setTip, discount, setDiscount, total, onSplit, onCharge, disabled,
 }: OrderFooterProps) {
+  const bp = useBreakpoint()
+  const isMobile = bp === 'mobile'
   const [editingTip,      setEditingTip]      = useState(false)
   const [editingDiscount, setEditingDiscount] = useState(false)
   const [tipVal,          setTipVal]          = useState('')
@@ -75,7 +78,8 @@ export default function OrderFooter({
 
   return (
     <div style={{
-      borderTop: `1px solid ${T.line}`, padding: '18px 24px',
+      borderTop: `1px solid ${T.line}`,
+      padding: isMobile ? '18px 16px 76px' : '18px 24px',
       flexShrink: 0, background: T.surface,
     }}>
       {/* ── Totals ──────────────────────────────────────────────────── */}

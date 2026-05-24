@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { THEME, statusColor, statusLabel } from '@/lib/theme'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { getClient } from '@/lib/supabase'
 import type { TableWithStatus, KdsTicket } from '@/lib/types'
 import KdsPanel from './KdsPanel'
@@ -243,33 +244,36 @@ export function PanelHd({ title, badge, badgeColor, action }: {
 
 // ── KPI strip (100px, 6 equal columns) ───────────────────────────────────────
 function KpiStrip({ tables, tickets }: { tables: TableWithStatus[]; tickets: KdsTicket[] }) {
+  const bp = useBreakpoint()
+  const isMobile = bp === 'mobile'
   const [todayRev,  setTodayRev]  = useState(0)
   const [txCount,   setTxCount]   = useState(0)
   const [avgTurnMin, setAvgTurnMin] = useState<number | null>(null)
 
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb = getClient() as any
+
     async function refresh() {
-      const sb = getClient() as any
       const todayStart = new Date(); todayStart.setHours(0,0,0,0)
 
-      // Revenue = sum of non-voided order item sales from today's orders
-      const { data: todayOrders } = await sb
+      // Revenue = only closed orders (paid). Unbilled covers open ones.
+      const { data: closedToday } = await sb
         .from('orders').select('id')
+        .eq('status', 'closed')
         .gte('opened_at', todayStart.toISOString())
-      const todayOIds = (todayOrders ?? []).map((o: any) => o.id)
+      const closedOIds = (closedToday ?? []).map((o: any) => o.id)
       let gross = 0
-      let txCount = 0
-      if (todayOIds.length > 0) {
+      let txN = closedOIds.length
+      if (closedOIds.length > 0) {
         const { data: lines } = await sb
           .from('order_items').select('qty, unit_price')
-          .in('order_id', todayOIds)
+          .in('order_id', closedOIds)
           .neq('status', 'voided')
         for (const r of (lines ?? [])) gross += r.qty * r.unit_price
-        txCount = todayOIds.length
       }
       setTodayRev(gross)
-      setTxCount(txCount)
+      setTxCount(txN)
 
       const { data: orders } = await sb
         .from('orders').select('opened_at, closed_at')
@@ -283,9 +287,18 @@ function KpiStrip({ tables, tickets }: { tables: TableWithStatus[]; tickets: Kds
         setAvgTurnMin(Math.round(totalMin / os.length))
       }
     }
+
     refresh()
-    const id = setInterval(refresh, 60_000)
-    return () => clearInterval(id)
+
+    const channel = sb
+      .channel('kpi-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' },     refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' },          refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' },        refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'restaurant_tables' }, refresh)
+      .subscribe()
+
+    return () => { sb.removeChannel(channel) }
   }, [])
 
   const open     = tables.filter(t => ['occupied','aging','attention'].includes(t.status)).length
@@ -297,9 +310,7 @@ function KpiStrip({ tables, tickets }: { tables: TableWithStatus[]; tickets: Kds
     .filter(t => ['occupied','aging','attention'].includes(t.status))
     .reduce((s, t) => s + (t.checkTotal ?? 0), 0)
 
-  const fmtPeso = (v: number) => v >= 1000
-    ? `₱${(v / 1000).toFixed(1)}k`
-    : `₱${v.toFixed(0)}`
+  const fmtPeso = (v: number) => `₱${v.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
   const projected = todayRev + unbilled
 
@@ -321,22 +332,27 @@ function KpiStrip({ tables, tickets }: { tables: TableWithStatus[]; tickets: Kds
   ]
 
   return (
-    <div style={{
-      display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)',
-      height: 'clamp(80px, 9.3vh, 120px)', borderBottom: `1px solid ${T.line}`, flexShrink: 0,
+    <div className="bp-no-scrollbar" style={{
+      display: isMobile ? 'flex' : 'grid',
+      gridTemplateColumns: isMobile ? undefined : 'repeat(6, 1fr)',
+      overflowX: isMobile ? 'auto' : undefined,
+      height: isMobile ? 'auto' : 'clamp(80px, 9.3vh, 120px)',
+      borderBottom: `1px solid ${T.line}`, flexShrink: 0,
     }}>
       {kpis.map((k, i) => (
         <div key={k.label} style={{
-          padding: '16px 24px',
-          borderRight: i < 5 ? `1px solid ${T.line}` : 'none',
+          padding: isMobile ? '12px 16px' : '16px 24px',
+          borderRight: `1px solid ${T.line}`,
           display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+          minWidth: isMobile ? 140 : undefined,
+          gap: isMobile ? 4 : undefined,
         }}>
           <div style={{
-            fontSize: 11, fontWeight: 600, letterSpacing: '0.12em',
-            textTransform: 'uppercase', color: T.textMute,
+            fontSize: 10, fontWeight: 600, letterSpacing: '0.12em',
+            textTransform: 'uppercase', color: T.textMute, whiteSpace: 'nowrap',
           }}>{k.label}</div>
           <div style={{
-            fontSize: i <= 1 ? 28 : 24, fontWeight: 700,
+            fontSize: isMobile ? 18 : i <= 1 ? 28 : 24, fontWeight: 700,
             fontFamily: T.mono, letterSpacing: '-0.02em',
             color: T.text, fontVariantNumeric: 'tabular-nums', lineHeight: 1,
           }}>{k.value}</div>
@@ -586,6 +602,9 @@ function FloorPanel({
   tickets:     KdsTicket[]
   onOpenTable: (id: string) => void
 }) {
+  const bp = useBreakpoint()
+  const isMobile = bp === 'mobile'
+  const isTablet = bp === 'tablet'
   const [removeBlockedTable, setRemoveBlockedTable] = useState<string | null>(null)
 
   async function removeWalkup(tableId: string) {
@@ -681,8 +700,12 @@ function FloorPanel({
       </div>
 
       {/* Body — grid view */}
-      <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10 }}>
+      <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: isMobile ? 12 : 20 }}>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : isTablet ? 'repeat(4, 1fr)' : 'repeat(6, 1fr)',
+          gap: isMobile ? 8 : 10,
+        }}>
           {tables.map(t => (
             <TableCard
               key={t.id}
@@ -708,19 +731,29 @@ export default function FloorView({
   onOpenTable: (id: string) => void
   onBump: (itemId: number) => void
 }) {
+  const bp = useBreakpoint()
+  const isMobile = bp === 'mobile'
+
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflowY: isMobile ? 'auto' : undefined }}>
       <KpiStrip tables={tables} tickets={tickets} />
 
-      {/* Body: 2fr left | 1px divider | 1fr right rail */}
-      <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) 1px minmax(0, 1fr)' }}>
-        <FloorPanel
-          tables={tables} tickets={tickets}
-          onOpenTable={onOpenTable}
-        />
-        <div style={{ background: T.line }} />
-        <KdsPanel tickets={tickets} tick={tick} onBump={onBump} />
-      </div>
+      {isMobile ? (
+        /* Mobile: stacked layout */
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+          <FloorPanel tables={tables} tickets={tickets} onOpenTable={onOpenTable} />
+          <div style={{ borderTop: `1px solid ${T.line}`, flexShrink: 0, minHeight: 220 }}>
+            <KdsPanel tickets={tickets} tick={tick} onBump={onBump} />
+          </div>
+        </div>
+      ) : (
+        /* Desktop/Tablet: side-by-side */
+        <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) 1px minmax(0, 1fr)' }}>
+          <FloorPanel tables={tables} tickets={tickets} onOpenTable={onOpenTable} />
+          <div style={{ background: T.line }} />
+          <KdsPanel tickets={tickets} tick={tick} onBump={onBump} />
+        </div>
+      )}
     </div>
   )
 }

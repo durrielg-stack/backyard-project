@@ -300,7 +300,19 @@ export function useReports(): ReportsData {
     setLoading(false)
   }, [])
 
-  useEffect(() => { fetchAll() }, [fetchAll])
+  useEffect(() => {
+    fetchAll()
+    const sb = getClient()
+    const channel = sb
+      .channel('reports-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' },      fetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' },           fetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' },         fetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_expenses' },   fetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'restaurant_tables' }, fetchAll)
+      .subscribe()
+    return () => { sb.removeChannel(channel) }
+  }, [fetchAll])
 
   return {
     todayRevenue, weekRevenue, todayCost,

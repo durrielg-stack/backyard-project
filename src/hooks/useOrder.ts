@@ -15,7 +15,7 @@ interface UseOrderReturn {
   voidItem:    (lineId: string, reason: string) => Promise<void>
   setNote:     (lineId: string, note: string) => Promise<void>
   closeOrder:  (method: PayMethod, tendered: number, total: number, tip: number, discount?: number) => Promise<boolean>
-  payPartial:  (lineIds: string[], method: PayMethod, amount: number, tendered: number) => Promise<'partial' | 'closed' | 'error'>
+  payPartial:  (lineIds: string[], method: PayMethod, amount: number, tendered: number, autoClose?: boolean) => Promise<'partial' | 'closed' | 'error'>
 }
 
 export function useOrder(tableId: string, staff?: string): UseOrderReturn {
@@ -266,6 +266,7 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
     method: PayMethod,
     amount: number,
     tendered: number,
+    autoClose = true,
   ): Promise<'partial' | 'closed' | 'error'> => {
     if (!orderId) return 'error'
     const sb = getClient()
@@ -293,7 +294,7 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
 
     // Check if all non-voided lines are now paid
     const unpaidLines = lines.filter(l => !lineIds.includes(l.lineId))
-    if (unpaidLines.length === 0) {
+    if (unpaidLines.length === 0 && autoClose) {
       await sb.from('orders').update({ status: 'closed', closed_at: new Date().toISOString() }).eq('id', orderId)
       await sb.from('restaurant_tables').update({ status: 'available' }).eq('id', tableId)
       setLines([])

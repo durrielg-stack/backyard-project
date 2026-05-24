@@ -1,6 +1,7 @@
 'use client'
 
 import { THEME, statusColor } from '@/lib/theme'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 import type { TableWithStatus, CartLine } from '@/lib/types'
 
 type View = 'floor' | 'expenses' | 'reports' | 'owner' | { kind: 'order'; tableId: string }
@@ -72,11 +73,13 @@ interface TabProps {
 
 function NavTab({ active, onClick, label, sub, dot, dashed, dimmed, onClose }: TabProps) {
   const borderColor = dashed ? T.line2 : 'transparent'
+  const bpInner = useBreakpoint()
+  const isMobileTab = bpInner === 'mobile'
   return (
     <div
       onClick={onClick}
       style={{
-        minWidth: 96, height: 64, padding: '0 16px',
+        minWidth: isMobileTab ? 72 : 96, height: 64, padding: isMobileTab ? '0 10px' : '0 16px',
         display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
         justifyContent: 'center', gap: 2,
         cursor: 'pointer', position: 'relative',
@@ -134,6 +137,8 @@ export default function NavBar({
   view, openTabs, tables, carts,
   attnCount, now, staff, onFloor, onExpenses, onReports, onOwner, onOrder, onCloseTab, onSignOut,
 }: NavBarProps) {
+  const bp = useBreakpoint()
+  const isMobile = bp === 'mobile'
   const time    = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
   const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
 
@@ -156,7 +161,7 @@ export default function NavBar({
       {/* ── Brand ──────────────────────────────────────────────────────────── */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 10,
-        padding: '0 20px 0 24px', flexShrink: 0,
+        padding: isMobile ? '0 12px 0 12px' : '0 20px 0 24px', flexShrink: 0,
       }}>
         <div style={{
           width: 28, height: 28, background: T.accent, color: T.accentInk,
@@ -166,19 +171,21 @@ export default function NavBar({
         }}>
           B
         </div>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.01em', lineHeight: 1 }}>
-            The Backyard Project
+        {!isMobile && (
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.01em', lineHeight: 1 }}>
+              The Backyard Project
+            </div>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 5, marginTop: 3,
+              fontSize: 10, color: T.textMute, letterSpacing: '0.1em',
+              textTransform: 'uppercase', fontFamily: T.mono,
+            }}>
+              <PulseDot />
+              <span>POS · Floor 1</span>
+            </div>
           </div>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 5, marginTop: 3,
-            fontSize: 10, color: T.textMute, letterSpacing: '0.1em',
-            textTransform: 'uppercase', fontFamily: T.mono,
-          }}>
-            <PulseDot />
-            <span>POS · Floor 1</span>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* ── 1px vertical divider ───────────────────────────────────────────── */}
@@ -187,7 +194,7 @@ export default function NavBar({
       {/* ── Tab strip ─────────────────────────────────────────────────────── */}
       <div className="bp-no-scrollbar" style={{
         display: 'flex', alignItems: 'stretch', flex: 1, minWidth: 0,
-        overflow: 'hidden', // tabs truncate, not scroll
+        overflowX: isMobile ? 'auto' : 'hidden',
         gap: 0,
       }}>
         {/* Sales (floor) */}
@@ -253,8 +260,8 @@ export default function NavBar({
 
       {/* ── Right chrome ──────────────────────────────────────────────────── */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 16,
-        padding: '0 24px', flexShrink: 0,
+        display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 16,
+        padding: isMobile ? '0 10px' : '0 24px', flexShrink: 0,
         fontSize: 13, color: T.textDim,
       }}>
         {/* Bell + attention badge */}
@@ -272,7 +279,7 @@ export default function NavBar({
           )}
         </div>
 
-        <div style={{ width: 1, height: 20, background: T.line }} />
+        {!isMobile && <div style={{ width: 1, height: 20, background: T.line }} />}
 
         {/* Avatar + name */}
         <div
@@ -288,28 +295,33 @@ export default function NavBar({
           }}>
             {staff.initials}
           </div>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 500, color: T.text, lineHeight: 1 }}>{staff.name}</div>
-            <div style={{ fontSize: 10, color: T.textMute, lineHeight: 1, marginTop: 2 }}>· {staff.role}</div>
-          </div>
+          {!isMobile && (
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 500, color: T.text, lineHeight: 1 }}>{staff.name}</div>
+              <div style={{ fontSize: 10, color: T.textMute, lineHeight: 1, marginTop: 2 }}>· {staff.role}</div>
+            </div>
+          )}
         </div>
 
-        <div style={{ width: 1, height: 20, background: T.line }} />
-
-        {/* Clock */}
-        <div style={{ textAlign: 'right' }}>
-          <div style={{
-            fontFamily: T.mono, fontSize: 13, color: T.text, lineHeight: 1,
-            fontVariantNumeric: 'tabular-nums', fontWeight: 500,
-          }}>
-            {time}
-          </div>
-          <div style={{
-            fontFamily: T.mono, fontSize: 10, color: T.textMute, lineHeight: 1, marginTop: 2,
-          }}>
-            {dateStr}
-          </div>
-        </div>
+        {!isMobile && (
+          <>
+            <div style={{ width: 1, height: 20, background: T.line }} />
+            {/* Clock */}
+            <div style={{ textAlign: 'right' }}>
+              <div style={{
+                fontFamily: T.mono, fontSize: 13, color: T.text, lineHeight: 1,
+                fontVariantNumeric: 'tabular-nums', fontWeight: 500,
+              }}>
+                {time}
+              </div>
+              <div style={{
+                fontFamily: T.mono, fontSize: 10, color: T.textMute, lineHeight: 1, marginTop: 2,
+              }}>
+                {dateStr}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

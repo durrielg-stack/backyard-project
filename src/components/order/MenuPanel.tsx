@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { THEME } from '@/lib/theme'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 import type { MenuItem } from '@/lib/types'
 
 const T = THEME
@@ -50,7 +51,7 @@ function MenuCard({ item, onAdd }: { item: MenuItem; onAdd: () => void }) {
         color:         T.text, fontFamily: 'inherit',
         borderRadius:  T.radius, position: 'relative',
         display:       'flex', flexDirection: 'column', justifyContent: 'space-between',
-        minHeight:     110,
+        minHeight:     90,
         transform:     hover ? 'translateY(-1px)' : 'translateY(0)',
         transition:    'background 0.12s ease, border-color 0.12s ease, transform 0.1s ease',
       }}
@@ -103,6 +104,9 @@ export default function MenuPanel({ byCategory, onAdd, onKeyboardShortcut }: Men
   const [activeCat, setActiveCat] = useState<string | null>(null)
   const [query, setQuery]         = useState('')
   const searchRef                 = useRef<HTMLInputElement>(null)
+  const bp = useBreakpoint()
+  const isMobile  = bp === 'mobile'
+  const isTablet  = bp === 'tablet'
 
   const activeGroup = GROUPS.find(g => g.id === group)!
 
@@ -157,38 +161,41 @@ export default function MenuPanel({ byCategory, onAdd, onKeyboardShortcut }: Men
       display: 'flex', flexDirection: 'column', height: '100%',
     }}>
 
-      {/* ── Category tabs + search — 80px ─────────────────────────────── */}
+      {/* ── Category tabs + search ─────────────────────────────────────── */}
       <div style={{
-        height: 80, padding: '0 28px', flexShrink: 0,
-        borderBottom: `1px solid ${T.line}`,
-        display: 'flex', alignItems: 'center', gap: 18,
+        minHeight: isMobile ? 'auto' : 80, padding: isMobile ? '10px 14px' : '0 28px',
+        flexShrink: 0, borderBottom: `1px solid ${T.line}`,
+        display: 'flex', flexDirection: isMobile ? 'column' : 'row',
+        alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? 8 : 18,
       }}>
-        <div style={{ display: 'flex', gap: 4 }}>
+        <div className="bp-no-scrollbar" style={{ display: 'flex', gap: 4, overflowX: 'auto', flexShrink: 0 }}>
           {GROUPS.map(g => {
             const active = group === g.id
             return (
               <button key={g.id} onClick={() => setGroup(g.id)} style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '10px 18px', cursor: 'pointer', border: 'none',
+                display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 8,
+                padding: isMobile ? '8px 12px' : '10px 18px', cursor: 'pointer', border: 'none',
                 background:   active ? T.accent : T.chip,
                 color:        active ? T.accentInk : T.text,
-                fontFamily:   'inherit', fontSize: 14, fontWeight: 600,
+                fontFamily:   'inherit', fontSize: isMobile ? 13 : 14, fontWeight: 600,
                 letterSpacing: '-0.01em', borderRadius: T.radius,
-                transition:   'background 0.12s ease',
+                transition:   'background 0.12s ease', whiteSpace: 'nowrap', flexShrink: 0,
               }}>
                 {g.label}
-                <Kbd>{g.key}</Kbd>
+                {!isMobile && <Kbd>{g.key}</Kbd>}
               </button>
             )
           })}
         </div>
 
-        <div style={{ flex: 1 }} />
+        {!isMobile && <div style={{ flex: 1 }} />}
 
         {/* Search */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
-          width: 'clamp(220px, 14.6vw, 360px)', background: T.surface, border: `1px solid ${T.line2}`,
+          width: isMobile ? '100%' : 'clamp(220px, 14.6vw, 360px)',
+          boxSizing: 'border-box',
+          background: T.surface, border: `1px solid ${T.line2}`,
           borderRadius: T.radius, color: T.textDim,
         }}>
           <svg viewBox="0 0 16 16" width={14} height={14} fill="none" stroke="currentColor" strokeWidth={1.5}>
@@ -199,7 +206,7 @@ export default function MenuPanel({ byCategory, onAdd, onKeyboardShortcut }: Men
             ref={searchRef}
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Search menu…  ⌘K"
+            placeholder={isMobile ? 'Search menu…' : 'Search menu…  ⌘K'}
             style={{
               border: 'none', outline: 'none', background: 'transparent',
               color: T.text, fontFamily: 'inherit', fontSize: 13,
@@ -218,7 +225,7 @@ export default function MenuPanel({ byCategory, onAdd, onKeyboardShortcut }: Men
       {/* ── Sub-category chips ─────────────────────────────────────────── */}
       {subCats.length > 1 && (
         <div className="bp-no-scrollbar" style={{
-          display: 'flex', gap: 6, padding: '10px 28px',
+          display: 'flex', gap: 6, padding: isMobile ? '8px 14px' : '10px 28px',
           borderBottom: `1px solid ${T.line}`, overflowX: 'auto', flexShrink: 0,
         }}>
           <button
@@ -255,7 +262,7 @@ export default function MenuPanel({ byCategory, onAdd, onKeyboardShortcut }: Men
 
       {/* ── Item grid ─────────────────────────────────────────────────── */}
       <div className="bp-no-scrollbar" style={{
-        flex: 1, overflowY: 'auto', padding: '20px 28px 12px',
+        flex: 1, overflowY: 'auto', padding: isMobile ? '14px 14px 80px' : '20px 28px 12px',
       }}>
         {/* Section label */}
         <div style={{
@@ -271,7 +278,9 @@ export default function MenuPanel({ byCategory, onAdd, onKeyboardShortcut }: Men
         </div>
 
         <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12,
+          display: 'grid',
+          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : isTablet ? 'repeat(3, 1fr)' : 'repeat(4, 1fr)',
+          gap: isMobile ? 8 : 12,
         }}>
           {items.map(item => (
             <MenuCard key={item.id} item={item} onAdd={() => onAdd(item)} />

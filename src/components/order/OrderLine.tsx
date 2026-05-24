@@ -16,6 +16,7 @@ interface OrderLineProps {
   onUpdateQty:(lineId: string, delta: number) => void
   onVoid:     (lineId: string, reason: string) => void
   onSetNote:  (lineId: string, note: string) => void
+  onBill:     (lineId: string) => void
 }
 
 function TrashIcon() {
@@ -35,7 +36,7 @@ function NoteIcon() {
 
 export default function OrderLine({
   line, index, selected,
-  onSelect, onUpdateQty, onVoid, onSetNote,
+  onSelect, onUpdateQty, onVoid, onSetNote, onBill,
 }: OrderLineProps) {
   const [editNote, setEditNote]       = useState(false)
   const [noteVal, setNoteVal]         = useState(line.note)
@@ -154,9 +155,22 @@ export default function OrderLine({
             >+</button>
           </div>
 
-          {/* Expanded: note + void */}
+          {/* Expanded: bill + note + void */}
           {selected && !confirmVoid && (
             <div style={{ display: 'flex', gap: 4 }}>
+              <button
+                onClick={e => { e.stopPropagation(); onBill(line.lineId) }}
+                title="Bill this item"
+                style={{
+                  padding: '0 10px', height: 26, display: 'flex', alignItems: 'center',
+                  gap: 4, fontSize: 11, fontFamily: 'inherit', fontWeight: 600,
+                  background: `${T.ok}18`, border: `1px solid ${T.ok}44`,
+                  color: T.ok, borderRadius: T.radius, cursor: 'pointer',
+                  letterSpacing: '0.06em', textTransform: 'uppercase',
+                }}
+              >
+                Bill
+              </button>
               <button
                 onClick={e => { e.stopPropagation(); setEditNote(true) }}
                 title="Add note"

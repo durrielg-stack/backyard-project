@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useOrder }     from '@/hooks/useOrder'
-import { useMenuItems } from '@/hooks/useMenuItems'
+import { useOrder }       from '@/hooks/useOrder'
+import { useMenuItems }   from '@/hooks/useMenuItems'
+import { useBreakpoint }  from '@/hooks/useBreakpoint'
+import { THEME }          from '@/lib/theme'
 import type { CartLine, TableWithStatus, PayMethod } from '@/lib/types'
 import MenuPanel    from './MenuPanel'
 import OrderPanel   from './OrderPanel'
@@ -11,10 +13,12 @@ import SplitModal   from '@/components/modals/SplitModal'
 import PaidOverlay  from '@/components/modals/PaidOverlay'
 import type { SplitResult } from '@/components/modals/SplitModal'
 
+const T = THEME
+
 // ── Modal state discriminant ───────────────────────────────────────────────
 type ModalState =
   | { kind: 'none' }
-  | { kind: 'pay';   payAmount: number; splitLineIds: string[] | null }
+  | { kind: 'pay';   payAmount: number; splitLineIds: string[] | null; singleItem?: boolean }
   | { kind: 'split' }
   | { kind: 'paid';  total: number }
 
@@ -33,6 +37,8 @@ export default function OrderView({ tableId, table, staff, onBack, onCartSync }:
   } = useOrder(tableId, staff)
 
   const { byCategory, byId: menuById } = useMenuItems()
+  const bp = useBreakpoint()
+  const isMobile = bp === 'mobile'
 
   // ── Tip + discount state ──────────────────────────────────────────────────
   const [tip, setTip]           = useState(0)
@@ -43,6 +49,9 @@ export default function OrderView({ tableId, table, staff, onBack, onCartSync }:
 
   // ── Selected seat for next add ────────────────────────────────────────────
   const [selectedSeat, setSelectedSeat] = useState(0)
+
+  // ── Mobile tab: menu or cart ──────────────────────────────────────────────
+  const [mobileTab, setMobileTab] = useState<'menu' | 'cart'>('menu')
 
   // ── Modal state ───────────────────────────────────────────────────────────
   const [modal, setModal] = useState<ModalState>({ kind: 'none' })
@@ -68,17 +77,23 @@ export default function OrderView({ tableId, table, staff, onBack, onCartSync }:
   function handleCharge() {
     if (lines.length > 0) setModal({ kind: 'pay', payAmount: total, splitLineIds: null })
   }
+  function handleBillItem(lineId: string) {
+    const line = lines.find(l => l.lineId === lineId)
+    if (!line) return
+    setModal({ kind: 'pay', payAmount: line.unitPrice * line.qty, splitLineIds: [lineId], singleItem: true })
+  }
 
   async function handlePaid(method: PayMethod, tendered: number) {
     if (modal.kind !== 'pay') return
     const { payAmount, splitLineIds } = modal
 
     if (splitLineIds) {
-      const result = await payPartial(splitLineIds, method, payAmount, tendered)
+      const result = await payPartial(splitLineIds, method, payAmount, tendered, !modal.singleItem)
       if (result === 'closed') {
         setModal({ kind: 'paid', total: payAmount })
       } else if (result === 'partial') {
-        setModal({ kind: 'split' })
+        // Single-item bill: just return to order; split flow: reopen split modal
+        setModal(modal.singleItem ? { kind: 'none' } : { kind: 'split' })
       }
     } else {
       const ok = await closeOrder(method, tendered, payAmount, tip, discount)
@@ -139,38 +154,79 @@ export default function OrderView({ tableId, table, staff, onBack, onCartSync }:
         overflow: 'hidden',
       }}>
 
-        {/* ── Menu panel — fills remaining width ──────────────────────────── */}
-        <div style={{ flex: 1, minWidth: 0, height: '100%' }}>
+        {/* ── Menu panel ─────────────────────────────────────────────────── */}
+        <div style={{
+          flex: 1, minWidth: 0, height: '100%',
+          display: isMobile && mobileTab !== 'menu' ? 'none' : 'flex',
+          flexDirection: 'column',
+        }}>
           <MenuPanel
             byCategory={byCategory}
-            onAdd={item => addItem(item, 1, [], selectedSeat)}
+            onAdd={item => { addItem(item, 1, [], selectedSeat); if (isMobile) setMobileTab('cart') }}
             onKeyboardShortcut={handleKeyboardShortcut}
           />
         </div>
 
-        {/* ── Order panel — fixed right column ────────────────────────────── */}
-        <OrderPanel
-          table={table}
-          orderId={orderId}
-          lines={lines}
-          subtotal={subtotal}
-          tip={tip}
-          setTip={setTip}
-          discount={discount}
-          setDiscount={setDiscount}
-          total={total}
-          selectedLine={selectedLine}
-          setSelectedLine={setSelectedLine}
-          selectedSeat={selectedSeat}
-          setSelectedSeat={setSelectedSeat}
-          onUpdateQty={updateQty}
-          onVoid={voidItem}
-          onSetNote={setNote}
-          onBack={onBack}
-          onSplit={handleSplit}
-          onCharge={handleCharge}
-        />
+        {/* ── Order panel ─────────────────────────────────────────────────── */}
+        <div style={{
+          display: isMobile && mobileTab !== 'cart' ? 'none' : 'flex',
+          flexDirection: 'column',
+          width: isMobile ? '100%' : undefined,
+          height: '100%',
+          flex: isMobile ? '1' : undefined,
+        }}>
+          <OrderPanel
+            table={table}
+            orderId={orderId}
+            lines={lines}
+            subtotal={subtotal}
+            tip={tip}
+            setTip={setTip}
+            discount={discount}
+            setDiscount={setDiscount}
+            total={total}
+            selectedLine={selectedLine}
+            setSelectedLine={setSelectedLine}
+            selectedSeat={selectedSeat}
+            setSelectedSeat={setSelectedSeat}
+            onUpdateQty={updateQty}
+            onVoid={voidItem}
+            onSetNote={setNote}
+            onBillItem={handleBillItem}
+            onBack={onBack}
+            onSplit={handleSplit}
+            onCharge={handleCharge}
+          />
+        </div>
       </div>
+
+      {/* ── Mobile bottom tab bar ──────────────────────────────────────────── */}
+      {isMobile && (
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0,
+          display: 'flex', height: 56, zIndex: 50,
+          background: T.surface2, borderTop: `1px solid ${T.line}`,
+        }}>
+          {(['menu', 'cart'] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setMobileTab(tab)}
+              style={{
+                flex: 1, display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', gap: 3,
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: mobileTab === tab ? T.accent : T.textDim,
+                fontFamily: 'inherit',
+              }}
+            >
+              <span style={{ fontSize: 18 }}>{tab === 'menu' ? '☰' : '🧾'}</span>
+              <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                {tab === 'cart' && lines.length > 0 ? `Cart (${lines.length})` : tab === 'menu' ? 'Menu' : 'Cart'}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* ── Modals ──────────────────────────────────────────────────────────── */}
       {modal.kind === 'pay' && (

@@ -2,6 +2,7 @@
 
 import { useRef, useEffect } from 'react'
 import { THEME, statusColor, statusLabel } from '@/lib/theme'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 import type { CartLine, TableWithStatus } from '@/lib/types'
 import OrderLine   from './OrderLine'
 import OrderFooter from './OrderFooter'
@@ -25,6 +26,7 @@ interface OrderPanelProps {
   onUpdateQty:     (lineId: string, delta: number) => Promise<void>
   onVoid:          (lineId: string, reason: string) => Promise<void>
   onSetNote:       (lineId: string, note: string) => Promise<void>
+  onBillItem:      (lineId: string) => void
   onBack:          () => void
   onSplit:         () => void
   onCharge:        () => void
@@ -34,10 +36,12 @@ export default function OrderPanel({
   table, orderId, lines,
   subtotal, tip, setTip, discount, setDiscount, total,
   selectedLine, setSelectedLine, selectedSeat, setSelectedSeat,
-  onUpdateQty, onVoid, onSetNote,
+  onUpdateQty, onVoid, onSetNote, onBillItem,
   onBack, onSplit, onCharge,
 }: OrderPanelProps) {
   const listRef = useRef<HTMLDivElement>(null)
+  const bp = useBreakpoint()
+  const isMobile = bp === 'mobile'
 
   // Auto-scroll to bottom when a line is appended
   useEffect(() => {
@@ -60,9 +64,9 @@ export default function OrderPanel({
 
   return (
     <div style={{
-      width: 'clamp(480px, 37.5vw, 960px)', flexShrink: 0,
+      width: isMobile ? '100%' : 'clamp(480px, 37.5vw, 960px)', flexShrink: 0,
       display: 'flex', flexDirection: 'column',
-      background: T.surface, borderLeft: `1px solid ${T.line}`,
+      background: T.surface, borderLeft: isMobile ? 'none' : `1px solid ${T.line}`,
       height: '100%',
     }}>
 
@@ -213,6 +217,7 @@ export default function OrderPanel({
               onUpdateQty={onUpdateQty}
               onVoid={onVoid}
               onSetNote={onSetNote}
+              onBill={onBillItem}
             />
           ))
         )}
