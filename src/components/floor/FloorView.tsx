@@ -288,7 +288,7 @@ function KpiStrip({ tables, tickets }: { tables: TableWithStatus[]; tickets: Kds
   const kpis = [
     { label: 'Revenue · Today', value: todayRev > 0 ? fmtPeso(todayRev) : '₱0',
       note: `${txCount} txn today`, noteColor: T.textDim },
-    { label: 'Open Tables',     value: `${open}/${tables.length}`,
+    { label: 'Occupied',        value: `${open}/${tables.length}`,
       note: `${reserved} reserved`, noteColor: T.textDim },
     { label: 'Avg. Order',      value: txCount > 0 ? fmtPeso(todayRev / txCount) : '—',
       note: 'today', noteColor: T.textDim },
