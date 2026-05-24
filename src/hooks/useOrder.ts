@@ -14,7 +14,6 @@ interface UseOrderReturn {
   removeItem:  (lineId: string) => Promise<void>
   voidItem:    (lineId: string, reason: string) => Promise<void>
   setNote:     (lineId: string, note: string) => Promise<void>
-  toggleMod:   (lineId: string, mod: string) => Promise<void>
   closeOrder:  (method: PayMethod, tendered: number, total: number, tip: number, discount?: number) => Promise<boolean>
   payPartial:  (lineIds: string[], method: PayMethod, amount: number, tendered: number) => Promise<'partial' | 'closed' | 'error'>
 }
@@ -210,18 +209,6 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
     setLines(prev => prev.map(l => l.lineId === lineId ? { ...l, note } : l))
   }, [lines])
 
-  // ── Toggle modifier — updates local state and persists to DB ────────────
-  const toggleMod = useCallback(async (lineId: string, mod: string) => {
-    const sb   = getClient()
-    const line = lines.find(l => l.lineId === lineId)
-    if (!line) return
-    const newMods = line.mods.includes(mod) ? line.mods.filter(m => m !== mod) : [...line.mods, mod]
-    setLines(prev => prev.map(l => l.lineId === lineId ? { ...l, mods: newMods } : l))
-    if (line.dbId) {
-      await sb.from('order_items').update({ modifiers: newMods }).eq('id', line.dbId)
-    }
-  }, [lines])
-
   // ── Close order: insert payment, close order, free table ────────────────
   const closeOrder = useCallback(async (
     method: PayMethod,
@@ -311,6 +298,6 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
     return 'partial'
   }, [orderId, tableId, lines])
 
-  return { orderId, lines, loading, error, addItem, updateQty, removeItem, voidItem, setNote, toggleMod, closeOrder, payPartial }
+  return { orderId, lines, loading, error, addItem, updateQty, removeItem, voidItem, setNote, closeOrder, payPartial }
 
 }

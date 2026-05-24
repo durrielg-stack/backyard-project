@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { THEME } from '@/lib/theme'
 import { getClient } from '@/lib/supabase'
 
 const T = THEME
 
-const EXPENSE_CATS = ['Petty Cash', 'Supplies', 'Utilities', 'Wages', 'Marketing', 'Other'] as const
+const EXPENSE_CATS = ['OPEX', 'Food', 'Beer', 'Cocktails/Hard', 'Non-Alcohol', 'Cigarettes'] as const
 
 interface ExpenseRow {
   id:          number
@@ -17,13 +17,18 @@ interface ExpenseRow {
   qty:         number
   unitPrice:   number | null
   paidTo:      string | null
-  receiptRef:  string | null
   createdAt:   string
 }
 
+interface Preset {
+  name:         string
+  category:     string
+  default_cost: number | null
+}
+
 const catColor: Record<string, string> = {
-  'Petty Cash': T.warn, 'Supplies': T.info, 'Utilities': T.textDim,
-  'Wages': T.ok, 'Marketing': T.accent, 'Other': T.textMute,
+  'OPEX': T.textDim, 'Food': T.ok, 'Beer': T.warn,
+  'Cocktails/Hard': T.accent, 'Non-Alcohol': T.info, 'Cigarettes': T.textMute,
 }
 
 function fmtPeso(v: number) {
@@ -31,25 +36,37 @@ function fmtPeso(v: number) {
 }
 
 export default function ExpensesView() {
-  const [rows,      setRows]      = useState<ExpenseRow[]>([])
-  const [loading,   setLoading]   = useState(true)
-  const [showForm,  setShowForm]  = useState(false)
-  const [saving,    setSaving]    = useState(false)
+  const [rows,       setRows]       = useState<ExpenseRow[]>([])
+  const [presets,    setPresets]    = useState<Preset[]>([])
+  const [loading,    setLoading]    = useState(true)
+  const [showForm,   setShowForm]   = useState(false)
+  const [saving,     setSaving]     = useState(false)
   const [dateFilter, setDateFilter] = useState<'today' | 'week'>('today')
 
   // Form state
-  const [fCat,       setFCat]       = useState<string>('Petty Cash')
-  const [fDesc,      setFDesc]      = useState('')
-  const [fQty,       setFQty]       = useState('1')
-  const [fUnitPrice, setFUnitPrice] = useState('')
-  const [fAmt,       setFAmt]       = useState('')
-  const [fTo,        setFTo]        = useState('')
-  const [fRef,       setFRef]       = useState('')
+  const [fCat,        setFCat]        = useState<string>('OPEX')
+  const [fDesc,       setFDesc]       = useState('')
+  const [fQty,        setFQty]        = useState('1')
+  const [fUnitPrice,  setFUnitPrice]  = useState('')
+  const [fAmt,        setFAmt]        = useState('')
+  const [fTo,         setFTo]         = useState('')
+
+  // Autocomplete state
+  const [suggestions,    setSuggestions]    = useState<Preset[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [suggestionIdx,   setSuggestionIdx]   = useState(-1)
+  const descRef = useRef<HTMLInputElement>(null)
 
   const today = new Date().toISOString().slice(0, 10)
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = getClient() as any
+
+  // Load presets once
+  useEffect(() => {
+    sb.from('expense_presets').select('name,category,default_cost').order('name')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .then(({ data }: { data: any[] | null }) => setPresets(data ?? []))
+  }, [])
 
   const fetchRows = useCallback(async () => {
     const now = new Date()
@@ -66,12 +83,45 @@ export default function ExpensesView() {
       id: r.id, expenseDate: r.expense_date, category: r.category,
       description: r.description, amount: r.amount,
       qty: r.qty ?? 1, unitPrice: r.unit_price ?? null,
-      paidTo: r.paid_to, receiptRef: r.receipt_ref, createdAt: r.created_at,
+      paidTo: r.paid_to, createdAt: r.created_at,
     })))
     setLoading(false)
   }, [dateFilter, today])
 
   useEffect(() => { fetchRows() }, [fetchRows])
+
+  // Update suggestions as user types
+  function handleDescChange(val: string) {
+    setFDesc(val)
+    setSuggestionIdx(-1)
+    if (val.trim().length < 1) {
+      setSuggestions([]); setShowSuggestions(false); return
+    }
+    const q = val.toLowerCase()
+    const matches = presets.filter(p => p.name.toLowerCase().includes(q)).slice(0, 8)
+    setSuggestions(matches)
+    setShowSuggestions(matches.length > 0)
+  }
+
+  function applyPreset(preset: Preset) {
+    setFDesc(preset.name)
+    setFCat(preset.category)
+    if (preset.default_cost != null) {
+      setFUnitPrice(preset.default_cost.toFixed(2))
+      setFAmt('')
+    }
+    setSuggestions([]); setShowSuggestions(false)
+    // Focus qty field after selection
+    setTimeout(() => descRef.current?.blur(), 0)
+  }
+
+  function handleDescKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (!showSuggestions) return
+    if (e.key === 'ArrowDown') { e.preventDefault(); setSuggestionIdx(i => Math.min(i + 1, suggestions.length - 1)) }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); setSuggestionIdx(i => Math.max(i - 1, 0)) }
+    if (e.key === 'Enter' && suggestionIdx >= 0) { e.preventDefault(); applyPreset(suggestions[suggestionIdx]) }
+    if (e.key === 'Escape') { setShowSuggestions(false) }
+  }
 
   async function addExpense() {
     const qty  = parseFloat(fQty) || 1
@@ -82,9 +132,9 @@ export default function ExpensesView() {
     await sb.from('daily_expenses').insert({
       expense_date: today, category: fCat, description: fDesc.trim(),
       amount: amt, qty, unit_price: up,
-      paid_to: fTo.trim() || null, receipt_ref: fRef.trim() || null,
+      paid_to: fTo.trim() || null,
     })
-    setFDesc(''); setFQty('1'); setFUnitPrice(''); setFAmt(''); setFTo(''); setFRef('')
+    setFDesc(''); setFQty('1'); setFUnitPrice(''); setFAmt(''); setFTo('')
     setShowForm(false)
     await fetchRows()
     setSaving(false)
@@ -155,41 +205,89 @@ export default function ExpensesView() {
         return (
           <div style={{
             padding: '16px 24px', background: T.surface2, borderBottom: `1px solid ${T.line}`,
-            display: 'grid', gridTemplateColumns: '140px 1fr 70px 100px 110px 130px 110px auto',
+            display: 'grid', gridTemplateColumns: '140px 1fr 70px 100px 110px 130px auto',
             gap: 8, alignItems: 'end', flexShrink: 0,
           }}>
+            {/* Category */}
             <div>
               <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Category</div>
               <select value={fCat} onChange={e => setFCat(e.target.value)} style={{ width: '100%', fontFamily: 'inherit', fontSize: 12, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none' }}>
                 {EXPENSE_CATS.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
-            <div>
+
+            {/* Description with autocomplete */}
+            <div style={{ position: 'relative' }}>
               <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Description *</div>
-              <input value={fDesc} onChange={e => setFDesc(e.target.value)} placeholder="What was this for?" style={{ width: '100%', fontFamily: 'inherit', fontSize: 12, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box' }} />
+              <input
+                ref={descRef}
+                value={fDesc}
+                onChange={e => handleDescChange(e.target.value)}
+                onKeyDown={handleDescKeyDown}
+                onFocus={() => fDesc.trim() && setSuggestions(presets.filter(p => p.name.toLowerCase().includes(fDesc.toLowerCase())).slice(0, 8))}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                placeholder="Type to search presets…"
+                style={{ width: '100%', fontFamily: 'inherit', fontSize: 12, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box' }}
+              />
+              {showSuggestions && suggestions.length > 0 && (
+                <div style={{
+                  position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                  background: T.surface2, border: `1px solid ${T.line2}`,
+                  borderRadius: T.radius, boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+                  maxHeight: 260, overflowY: 'auto',
+                }}>
+                  {suggestions.map((s, i) => (
+                    <div
+                      key={s.name}
+                      onMouseDown={() => applyPreset(s)}
+                      style={{
+                        padding: '8px 12px', cursor: 'pointer',
+                        background: i === suggestionIdx ? T.surface : 'transparent',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        borderBottom: i < suggestions.length - 1 ? `1px solid ${T.line}` : 'none',
+                      }}
+                    >
+                      <div>
+                        <span style={{ fontSize: 12, color: T.text }}>{s.name}</span>
+                        <span style={{ marginLeft: 8, fontSize: 10, color: catColor[s.category] ?? T.textMute }}>{s.category}</span>
+                      </div>
+                      {s.default_cost != null && (
+                        <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textDim }}>
+                          ₱{s.default_cost.toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
+
+            {/* Qty */}
             <div>
               <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Qty</div>
               <input value={fQty} onChange={e => setFQty(e.target.value)} placeholder="1" type="number" min="0.001" step="any" style={{ width: '100%', fontFamily: T.mono, fontSize: 13, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box' }} />
             </div>
+
+            {/* Unit price */}
             <div>
               <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Unit ₱</div>
               <input value={fUnitPrice} onChange={e => { setFUnitPrice(e.target.value); setFAmt('') }} placeholder="0.00" type="number" min="0" style={{ width: '100%', fontFamily: T.mono, fontSize: 13, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box' }} />
             </div>
+
+            {/* Total */}
             <div>
               <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>
                 Total ₱ {up != null ? <span style={{ color: T.accent }}>auto</span> : '*'}
               </div>
               <input value={up != null ? autoAmt : fAmt} onChange={e => { if (up == null) setFAmt(e.target.value) }} readOnly={up != null} placeholder="0.00" type="number" min="0" style={{ width: '100%', fontFamily: T.mono, fontSize: 13, background: up != null ? T.chip : T.surface, border: `1px solid ${T.line2}`, color: up != null ? T.accent : T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box' }} />
             </div>
+
+            {/* Paid To */}
             <div>
               <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Paid To</div>
               <input value={fTo} onChange={e => setFTo(e.target.value)} placeholder="Supplier / person" style={{ width: '100%', fontFamily: 'inherit', fontSize: 12, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box' }} />
             </div>
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Receipt #</div>
-              <input value={fRef} onChange={e => setFRef(e.target.value)} placeholder="OR-001" style={{ width: '100%', fontFamily: T.mono, fontSize: 12, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box' }} />
-            </div>
+
             <button onClick={addExpense} disabled={saving || !canSave} style={{ padding: '7px 16px', fontSize: 12, fontFamily: 'inherit', fontWeight: 700, background: T.accent, color: T.accentInk, border: 'none', borderRadius: T.radius, cursor: 'pointer', opacity: !canSave ? 0.4 : 1 }}>
               Save
             </button>
@@ -199,11 +297,11 @@ export default function ExpensesView() {
 
       {/* List header */}
       <div style={{
-        display: 'grid', gridTemplateColumns: '90px 80px 100px 1fr 120px 100px 100px 80px 36px',
+        display: 'grid', gridTemplateColumns: '90px 80px 100px 1fr 120px 100px 80px 36px',
         padding: '0 24px', height: 36, alignItems: 'center',
         borderBottom: `1px solid ${T.line}`, background: T.surface2, flexShrink: 0,
       }}>
-        {['Time','Date','Category','Description','Qty × Unit','Paid To','Receipt','Amount',''].map(h => (
+        {['Time','Date','Category','Description','Qty × Unit','Paid To','Amount',''].map(h => (
           <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
         ))}
       </div>
@@ -223,7 +321,7 @@ export default function ExpensesView() {
             : '—'
           return (
             <div key={row.id} style={{
-              display: 'grid', gridTemplateColumns: '90px 80px 100px 1fr 120px 100px 100px 80px 36px',
+              display: 'grid', gridTemplateColumns: '90px 80px 100px 1fr 120px 100px 80px 36px',
               padding: '0 24px', height: 44, alignItems: 'center',
               borderBottom: `1px solid ${T.line}`,
               background: i % 2 === 0 ? 'transparent' : T.surface,
@@ -234,7 +332,6 @@ export default function ExpensesView() {
               <span style={{ fontSize: 13, color: T.text }}>{row.description}</span>
               <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute }}>{qtyUnit}</span>
               <span style={{ fontSize: 12, color: T.textDim }}>{row.paidTo ?? '—'}</span>
-              <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute }}>{row.receiptRef ?? '—'}</span>
               <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: T.bad, fontVariantNumeric: 'tabular-nums' }}>
                 ₱{row.amount.toFixed(2)}
               </span>

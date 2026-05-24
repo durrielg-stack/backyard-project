@@ -2,7 +2,7 @@
 
 import { useRef, useEffect } from 'react'
 import { THEME, statusColor, statusLabel } from '@/lib/theme'
-import type { CartLine, MenuItem, TableWithStatus } from '@/lib/types'
+import type { CartLine, TableWithStatus } from '@/lib/types'
 import OrderLine   from './OrderLine'
 import OrderFooter from './OrderFooter'
 
@@ -12,14 +12,12 @@ interface OrderPanelProps {
   table:           TableWithStatus
   orderId:         number | null
   lines:           CartLine[]
-  menuById:        Record<string, MenuItem>
   subtotal:        number
   tip:             number
   setTip:          (amount: number) => void
   discount:        number
   setDiscount:     (amount: number) => void
   total:           number
-  held:            boolean
   selectedLine:    string | null
   setSelectedLine: (id: string | null) => void
   selectedSeat:    number
@@ -27,19 +25,17 @@ interface OrderPanelProps {
   onUpdateQty:     (lineId: string, delta: number) => Promise<void>
   onVoid:          (lineId: string, reason: string) => Promise<void>
   onSetNote:       (lineId: string, note: string) => Promise<void>
-  onToggleMod:     (lineId: string, mod: string) => Promise<void>
   onBack:          () => void
-  onHold:          () => void
   onSplit:         () => void
   onCharge:        () => void
 }
 
 export default function OrderPanel({
-  table, orderId, lines, menuById,
-  subtotal, tip, setTip, discount, setDiscount, total, held,
+  table, orderId, lines,
+  subtotal, tip, setTip, discount, setDiscount, total,
   selectedLine, setSelectedLine, selectedSeat, setSelectedSeat,
-  onUpdateQty, onVoid, onSetNote, onToggleMod,
-  onBack, onHold, onSplit, onCharge,
+  onUpdateQty, onVoid, onSetNote,
+  onBack, onSplit, onCharge,
 }: OrderPanelProps) {
   const listRef = useRef<HTMLDivElement>(null)
 
@@ -123,18 +119,6 @@ export default function OrderPanel({
         )}
 
         <div style={{ flex: 1 }} />
-
-        {held && (
-          <span style={{
-            fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-            color: T.warn, background: `${T.warn}18`,
-            border: `1px solid ${T.warn}44`,
-            padding: '4px 10px', borderRadius: T.radius, flexShrink: 0,
-          }}>
-            On Hold
-          </span>
-        )}
 
         {/* Status badge — bp-attn halo when attention */}
         <span style={{
@@ -223,14 +207,12 @@ export default function OrderPanel({
               line={line}
               index={i + 1}
               selected={selectedLine === line.lineId}
-              menuItem={menuById[line.itemId]}
               onSelect={() => setSelectedLine(
                 selectedLine === line.lineId ? null : line.lineId
               )}
               onUpdateQty={onUpdateQty}
               onVoid={onVoid}
               onSetNote={onSetNote}
-              onToggleMod={onToggleMod}
             />
           ))
         )}
@@ -244,7 +226,6 @@ export default function OrderPanel({
         discount={discount}
         setDiscount={setDiscount}
         total={total}
-        onHold={onHold}
         onSplit={onSplit}
         onCharge={onCharge}
         disabled={disabled}

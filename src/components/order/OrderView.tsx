@@ -29,7 +29,7 @@ interface OrderViewProps {
 export default function OrderView({ tableId, table, staff, onBack, onCartSync }: OrderViewProps) {
   const {
     orderId, lines, loading,
-    addItem, updateQty, voidItem, setNote, toggleMod, closeOrder, payPartial,
+    addItem, updateQty, voidItem, setNote, closeOrder, payPartial,
   } = useOrder(tableId, staff)
 
   const { byCategory, byId: menuById } = useMenuItems()
@@ -37,9 +37,6 @@ export default function OrderView({ tableId, table, staff, onBack, onCartSync }:
   // ── Tip + discount state ──────────────────────────────────────────────────
   const [tip, setTip]           = useState(0)
   const [discount, setDiscount] = useState(0)
-
-  // ── Hold state ────────────────────────────────────────────────────────────
-  const [held, setHeld] = useState(false)
 
   // ── Selected order line (expanded) ────────────────────────────────────────
   const [selectedLine, setSelectedLine] = useState<string | null>(null)
@@ -67,18 +64,9 @@ export default function OrderView({ tableId, table, staff, onBack, onCartSync }:
   const total    = Math.max(0, subtotal - discount + tip)
 
   // ── Action handlers ───────────────────────────────────────────────────────
-  function handleHold()   { setHeld(h => !h) }
   function handleSplit()  { if (lines.length > 0) setModal({ kind: 'split' }) }
   function handleCharge() {
     if (lines.length > 0) setModal({ kind: 'pay', payAmount: total, splitLineIds: null })
-  }
-
-  // Quick actions
-  function handleCompItem() {
-    if (selectedLine) voidItem(selectedLine, 'comp')
-  }
-  function handleManagerVoid() {
-    lines.forEach(l => voidItem(l.lineId, 'manager void'))
   }
 
   async function handlePaid(method: PayMethod, tendered: number) {
@@ -123,7 +111,6 @@ export default function OrderView({ tableId, table, staff, onBack, onCartSync }:
   // ── Keyboard shortcuts (bubbled from MenuPanel inputs) ────────────────────
   const handleKeyboardShortcut = useCallback((key: string) => {
     const k = key.toLowerCase()
-    if (k === 'h')     handleHold()
     if (k === 's')     handleSplit()
     if (k === 'enter') handleCharge()
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -158,9 +145,6 @@ export default function OrderView({ tableId, table, staff, onBack, onCartSync }:
             byCategory={byCategory}
             onAdd={item => addItem(item, 1, [], selectedSeat)}
             onKeyboardShortcut={handleKeyboardShortcut}
-            selectedLine={selectedLine}
-            onCompItem={handleCompItem}
-            onManagerVoid={handleManagerVoid}
           />
         </div>
 
@@ -169,14 +153,12 @@ export default function OrderView({ tableId, table, staff, onBack, onCartSync }:
           table={table}
           orderId={orderId}
           lines={lines}
-          menuById={menuById}
           subtotal={subtotal}
           tip={tip}
           setTip={setTip}
           discount={discount}
           setDiscount={setDiscount}
           total={total}
-          held={held}
           selectedLine={selectedLine}
           setSelectedLine={setSelectedLine}
           selectedSeat={selectedSeat}
@@ -184,9 +166,7 @@ export default function OrderView({ tableId, table, staff, onBack, onCartSync }:
           onUpdateQty={updateQty}
           onVoid={voidItem}
           onSetNote={setNote}
-          onToggleMod={toggleMod}
           onBack={onBack}
-          onHold={handleHold}
           onSplit={handleSplit}
           onCharge={handleCharge}
         />

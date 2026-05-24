@@ -12,7 +12,6 @@ interface OrderFooterProps {
   discount:    number
   setDiscount: (amount: number) => void
   total:       number
-  onHold:      () => void
   onSplit:     () => void
   onCharge:    () => void
   disabled:    boolean
@@ -49,7 +48,7 @@ function TotalsRow({ label, value, accent, large, mute }: {
 }
 
 export default function OrderFooter({
-  subtotal, tip, setTip, discount, setDiscount, total, onHold, onSplit, onCharge, disabled,
+  subtotal, tip, setTip, discount, setDiscount, total, onSplit, onCharge, disabled,
 }: OrderFooterProps) {
   const [editingTip,      setEditingTip]      = useState(false)
   const [editingDiscount, setEditingDiscount] = useState(false)
@@ -190,23 +189,8 @@ export default function OrderFooter({
         <TotalsRow label="Total" value={`₱${total.toFixed(2)}`} large accent />
       </div>
 
-      {/* ── Action buttons — 1fr 1fr 2fr ────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: 8 }}>
-        <button onClick={onHold} disabled={disabled} style={{
-          padding: '13px 0', fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
-          background: 'transparent',
-          border: `1px solid ${T.line2}`, color: disabled ? T.textMute : T.textDim,
-          borderRadius: T.radius, cursor: disabled ? 'not-allowed' : 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          transition: 'border-color 0.12s ease, color 0.12s ease',
-        }}>
-          Hold
-          <span style={{
-            fontSize: 10, fontFamily: T.mono, color: T.textMute,
-            border: `1px solid ${T.line2}`, padding: '1px 4px', borderRadius: 2,
-          }}>H</span>
-        </button>
-
+      {/* ── Action buttons — 1fr 2fr ────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 8 }}>
         <button onClick={onSplit} disabled={disabled} style={{
           padding: '13px 0', fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
           background: 'transparent',
