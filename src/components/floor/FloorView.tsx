@@ -289,27 +289,32 @@ function KpiStrip({ tables, tickets }: { tables: TableWithStatus[]; tickets: Kds
   const open     = tables.filter(t => ['occupied','aging','attention'].includes(t.status)).length
   const reserved = tables.filter(t => t.status === 'reserved').length
   const attn     = tables.filter(t => t.status === 'attention').length
-  const covers   = tables
+
+  // Unbilled = sum of live cart totals on all open tables
+  const unbilled = tables
     .filter(t => ['occupied','aging','attention'].includes(t.status))
-    .reduce((s, t) => s + (t.capacity ?? 0), 0)
+    .reduce((s, t) => s + (t.checkTotal ?? 0), 0)
 
   const fmtPeso = (v: number) => v >= 1000
     ? `₱${(v / 1000).toFixed(1)}k`
     : `₱${v.toFixed(0)}`
 
+  const projected = todayRev + unbilled
+
   const kpis = [
-    { label: 'Revenue · Today', value: todayRev > 0 ? fmtPeso(todayRev) : '₱0',
+    { label: 'Projected · Today', value: fmtPeso(projected),
+      note: unbilled > 0 ? `+${fmtPeso(unbilled)} unbilled` : 'no open tabs',
+      noteColor: unbilled > 0 ? T.accent : T.textDim },
+    { label: 'Revenue · Today',   value: todayRev > 0 ? fmtPeso(todayRev) : '₱0',
       note: `${txCount} txn today`, noteColor: T.textDim },
-    { label: 'Occupied',        value: `${open}/${tables.length}`,
+    { label: 'Occupied',          value: `${open}/${tables.length}`,
       note: `${reserved} reserved`, noteColor: T.textDim },
-    { label: 'Avg. Order',      value: txCount > 0 ? fmtPeso(todayRev / txCount) : '—',
+    { label: 'Avg. Order',        value: txCount > 0 ? fmtPeso(todayRev / txCount) : '—',
       note: 'today', noteColor: T.textDim },
-    { label: 'KDS Open',        value: `${tickets.length}`,
+    { label: 'KDS Open',          value: `${tickets.length}`,
       note: tickets.length > 0 ? `${tickets.filter(t => t.elapsedSec > 360).length} aging` : 'all clear',
       noteColor: tickets.filter(t => t.elapsedSec > 360).length > 0 ? T.warn : T.textDim },
-    { label: 'Covers',          value: `${covers}`,
-      note: `${attn} need attention`, noteColor: attn > 0 ? T.bad : T.textDim },
-    { label: 'Avg. Turn Time',  value: avgTurnMin != null ? `${avgTurnMin}m` : '—',
+    { label: 'Avg. Turn Time',    value: avgTurnMin != null ? `${avgTurnMin}m` : '—',
       note: 'closed orders today', noteColor: T.textDim },
   ]
 
@@ -329,7 +334,7 @@ function KpiStrip({ tables, tickets }: { tables: TableWithStatus[]; tickets: Kds
             textTransform: 'uppercase', color: T.textMute,
           }}>{k.label}</div>
           <div style={{
-            fontSize: i === 0 ? 32 : 26, fontWeight: 700,
+            fontSize: i <= 1 ? 28 : 24, fontWeight: 700,
             fontFamily: T.mono, letterSpacing: '-0.02em',
             color: T.text, fontVariantNumeric: 'tabular-nums', lineHeight: 1,
           }}>{k.value}</div>
