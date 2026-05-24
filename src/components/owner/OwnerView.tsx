@@ -226,6 +226,7 @@ function ReportsTab() {
   const [range, setRange] = useState<'today' | 'week' | 'month'>('today')
 
   // ── State ──────────────────────────────────────────────────────────────────
+  const [todayGross, setTodayGross] = useState(0)
   const [todayRev,  setTodayRev]  = useState(0)
   const [weekRev,   setWeekRev]   = useState(0)
   const [monthRev,  setMonthRev]  = useState(0)
@@ -256,6 +257,28 @@ function ReportsTab() {
     const tp = todayPmts ?? []
     const todayTotal = tp.reduce((s: number, p: any) => s + p.amount, 0)
     setTodayRev(todayTotal); setTxToday(tp.length)
+
+    // Today's gross sales + cost — via orders opened today (includes unpaid open tables)
+    const { data: todayOrderRows } = await sb
+      .from('orders').select('id').gte('opened_at', todayStart.toISOString())
+    const todayOIds = (todayOrderRows ?? []).map((o: any) => o.id)
+    if (todayOIds.length > 0) {
+      const { data: todayLineItems } = await sb
+        .from('order_items')
+        .select('qty, unit_price, menu_items(cost)')
+        .in('order_id', todayOIds)
+        .neq('status', 'voided')
+      let gross = 0; let cost = 0
+      for (const row of (todayLineItems ?? [])) {
+        const mi = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
+        gross += row.qty * row.unit_price
+        cost  += row.qty * (mi?.cost ?? 0)
+      }
+      setTodayGross(gross)
+      setTodayCost(cost)
+    } else {
+      setTodayGross(0); setTodayCost(0)
+    }
 
     // Hourly
     const hourBuckets: Record<number,number> = {}
@@ -308,8 +331,6 @@ function ReportsTab() {
       .gte('created_at', monthStart.toISOString())
     const itemAgg: Record<string, { qty: number; rev: number; cost: number }> = {}
     const catAgg:  Record<string, { gross: number; cost: number }> = {}
-    let costToday = 0
-    const todayStartMs = todayStart.getTime()
     for (const row of (items ?? [])) {
       if (row.status === 'voided') continue
       const mi   = (Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items)
@@ -323,11 +344,7 @@ function ReportsTab() {
       if (!catAgg[cat]) catAgg[cat] = { gross: 0, cost: 0 }
       catAgg[cat].gross += row.qty * row.unit_price
       catAgg[cat].cost  += itemCost
-      if (row.created_at && new Date(row.created_at).getTime() >= todayStartMs) {
-        costToday += itemCost
-      }
     }
-    setTodayCost(costToday)
     const sorted = Object.entries(itemAgg)
       .map(([name, v]) => ({ name, ...v }))
       .sort((a, b) => b.rev - a.rev)
@@ -372,12 +389,12 @@ function ReportsTab() {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       {/* Summary KPIs */}
       {(() => {
-        const todayNet = todayRev - todayCost
+        const todayNet = todayGross - todayCost
         const kpis = [
-          { label: 'Gross · Today',  value: fmtPeso(todayRev),    sub: `${txToday} txn`,                                              color: T.accent },
-          { label: 'Cost · Today',   value: fmtPeso(todayCost),   sub: todayRev > 0 ? `${((todayCost/todayRev)*100).toFixed(1)}% of gross` : '—', color: T.textDim },
-          { label: 'Net · Today',    value: fmtPeso(todayNet),    sub: todayRev > 0 ? `${((todayNet/todayRev)*100).toFixed(1)}% margin`  : '—', color: todayNet >= 0 ? T.ok : T.bad },
-          { label: 'Avg. Order',     value: txToday > 0 ? fmtPeso(todayRev / txToday) : '—', sub: 'today', color: T.text },
+          { label: 'Gross · Today',  value: fmtPeso(todayGross),  sub: `${txToday} txn`,                                                          color: T.accent },
+          { label: 'Cost · Today',   value: fmtPeso(todayCost),   sub: todayGross > 0 ? `${((todayCost/todayGross)*100).toFixed(1)}% of gross` : '—', color: T.textDim },
+          { label: 'Net · Today',    value: fmtPeso(todayNet),    sub: todayGross > 0 ? `${((todayNet/todayGross)*100).toFixed(1)}% margin`  : '—', color: todayNet >= 0 ? T.ok : T.bad },
+          { label: 'Avg. Order',     value: txToday > 0 ? fmtPeso(todayGross / txToday) : '—', sub: 'today', color: T.text },
           { label: 'Voided Items',   value: String(voidedCount),  sub: voidedCount > 0 ? fmtPeso(voidedAmount) : 'today',             color: voidedCount > 0 ? T.bad : T.textMute },
           { label: 'Voided Total',   value: fmtPeso(voidedAmount),sub: 'today',                                                       color: voidedAmount > 0 ? T.bad : T.textMute },
         ]
