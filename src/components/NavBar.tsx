@@ -3,7 +3,7 @@
 import { THEME, statusColor } from '@/lib/theme'
 import type { TableWithStatus, CartLine } from '@/lib/types'
 
-type View = 'floor' | 'reports' | { kind: 'order'; tableId: string }
+type View = 'floor' | 'reports' | 'owner' | { kind: 'order'; tableId: string }
 
 interface NavBarProps {
   view: View
@@ -14,6 +14,7 @@ interface NavBarProps {
   now: Date
   onFloor: () => void
   onReports: () => void
+  onOwner: () => void
   onOrder: (tableId: string) => void
   onCloseTab: (tableId: string) => void
 }
@@ -21,11 +22,12 @@ interface NavBarProps {
 const T = THEME
 
 // ── Icon atoms (SVG inline, currentColor, 1.5px stroke) ─────────────────────
-function Icon({ name, size = 16 }: { name: 'bell' | 'plus' | 'close'; size?: number }) {
+function Icon({ name, size = 16 }: { name: 'bell' | 'plus' | 'close' | 'lock'; size?: number }) {
   const paths: Record<string, React.ReactNode> = {
     bell:  <path d="M4.5 11V8a3.5 3.5 0 117 0v3l1 1.5h-9zM7 13.5a1 1 0 002 0" />,
     plus:  <path d="M8 3v10M3 8h10" />,
     close: <path d="M3 3l10 10M13 3L3 13" />,
+    lock:  <><rect x="3" y="7" width="10" height="7" rx="1" /><path d="M5 7V5a3 3 0 016 0v2" /></>,
   }
   return (
     <svg
@@ -128,7 +130,7 @@ function NavTab({ active, onClick, label, sub, dot, dashed, dimmed, onClose }: T
 // ── NavBar ───────────────────────────────────────────────────────────────────
 export default function NavBar({
   view, openTabs, tables, carts,
-  attnCount, now, onFloor, onReports, onOrder, onCloseTab,
+  attnCount, now, onFloor, onReports, onOwner, onOrder, onCloseTab,
 }: NavBarProps) {
   const time    = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
   const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
@@ -200,6 +202,19 @@ export default function NavBar({
           onClick={onReports}
           label="Reports"
           sub="Revenue · Sales"
+        />
+
+        {/* Owner */}
+        <NavTab
+          active={view === 'owner'}
+          onClick={onOwner}
+          label={
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Icon name="lock" size={11} />
+              Owner
+            </span>
+          }
+          sub="Full access"
         />
 
         {/* Per-table open tabs */}

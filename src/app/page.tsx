@@ -12,11 +12,13 @@ import NavBar       from '@/components/NavBar'
 import FloorView    from '@/components/floor/FloorView'
 import OrderView    from '@/components/order/OrderView'
 import ReportsView  from '@/components/reports/ReportsView'
+import OwnerView    from '@/components/owner/OwnerView'
 
 // ── View discriminant ──────────────────────────────────────────────────────
 type View =
   | 'floor'
   | 'reports'
+  | 'owner'
   | { kind: 'order'; tableId: string }
 
 // ── POSApp ─────────────────────────────────────────────────────────────────
@@ -112,6 +114,7 @@ export default function POSApp() {
 
   const goFloor   = useCallback(() => setView('floor'),   [])
   const goReports = useCallback(() => setView('reports'), [])
+  const goOwner   = useCallback(() => setView('owner'),   [])
   const goOrder   = useCallback((tableId: string) => setView({ kind: 'order', tableId }), [])
 
   // ── Attention count for bell badge ────────────────────────────────────────
@@ -138,6 +141,7 @@ export default function POSApp() {
         now={now}
         onFloor={goFloor}
         onReports={goReports}
+        onOwner={goOwner}
         onOrder={goOrder}
         onCloseTab={closeTab}
       />
@@ -155,6 +159,10 @@ export default function POSApp() {
 
         {view === 'reports' && (
           <ReportsView tables={tablesWithStatus} />
+        )}
+
+        {view === 'owner' && (
+          <OwnerView tables={tablesWithStatus} />
         )}
 
         {typeof view === 'object' && view.kind === 'order' && (() => {
