@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useRef, useEffect } from 'react'
 import { THEME, statusColor } from '@/lib/theme'
 import type { TableWithStatus, CartLine } from '@/lib/types'
 
@@ -127,6 +128,110 @@ function NavTab({ active, onClick, label, sub, dot, dashed, dimmed, onClose }: T
   )
 }
 
+// ── NewTabPicker — dropdown of available tables ───────────────────────────────
+function NewTabPicker({
+  tables,
+  onOrder,
+}: {
+  tables: TableWithStatus[]
+  onOrder: (tableId: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return
+    function handle(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [open])
+
+  // Group available tables by section prefix
+  const available = tables.filter(t => t.status === 'available')
+  const groups: Record<string, TableWithStatus[]> = {}
+  for (const t of available) {
+    const prefix = t.id.match(/^([A-Za-z]+)/)?.[1] ?? '?'
+    const label = prefix === 'T' ? 'Indoor' : prefix === 'B' ? 'Bar' : prefix
+    ;(groups[label] ??= []).push(t)
+  }
+
+  return (
+    <div ref={ref} style={{ position: 'relative', display: 'flex', alignItems: 'stretch' }}>
+      <div
+        onClick={() => setOpen(v => !v)}
+        style={{
+          minWidth: 80, height: 64, padding: '0 14px',
+          display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+          justifyContent: 'center', gap: 2,
+          cursor: 'pointer',
+          background: open ? T.surface2 : 'transparent',
+          borderBottom: open ? `2px solid ${T.accent}` : '2px solid transparent',
+          borderLeft: `1px dashed ${T.line2}`,
+          borderRight: `1px dashed ${T.line2}`,
+          borderTop:   `1px dashed ${T.line2}`,
+          transition: 'background 0.12s ease',
+        }}
+      >
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: open ? T.text : T.textDim }}>
+          <Icon name="plus" size={11} />
+          New
+        </span>
+        <span style={{ fontSize: 10, fontFamily: T.mono, color: T.textMute }}>
+          {available.length} free
+        </span>
+      </div>
+
+      {open && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, zIndex: 200,
+          background: T.surface, border: `1px solid ${T.line2}`,
+          borderRadius: T.radius, boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+          minWidth: 200, padding: '8px 0',
+        }}>
+          {available.length === 0 ? (
+            <div style={{ padding: '10px 16px', fontSize: 12, color: T.textMute, fontFamily: T.mono }}>
+              No tables available
+            </div>
+          ) : Object.entries(groups).map(([section, rows]) => (
+            <div key={section}>
+              <div style={{
+                padding: '4px 16px 2px',
+                fontSize: 10, fontWeight: 700, letterSpacing: '0.12em',
+                textTransform: 'uppercase', color: T.textMute,
+              }}>
+                {section}
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '4px 12px 8px' }}>
+                {rows.map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => { onOrder(t.id); setOpen(false) }}
+                    style={{
+                      padding: '5px 12px', fontSize: 12, fontFamily: T.mono, fontWeight: 600,
+                      background: T.chip, color: T.text,
+                      border: `1px solid ${T.line2}`,
+                      borderRadius: T.radius, cursor: 'pointer',
+                      transition: 'background 0.1s ease',
+                    }}
+                  >
+                    {t.id}
+                    <span style={{ fontWeight: 400, color: T.textMute, marginLeft: 4, fontSize: 10 }}>
+                      {t.capacity}p
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── NavBar ───────────────────────────────────────────────────────────────────
 export default function NavBar({
   view, openTabs, tables, carts,
@@ -239,15 +344,8 @@ export default function NavBar({
           )
         })}
 
-        {/* + New tab (inert — behavior TBD with customer) */}
-        <NavTab
-          active={false}
-          onClick={() => {/* TODO: define + New behavior */}}
-          label={<span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="plus" size={11} />New</span>}
-          sub="Bar / Takeout"
-          dashed
-          dimmed
-        />
+        {/* + New — quick table picker */}
+        <NewTabPicker tables={tables} onOrder={onOrder} />
       </div>
 
       {/* ── Right chrome ──────────────────────────────────────────────────── */}

@@ -18,10 +18,17 @@ export function useTables() {
       const { data, error } = await sb
         .from('restaurant_tables')
         .select('*')
-        .order('id')
 
       if (error) { setError(error.message) }
-      else        { setTables(data ?? []) }
+      else {
+        // Natural sort: T1,T2…T11 then B1,B2… (section prefix alpha, then numeric)
+        const sorted = (data ?? []).slice().sort((a, b) => {
+          const [, ap, an] = a.id.match(/^([A-Za-z]+)(\d+)$/) ?? ['', a.id, '0']
+          const [, bp, bn] = b.id.match(/^([A-Za-z]+)(\d+)$/) ?? ['', b.id, '0']
+          return ap !== bp ? ap.localeCompare(bp) : parseInt(an) - parseInt(bn)
+        })
+        setTables(sorted)
+      }
       setLoading(false)
     }
 
@@ -35,7 +42,14 @@ export function useTables() {
             t.id === (payload.new as RestaurantTable).id ? (payload.new as RestaurantTable) : t
           ))
         } else if (payload.eventType === 'INSERT') {
-          setTables(prev => [...prev, payload.new as RestaurantTable])
+          setTables(prev => {
+            const next = [...prev, payload.new as RestaurantTable]
+            return next.sort((a, b) => {
+              const [, ap, an] = a.id.match(/^([A-Za-z]+)(\d+)$/) ?? ['', a.id, '0']
+              const [, bp, bn] = b.id.match(/^([A-Za-z]+)(\d+)$/) ?? ['', b.id, '0']
+              return ap !== bp ? ap.localeCompare(bp) : parseInt(an) - parseInt(bn)
+            })
+          })
         } else if (payload.eventType === 'DELETE') {
           setTables(prev => prev.filter(t => t.id !== (payload.old as RestaurantTable).id))
         }
