@@ -6,7 +6,7 @@ import type { KdsTicket } from '@/lib/types'
 
 // ── Station routing ──────────────────────────────────────────────────────────
 // Categories that go to the bar station
-const BAR_CATS = new Set(['Beer', 'Cocktails/Hard', 'Non-Alcohol'])
+const BAR_CATS = new Set(['Beer', 'Cocktails', 'Hard Drinks', 'Palit Bote', 'Non-Alcohol'])
 
 // Categories that need no prep — excluded from KDS entirely
 const NO_PREP_CATS = new Set(['Cigarettes', 'Charges'])

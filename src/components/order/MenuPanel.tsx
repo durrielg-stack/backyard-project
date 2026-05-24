@@ -8,15 +8,13 @@ const T = THEME
 
 // ── DB category → tab group mapping ─────────────────────────────────────────
 const GROUPS = [
-  { id: 'food',      label: 'Food',      key: '1',
+  { id: 'food',    label: 'Food',    key: '1',
     cats: ['Meals','Pork','Starters','Chicken','Noodles','Seafood'] },
-  { id: 'beers',     label: 'Beers',     key: '2',
-    cats: ['Beer','Non-Alcohol'] },
-  { id: 'cocktails', label: 'Cocktails', key: '3',
-    cats: ['Cocktails/Hard'] },
-  { id: 'addons',    label: 'Add-Ons',   key: '4',
+  { id: 'drinks',  label: 'Drinks',  key: '2',
+    cats: ['Beer','Cocktails','Hard Drinks','Palit Bote','Non-Alcohol'] },
+  { id: 'addons',  label: 'Add-Ons', key: '3',
     cats: ['Extra','Others'] },
-  { id: 'others',    label: 'Others',    key: '5',
+  { id: 'others',  label: 'Others',  key: '4',
     cats: ['Cigarettes','Charges'] },
 ] as const
 
@@ -123,11 +121,10 @@ export default function MenuPanel({ byCategory, onAdd, onKeyboardShortcut }: Men
         return
       }
 
-      if (e.key === '1') { setGroup('food');      e.preventDefault() }
-      if (e.key === '2') { setGroup('beers');     e.preventDefault() }
-      if (e.key === '3') { setGroup('cocktails'); e.preventDefault() }
-      if (e.key === '4') { setGroup('addons');    e.preventDefault() }
-      if (e.key === '5') { setGroup('others');    e.preventDefault() }
+      if (e.key === '1') { setGroup('food');    e.preventDefault() }
+      if (e.key === '2') { setGroup('drinks');  e.preventDefault() }
+      if (e.key === '3') { setGroup('addons');  e.preventDefault() }
+      if (e.key === '4') { setGroup('others');  e.preventDefault() }
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
         searchRef.current?.focus()
