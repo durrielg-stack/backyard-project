@@ -238,6 +238,7 @@ function ReportsTab() {
   const [methodMap,       setMethodMap]       = useState<Record<string, number>>({})
   const [topItems,        setTopItems]        = useState<{ name: string; qty: number; rev: number; cost: number }[]>([])
   const [catBreakdown,    setCatBreakdown]    = useState<CategoryBreakdown[]>([])
+  const [todayCost,       setTodayCost]       = useState(0)
   const [voidedCount,     setVoidedCount]     = useState(0)
   const [voidedAmount,    setVoidedAmount]    = useState(0)
   const [loading, setLoading] = useState(true)
@@ -307,6 +308,8 @@ function ReportsTab() {
       .gte('created_at', monthStart.toISOString())
     const itemAgg: Record<string, { qty: number; rev: number; cost: number }> = {}
     const catAgg:  Record<string, { gross: number; cost: number }> = {}
+    let costToday = 0
+    const todayStartMs = todayStart.getTime()
     for (const row of (items ?? [])) {
       if (row.status === 'voided') continue
       const mi   = (Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items)
@@ -320,7 +323,11 @@ function ReportsTab() {
       if (!catAgg[cat]) catAgg[cat] = { gross: 0, cost: 0 }
       catAgg[cat].gross += row.qty * row.unit_price
       catAgg[cat].cost  += itemCost
+      if (row.created_at && new Date(row.created_at).getTime() >= todayStartMs) {
+        costToday += itemCost
+      }
     }
+    setTodayCost(costToday)
     const sorted = Object.entries(itemAgg)
       .map(([name, v]) => ({ name, ...v }))
       .sort((a, b) => b.rev - a.rev)
@@ -364,29 +371,32 @@ function ReportsTab() {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       {/* Summary KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
-        {[
-          { label: 'Today',        value: fmtPeso(todayRev), sub: `${txToday} txn`,         color: T.accent },
-          { label: 'This Week',    value: fmtPeso(weekRev),  sub: `${txWeek} txn`,           color: T.text },
-          { label: 'Last 30 Days', value: fmtPeso(monthRev), sub: `${txMonth} txn`,          color: T.text },
-          { label: 'Avg. Order',   value: txToday > 0 ? fmtPeso(todayRev / txToday) : '—',  sub: 'today',                          color: T.text },
-          { label: 'Voided Items', value: String(voidedCount),                               sub: voidedCount > 0 ? fmtPeso(voidedAmount) : 'today', color: voidedCount > 0 ? T.bad : T.textMute },
-          { label: 'Voided Total', value: fmtPeso(voidedAmount),                             sub: 'today',                          color: voidedAmount > 0 ? T.bad : T.textMute },
-        ].map((k, i) => (
-          <div key={k.label} style={{
-            padding: '16px 20px',
-            borderRight: i < 5 ? `1px solid ${T.line}` : 'none',
-          }}>
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, marginBottom: 6 }}>
-              {k.label}
-            </div>
-            <div style={{ fontFamily: T.mono, fontSize: 18, fontWeight: 700, color: k.color, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-              {k.value}
-            </div>
-            <div style={{ fontSize: 11, color: T.textMute, marginTop: 4 }}>{k.sub}</div>
+      {(() => {
+        const todayNet = todayRev - todayCost
+        const kpis = [
+          { label: 'Gross · Today',  value: fmtPeso(todayRev),    sub: `${txToday} txn`,                                              color: T.accent },
+          { label: 'Cost · Today',   value: fmtPeso(todayCost),   sub: todayRev > 0 ? `${((todayCost/todayRev)*100).toFixed(1)}% of gross` : '—', color: T.textDim },
+          { label: 'Net · Today',    value: fmtPeso(todayNet),    sub: todayRev > 0 ? `${((todayNet/todayRev)*100).toFixed(1)}% margin`  : '—', color: todayNet >= 0 ? T.ok : T.bad },
+          { label: 'Avg. Order',     value: txToday > 0 ? fmtPeso(todayRev / txToday) : '—', sub: 'today', color: T.text },
+          { label: 'Voided Items',   value: String(voidedCount),  sub: voidedCount > 0 ? fmtPeso(voidedAmount) : 'today',             color: voidedCount > 0 ? T.bad : T.textMute },
+          { label: 'Voided Total',   value: fmtPeso(voidedAmount),sub: 'today',                                                       color: voidedAmount > 0 ? T.bad : T.textMute },
+        ]
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
+            {kpis.map((k, i) => (
+              <div key={k.label} style={{ padding: '16px 20px', borderRight: i < 5 ? `1px solid ${T.line}` : 'none' }}>
+                <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, marginBottom: 6 }}>
+                  {k.label}
+                </div>
+                <div style={{ fontFamily: T.mono, fontSize: 18, fontWeight: 700, color: k.color, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                  {k.value}
+                </div>
+                <div style={{ fontSize: 11, color: T.textMute, marginTop: 4 }}>{k.sub}</div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        )
+      })()}
 
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
         {/* Revenue chart */}
