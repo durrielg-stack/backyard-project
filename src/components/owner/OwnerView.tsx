@@ -242,6 +242,7 @@ function ReportsTab() {
   const [todayCost,       setTodayCost]       = useState(0)
   const [voidedCount,     setVoidedCount]     = useState(0)
   const [voidedAmount,    setVoidedAmount]    = useState(0)
+  const [avgTurnMin,      setAvgTurnMin]      = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
   const fetchAll = useCallback(async () => {
@@ -395,6 +396,21 @@ function ReportsTab() {
     setVoidedCount(vi.length)
     setVoidedAmount(vi.reduce((s: number, r: any) => s + r.qty * r.unit_price, 0))
 
+    // Avg turn time today
+    const { data: closedToday } = await sb
+      .from('orders').select('opened_at, closed_at')
+      .eq('status', 'closed')
+      .gte('opened_at', todayStart.toISOString())
+      .not('closed_at', 'is', null)
+    const ct: any[] = closedToday ?? []
+    if (ct.length > 0) {
+      const totalMin = ct.reduce((s: number, o: any) =>
+        s + (new Date(o.closed_at).getTime() - new Date(o.opened_at).getTime()) / 60000, 0)
+      setAvgTurnMin(Math.round(totalMin / ct.length))
+    } else {
+      setAvgTurnMin(null)
+    }
+
     setLoading(false)
   }, [])
 
@@ -419,7 +435,7 @@ function ReportsTab() {
           { label: 'Net · Today',    value: fmtPeso(todayNet),    sub: todayGross > 0 ? `${((todayNet/todayGross)*100).toFixed(1)}% margin`  : '—', color: todayNet >= 0 ? T.ok : T.bad },
           { label: 'Avg. Order',     value: txToday > 0 ? fmtPeso(todayGross / txToday) : '—', sub: 'today', color: T.text },
           { label: 'Voided Items',   value: String(voidedCount),  sub: voidedCount > 0 ? fmtPeso(voidedAmount) : 'today',             color: voidedCount > 0 ? T.bad : T.textMute },
-          { label: 'Voided Total',   value: fmtPeso(voidedAmount),sub: 'today',                                                       color: voidedAmount > 0 ? T.bad : T.textMute },
+          { label: 'Avg Turn Time',  value: avgTurnMin != null ? `${avgTurnMin}m` : '—', sub: 'open → close today',                   color: T.info },
         ]
         return (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>

@@ -215,8 +215,8 @@ function FloorPlan({
 }
 
 // ── Section header reused across panels ──────────────────────────────────────
-export function PanelHd({ title, badge, action }: {
-  title: React.ReactNode; badge?: React.ReactNode; action?: React.ReactNode
+export function PanelHd({ title, badge, badgeColor, action }: {
+  title: React.ReactNode; badge?: React.ReactNode; badgeColor?: string; action?: React.ReactNode
 }) {
   return (
     <div style={{
@@ -229,8 +229,10 @@ export function PanelHd({ title, badge, action }: {
       }}>{title}</span>
       {badge && (
         <span style={{
-          fontFamily: T.mono, fontSize: 11, color: T.textDim,
-          background: T.chip, padding: '2px 8px', borderRadius: 2,
+          fontFamily: T.mono, fontSize: 11,
+          color: badgeColor ?? T.textDim,
+          background: badgeColor ? `${badgeColor}18` : T.chip,
+          padding: '2px 8px', borderRadius: 2,
         }}>{badge}</span>
       )}
       <div style={{ flex: 1 }} />
@@ -577,13 +579,10 @@ function NewTableCard({ tables, onOrder }: { tables: TableWithStatus[]; onOrder:
 // ── Floor panel (left 1280px) ─────────────────────────────────────────────────
 function FloorPanel({
   tables, tickets,
-  layout, setLayout,
   onOpenTable,
 }: {
   tables:      TableWithStatus[]
   tickets:     KdsTicket[]
-  layout:      'grid' | 'floor'
-  setLayout:   (l: 'grid' | 'floor') => void
   onOpenTable: (id: string) => void
 }) {
   async function removeWalkup(tableId: string) {
@@ -640,44 +639,22 @@ function FloorPanel({
           ))}
         </div>
 
-        <div style={{ flex: 1 }} />
-
-        {/* Grid / Floor toggle */}
-        <div style={{ display: 'flex', gap: 2 }}>
-          {(['grid', 'floor'] as const).map(mode => (
-            <button key={mode} onClick={() => setLayout(mode)} style={{
-              padding: '5px 12px', fontSize: 12, fontFamily: 'inherit',
-              background: layout === mode ? T.accent : T.chip,
-              color:      layout === mode ? T.accentInk : T.textDim,
-              border:     `1px solid ${layout === mode ? T.accent : T.line2}`,
-              borderRadius: T.radius, cursor: 'pointer',
-              fontWeight: layout === mode ? 600 : 400,
-              transition: 'background 0.12s ease',
-            }}>
-              {mode === 'grid' ? 'Grid' : 'Floor'}
-            </button>
-          ))}
-        </div>
       </div>
 
-      {/* Body — grid scrolls, floor plan fills */}
-      {layout === 'grid' ? (
-        <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10 }}>
-            {tables.map(t => (
-              <TableCard
-                key={t.id}
-                table={t}
-                onClick={() => onOpenTable(t.id)}
-                onRemove={t.id.startsWith('W') ? () => removeWalkup(t.id) : undefined}
-              />
-            ))}
-            <NewTableCard tables={tables} onOrder={onOpenTable} />
-          </div>
+      {/* Body — grid view */}
+      <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10 }}>
+          {tables.map(t => (
+            <TableCard
+              key={t.id}
+              table={t}
+              onClick={() => onOpenTable(t.id)}
+              onRemove={t.id.startsWith('W') ? () => removeWalkup(t.id) : undefined}
+            />
+          ))}
+          <NewTableCard tables={tables} onOrder={onOpenTable} />
         </div>
-      ) : (
-        <FloorPlan tables={tables} tickets={tickets} onOpenTable={onOpenTable} />
-      )}
+      </div>
     </div>
   )
 }
@@ -692,8 +669,6 @@ export default function FloorView({
   onOpenTable: (id: string) => void
   onBump: (orderId: number, station: 'kitchen' | 'bar') => void
 }) {
-  const [layout, setLayout] = useState<'grid' | 'floor'>('grid')
-
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <KpiStrip tables={tables} tickets={tickets} />
@@ -702,7 +677,6 @@ export default function FloorView({
       <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) 1px minmax(0, 1fr)' }}>
         <FloorPanel
           tables={tables} tickets={tickets}
-          layout={layout} setLayout={setLayout}
           onOpenTable={onOpenTable}
         />
         <div style={{ background: T.line }} />

@@ -8,6 +8,8 @@ const T = THEME
 
 const EXPENSE_CATS = ['OPEX', 'Food', 'Beer', 'Cocktails/Hard', 'Non-Alcohol', 'Cigarettes'] as const
 
+const UOM_OPTIONS = ['pcs','kg','g','ltr','ml','box','pack','bag','bottle','case','tray','set','roll','sheet','bundle','pair','dozen','sack','can','jar']
+
 interface ExpenseRow {
   id:          number
   expenseDate: string
@@ -15,6 +17,7 @@ interface ExpenseRow {
   description: string
   amount:      number
   qty:         number
+  unit:        string | null
   unitPrice:   number | null
   paidTo:      string | null
   createdAt:   string
@@ -47,9 +50,9 @@ export default function ExpensesView() {
   const [fCat,        setFCat]        = useState<string>('OPEX')
   const [fDesc,       setFDesc]       = useState('')
   const [fQty,        setFQty]        = useState('1')
+  const [fUnit,       setFUnit]       = useState('')
   const [fUnitPrice,  setFUnitPrice]  = useState('')
   const [fAmt,        setFAmt]        = useState('')
-  const [fTo,         setFTo]         = useState('')
 
   // Autocomplete state
   const [suggestions,    setSuggestions]    = useState<Preset[]>([])
@@ -82,7 +85,7 @@ export default function ExpensesView() {
     setRows((data ?? []).map((r: any) => ({
       id: r.id, expenseDate: r.expense_date, category: r.category,
       description: r.description, amount: r.amount,
-      qty: r.qty ?? 1, unitPrice: r.unit_price ?? null,
+      qty: r.qty ?? 1, unit: r.unit ?? null, unitPrice: r.unit_price ?? null,
       paidTo: r.paid_to, createdAt: r.created_at,
     })))
     setLoading(false)
@@ -131,10 +134,9 @@ export default function ExpensesView() {
     setSaving(true)
     await sb.from('daily_expenses').insert({
       expense_date: today, category: fCat, description: fDesc.trim(),
-      amount: amt, qty, unit_price: up,
-      paid_to: fTo.trim() || null,
+      amount: amt, qty, unit: fUnit.trim() || null, unit_price: up,
     })
-    setFDesc(''); setFQty('1'); setFUnitPrice(''); setFAmt(''); setFTo('')
+    setFDesc(''); setFQty('1'); setFUnit(''); setFUnitPrice(''); setFAmt('')
     setShowForm(false)
     await fetchRows()
     setSaving(false)
@@ -205,7 +207,7 @@ export default function ExpensesView() {
         return (
           <div style={{
             padding: '16px 24px', background: T.surface2, borderBottom: `1px solid ${T.line}`,
-            display: 'grid', gridTemplateColumns: '140px 1fr 70px 100px 110px 130px auto',
+            display: 'grid', gridTemplateColumns: '140px 1fr 70px 90px 110px 120px auto',
             gap: 8, alignItems: 'end', flexShrink: 0,
           }}>
             {/* Category */}
@@ -216,9 +218,9 @@ export default function ExpensesView() {
               </select>
             </div>
 
-            {/* Description with autocomplete */}
+            {/* Name with autocomplete */}
             <div style={{ position: 'relative' }}>
-              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Description *</div>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Name *</div>
               <input
                 ref={descRef}
                 value={fDesc}
@@ -268,24 +270,33 @@ export default function ExpensesView() {
               <input value={fQty} onChange={e => setFQty(e.target.value)} placeholder="1" type="number" min="0.001" step="any" style={{ width: '100%', fontFamily: T.mono, fontSize: 13, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box' }} />
             </div>
 
-            {/* Unit price */}
+            {/* Unit */}
             <div>
-              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Unit ₱</div>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Unit</div>
+              <input
+                list="uom-options"
+                value={fUnit}
+                onChange={e => setFUnit(e.target.value)}
+                placeholder="pcs"
+                style={{ width: '100%', fontFamily: 'inherit', fontSize: 12, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box' }}
+              />
+              <datalist id="uom-options">
+                {UOM_OPTIONS.map(u => <option key={u} value={u} />)}
+              </datalist>
+            </div>
+
+            {/* Unit Price */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Unit Price</div>
               <input value={fUnitPrice} onChange={e => { setFUnitPrice(e.target.value); setFAmt('') }} placeholder="0.00" type="number" min="0" style={{ width: '100%', fontFamily: T.mono, fontSize: 13, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box' }} />
             </div>
 
-            {/* Total */}
+            {/* Total Price */}
             <div>
               <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>
-                Total ₱ {up != null ? <span style={{ color: T.accent }}>auto</span> : '*'}
+                Total Price {up != null ? <span style={{ color: T.accent }}>auto</span> : '*'}
               </div>
               <input value={up != null ? autoAmt : fAmt} onChange={e => { if (up == null) setFAmt(e.target.value) }} readOnly={up != null} placeholder="0.00" type="number" min="0" style={{ width: '100%', fontFamily: T.mono, fontSize: 13, background: up != null ? T.chip : T.surface, border: `1px solid ${T.line2}`, color: up != null ? T.accent : T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box' }} />
-            </div>
-
-            {/* Paid To */}
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Paid To</div>
-              <input value={fTo} onChange={e => setFTo(e.target.value)} placeholder="Supplier / person" style={{ width: '100%', fontFamily: 'inherit', fontSize: 12, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box' }} />
             </div>
 
             <button onClick={addExpense} disabled={saving || !canSave} style={{ padding: '7px 16px', fontSize: 12, fontFamily: 'inherit', fontWeight: 700, background: T.accent, color: T.accentInk, border: 'none', borderRadius: T.radius, cursor: 'pointer', opacity: !canSave ? 0.4 : 1 }}>
@@ -297,11 +308,11 @@ export default function ExpensesView() {
 
       {/* List header */}
       <div style={{
-        display: 'grid', gridTemplateColumns: '90px 80px 100px 1fr 120px 100px 80px 36px',
+        display: 'grid', gridTemplateColumns: '90px 80px 100px 1fr 160px 80px 36px',
         padding: '0 24px', height: 36, alignItems: 'center',
         borderBottom: `1px solid ${T.line}`, background: T.surface2, flexShrink: 0,
       }}>
-        {['Time','Date','Category','Description','Qty × Unit','Paid To','Amount',''].map(h => (
+        {['Time','Date','Category','Name','Qty × Unit','Amount',''].map(h => (
           <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
         ))}
       </div>
@@ -316,12 +327,15 @@ export default function ExpensesView() {
         ) : rows.map((row, i) => {
           const dt      = new Date(row.createdAt)
           const time    = `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`
-          const qtyUnit = row.unitPrice != null
-            ? `${row.qty % 1 === 0 ? row.qty : row.qty.toFixed(3)} × ₱${row.unitPrice.toFixed(2)}`
+          const qtyPart = row.qty % 1 === 0 ? String(row.qty) : row.qty.toFixed(3)
+          const unitPart = row.unit ? ` ${row.unit}` : ''
+          const pricePart = row.unitPrice != null ? ` × ₱${row.unitPrice.toFixed(2)}` : ''
+          const qtyUnit = row.unitPrice != null || row.unit
+            ? `${qtyPart}${unitPart}${pricePart}`
             : '—'
           return (
             <div key={row.id} style={{
-              display: 'grid', gridTemplateColumns: '90px 80px 100px 1fr 120px 100px 80px 36px',
+              display: 'grid', gridTemplateColumns: '90px 80px 100px 1fr 160px 80px 36px',
               padding: '0 24px', height: 44, alignItems: 'center',
               borderBottom: `1px solid ${T.line}`,
               background: i % 2 === 0 ? 'transparent' : T.surface,
@@ -331,7 +345,6 @@ export default function ExpensesView() {
               <span style={{ fontSize: 11, fontWeight: 600, color: catColor[row.category] ?? T.textDim }}>{row.category}</span>
               <span style={{ fontSize: 13, color: T.text }}>{row.description}</span>
               <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute }}>{qtyUnit}</span>
-              <span style={{ fontSize: 12, color: T.textDim }}>{row.paidTo ?? '—'}</span>
               <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: T.bad, fontVariantNumeric: 'tabular-nums' }}>
                 ₱{row.amount.toFixed(2)}
               </span>
