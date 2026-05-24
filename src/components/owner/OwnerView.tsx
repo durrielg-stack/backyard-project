@@ -260,7 +260,7 @@ function HBarChart({ data, color }: { data: { category: string; value: number; s
 
 interface MultiBar { label: string; gross: number; cost: number; expenses: number }
 
-function GroupedBarChart({ bars, height = 220 }: { bars: MultiBar[]; height?: number }) {
+function GroupedBarChart({ bars, height = 220, mode = 'bar' }: { bars: MultiBar[]; height?: number; mode?: 'bar' | 'line' }) {
   if (bars.length === 0) {
     return <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No data</div>
   }
@@ -272,17 +272,24 @@ function GroupedBarChart({ bars, height = 220 }: { bars: MultiBar[]; height?: nu
   ] as const
   const allVals = bars.flatMap(b => [b.gross, b.cost, Math.max(0, b.gross - b.cost), b.expenses])
   const maxVal  = Math.max(...allVals, 1)
+
   return (
     <div style={{ height, padding: '10px 24px 0', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', gap: 14, paddingBottom: 6, flexShrink: 0 }}>
         {(['Gross','Cost','Net','Expenses'] as const).map((lbl, i) => (
           <div key={lbl} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <div style={{ width: 8, height: 8, borderRadius: 1, background: SERIES[i].color }} />
+            <div style={{
+              width: mode === 'line' ? 16 : 8,
+              height: mode === 'line' ? 2 : 8,
+              borderRadius: 1, background: SERIES[i].color,
+            }} />
             <span style={{ fontSize: 9, color: T.textMute, fontFamily: T.mono, letterSpacing: '0.06em' }}>{lbl}</span>
           </div>
         ))}
       </div>
+
       <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+        {/* Grid lines + y-axis labels */}
         {[0.25, 0.5, 0.75, 1.0].map(pct => (
           <div key={pct} style={{ position: 'absolute', left: 0, right: 0, top: `${(1-pct)*100}%`, borderTop: `1px solid ${T.line}`, pointerEvents: 'none' }}>
             <span style={{ position: 'absolute', right: 0, transform: 'translateY(-100%)', fontSize: 9, fontFamily: T.mono, color: T.textMute, paddingBottom: 1 }}>
@@ -290,27 +297,77 @@ function GroupedBarChart({ bars, height = 220 }: { bars: MultiBar[]; height?: nu
             </span>
           </div>
         ))}
-        <div style={{ position: 'absolute', inset: 0, display: 'grid', gridTemplateColumns: `repeat(${bars.length}, 1fr)`, alignItems: 'flex-end' }}>
-          {bars.map(bar => {
-            const vals = [bar.gross, bar.cost, Math.max(0, bar.gross - bar.cost), bar.expenses]
-            return (
-              <div key={bar.label} style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', height: '100%', gap: 1 }}>
-                {SERIES.map((s, si) => {
-                  const v = vals[si]
-                  const h = maxVal > 0 ? (v / maxVal) * 100 : 0
-                  return (
-                    <div key={s.key} style={{
-                      width: '20%', height: h > 0 ? `${h}%` : 2,
-                      background: s.color, borderRadius: `${T.radius} ${T.radius} 0 0`,
-                      minHeight: v > 0 ? 3 : 2, opacity: v > 0 ? 1 : 0.2, transition: 'height 0.4s ease',
-                    }} />
-                  )
-                })}
-              </div>
-            )
-          })}
-        </div>
+
+        {mode === 'bar' ? (
+          <div style={{ position: 'absolute', inset: 0, display: 'grid', gridTemplateColumns: `repeat(${bars.length}, 1fr)`, alignItems: 'flex-end' }}>
+            {bars.map(bar => {
+              const vals = [bar.gross, bar.cost, Math.max(0, bar.gross - bar.cost), bar.expenses]
+              return (
+                <div key={bar.label} style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', height: '100%', gap: 1 }}>
+                  {SERIES.map((s, si) => {
+                    const v = vals[si]
+                    const h = maxVal > 0 ? (v / maxVal) * 100 : 0
+                    return (
+                      <div key={s.key} style={{
+                        width: '20%', height: h > 0 ? `${h}%` : 2,
+                        background: s.color, borderRadius: `${T.radius} ${T.radius} 0 0`,
+                        minHeight: v > 0 ? 3 : 2, opacity: v > 0 ? 1 : 0.2, transition: 'height 0.4s ease',
+                      }} />
+                    )
+                  })}
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          /* Line chart — SVG with viewBox so it scales perfectly */
+          <svg
+            viewBox={`0 0 ${bars.length - 1} 1`}
+            preserveAspectRatio="none"
+            style={{ position: 'absolute', inset: '0 0 0 0', width: '100%', height: '100%', overflow: 'visible' }}
+          >
+            {SERIES.map((s, si) => {
+              const vals = bars.map(b => {
+                const row = [b.gross, b.cost, Math.max(0, b.gross - b.cost), b.expenses]
+                return row[si]
+              })
+              const points = vals.map((v, i) => {
+                const x = bars.length > 1 ? i / (bars.length - 1) * (bars.length - 1) : 0
+                const y = 1 - (v / maxVal)
+                return `${x},${y}`
+              }).join(' ')
+              return (
+                <g key={s.key}>
+                  <polyline
+                    points={points}
+                    fill="none"
+                    stroke={s.color}
+                    strokeWidth={2}
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                    opacity={0.9}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                  {bars.length <= 31 && vals.map((v, i) => {
+                    const x = bars.length > 1 ? i / (bars.length - 1) * (bars.length - 1) : 0
+                    const y = 1 - (v / maxVal)
+                    return (
+                      <circle
+                        key={i}
+                        cx={x} cy={y}
+                        r={3}
+                        fill={s.color}
+                        vectorEffect="non-scaling-stroke"
+                      />
+                    )
+                  })}
+                </g>
+              )
+            })}
+          </svg>
+        )}
       </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${bars.length}, 1fr)`, marginTop: 4, paddingBottom: 8 }}>
         {bars.map((bar, i) => (
           <div key={bar.label} style={{ textAlign: 'center', fontFamily: T.mono, fontSize: 8, color: T.textMute, visibility: (bars.length > 14 && i % 2 !== 0) ? 'hidden' : 'visible' }}>
@@ -325,7 +382,8 @@ function GroupedBarChart({ bars, height = 220 }: { bars: MultiBar[]; height?: nu
 // ── REPORTS TAB ───────────────────────────────────────────────────────────────
 
 function ReportsTab() {
-  const [range, setRange] = useState<'today' | 'week' | 'month'>('today')
+  const [range, setRange]         = useState<'today' | 'week' | 'month'>('today')
+  const [chartMode, setChartMode] = useState<'bar' | 'line'>('bar')
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [todayGross,  setTodayGross]  = useState(0)
@@ -613,13 +671,44 @@ function ReportsTab() {
           <SectionHd
             title="P&L Overview"
             badge={`Gross ${fmtPeso(gross)} · Net ${fmtPeso(net)}`}
+            action={
+              <div style={{ display: 'flex', gap: 2 }}>
+                {(['bar', 'line'] as const).map(m => (
+                  <button
+                    key={m}
+                    onClick={() => setChartMode(m)}
+                    title={m === 'bar' ? 'Bar chart' : 'Line chart'}
+                    style={{
+                      width: 28, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: chartMode === m ? T.accent : T.chip,
+                      border: `1px solid ${chartMode === m ? T.accent : T.line2}`,
+                      borderRadius: T.radius, cursor: 'pointer', padding: 0,
+                      transition: 'background 0.12s ease',
+                    }}
+                  >
+                    {m === 'bar' ? (
+                      <svg viewBox="0 0 12 10" width={12} height={10} fill="none">
+                        <rect x="0" y="4" width="2.5" height="6" fill={chartMode === 'bar' ? T.accentInk : T.textDim} />
+                        <rect x="3.5" y="1" width="2.5" height="9" fill={chartMode === 'bar' ? T.accentInk : T.textDim} />
+                        <rect x="7" y="2.5" width="2.5" height="7.5" fill={chartMode === 'bar' ? T.accentInk : T.textDim} />
+                        <rect x="10" y="5.5" width="2" height="4.5" fill={chartMode === 'bar' ? T.accentInk : T.textDim} />
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 12 10" width={12} height={10} fill="none" stroke={chartMode === 'line' ? T.accentInk : T.textDim} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round">
+                        <polyline points="0,8 3,4 6,5.5 9,1.5 12,3" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            }
           />
           {loading ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>
               Loading…
             </div>
           ) : (
-            <GroupedBarChart bars={bars} height={220} />
+            <GroupedBarChart bars={bars} height={220} mode={chartMode} />
           )}
 
           {/* Payment method breakdown */}
