@@ -24,10 +24,19 @@ interface ExpenseRow {
   category:    string
   description: string
   amount:      number
+  qty:         number
+  unitPrice:   number | null
   paidTo:      string | null
   receiptRef:  string | null
   addedBy:     string | null
   createdAt:   string
+}
+
+interface CategoryBreakdown {
+  category: string
+  gross:    number
+  cost:     number
+  net:      number
 }
 
 interface MenuRow {
@@ -226,8 +235,11 @@ function ReportsTab() {
   const [hourlyBars,  setHourlyBars]  = useState<RevenueBar[]>([])
   const [weeklyBars,  setWeeklyBars]  = useState<RevenueBar[]>([])
   const [monthlyBars, setMonthlyBars] = useState<RevenueBar[]>([])
-  const [methodMap,   setMethodMap]   = useState<Record<string, number>>({})
-  const [topItems,    setTopItems]    = useState<{ name: string; qty: number; rev: number }[]>([])
+  const [methodMap,       setMethodMap]       = useState<Record<string, number>>({})
+  const [topItems,        setTopItems]        = useState<{ name: string; qty: number; rev: number; cost: number }[]>([])
+  const [catBreakdown,    setCatBreakdown]    = useState<CategoryBreakdown[]>([])
+  const [voidedCount,     setVoidedCount]     = useState(0)
+  const [voidedAmount,    setVoidedAmount]    = useState(0)
   const [loading, setLoading] = useState(true)
 
   const fetchAll = useCallback(async () => {
@@ -288,24 +300,47 @@ function ReportsTab() {
       return { label: `${d.getDate()}`, value: dateBuckets[k]??0 }
     })))
 
-    // Top items (all time — last 30 days order_items)
+    // Top items (last 30 days) + category breakdown — join menu_items for cost
     const { data: items } = await sb
       .from('order_items')
-      .select('qty, unit_price, menu_items(name)')
+      .select('qty, unit_price, status, menu_items(name, category, cost)')
       .gte('created_at', monthStart.toISOString())
-      .neq('status', 'voided')
-    const itemAgg: Record<string, { qty: number; rev: number }> = {}
+    const itemAgg: Record<string, { qty: number; rev: number; cost: number }> = {}
+    const catAgg:  Record<string, { gross: number; cost: number }> = {}
     for (const row of (items ?? [])) {
-      const name = (Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items)?.name ?? '—'
-      if (!itemAgg[name]) itemAgg[name] = { qty: 0, rev: 0 }
-      itemAgg[name].qty += row.qty
-      itemAgg[name].rev += row.qty * row.unit_price
+      if (row.status === 'voided') continue
+      const mi   = (Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items)
+      const name = mi?.name ?? '—'
+      const cat  = mi?.category ?? 'Other'
+      const itemCost = (mi?.cost ?? 0) * row.qty
+      if (!itemAgg[name]) itemAgg[name] = { qty: 0, rev: 0, cost: 0 }
+      itemAgg[name].qty  += row.qty
+      itemAgg[name].rev  += row.qty * row.unit_price
+      itemAgg[name].cost += itemCost
+      if (!catAgg[cat]) catAgg[cat] = { gross: 0, cost: 0 }
+      catAgg[cat].gross += row.qty * row.unit_price
+      catAgg[cat].cost  += itemCost
     }
     const sorted = Object.entries(itemAgg)
       .map(([name, v]) => ({ name, ...v }))
       .sort((a, b) => b.rev - a.rev)
       .slice(0, 10)
     setTopItems(sorted)
+    setCatBreakdown(
+      Object.entries(catAgg)
+        .map(([category, v]) => ({ category, gross: v.gross, cost: v.cost, net: v.gross - v.cost }))
+        .sort((a, b) => b.gross - a.gross)
+    )
+
+    // Voided items — today
+    const { data: voidedItems } = await sb
+      .from('order_items')
+      .select('qty, unit_price')
+      .gte('created_at', todayStart.toISOString())
+      .eq('status', 'voided')
+    const vi = voidedItems ?? []
+    setVoidedCount(vi.length)
+    setVoidedAmount(vi.reduce((s: number, r: any) => s + r.qty * r.unit_price, 0))
 
     setLoading(false)
   }, [])
@@ -323,23 +358,23 @@ function ReportsTab() {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       {/* Summary KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
         {[
-          { label: 'Today',   value: fmtPeso(todayRev), sub: `${txToday} txn` },
-          { label: 'This Week', value: fmtPeso(weekRev),  sub: `${txWeek} txn` },
-          { label: 'Last 30 Days', value: fmtPeso(monthRev), sub: `${txMonth} txn` },
-          { label: 'Avg. Order',
-            value: txToday > 0 ? fmtPeso(todayRev / txToday) : '—',
-            sub: 'today' },
+          { label: 'Today',        value: fmtPeso(todayRev), sub: `${txToday} txn`,         color: T.accent },
+          { label: 'This Week',    value: fmtPeso(weekRev),  sub: `${txWeek} txn`,           color: T.text },
+          { label: 'Last 30 Days', value: fmtPeso(monthRev), sub: `${txMonth} txn`,          color: T.text },
+          { label: 'Avg. Order',   value: txToday > 0 ? fmtPeso(todayRev / txToday) : '—',  sub: 'today',                          color: T.text },
+          { label: 'Voided Items', value: String(voidedCount),                               sub: voidedCount > 0 ? fmtPeso(voidedAmount) : 'today', color: voidedCount > 0 ? T.bad : T.textMute },
+          { label: 'Voided Total', value: fmtPeso(voidedAmount),                             sub: 'today',                          color: voidedAmount > 0 ? T.bad : T.textMute },
         ].map((k, i) => (
           <div key={k.label} style={{
-            padding: '18px 24px',
-            borderRight: i < 3 ? `1px solid ${T.line}` : 'none',
+            padding: '16px 20px',
+            borderRight: i < 5 ? `1px solid ${T.line}` : 'none',
           }}>
             <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, marginBottom: 6 }}>
               {k.label}
             </div>
-            <div style={{ fontFamily: T.mono, fontSize: 20, fontWeight: 700, color: i === 0 ? T.accent : T.text, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+            <div style={{ fontFamily: T.mono, fontSize: 18, fontWeight: 700, color: k.color, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
               {k.value}
             </div>
             <div style={{ fontSize: 11, color: T.textMute, marginTop: 4 }}>{k.sub}</div>
@@ -400,19 +435,20 @@ function ReportsTab() {
         </div>
 
         {/* Top items */}
-        <div style={{ width: 280, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ width: 300, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
           <SectionHd title="Top Items" badge="30 days" />
           <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
             {topItems.length === 0 ? (
               <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No data</div>
             ) : topItems.map((item, i) => {
               const maxRev = topItems[0].rev
+              const margin = item.rev > 0 ? ((item.rev - item.cost) / item.rev) * 100 : null
               return (
                 <div key={item.name} style={{
                   padding: '10px 16px',
                   borderBottom: `1px solid ${T.line}`,
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
                     <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute, width: 16 }}>
                       {String(i+1).padStart(2,'0')}
                     </span>
@@ -423,18 +459,74 @@ function ReportsTab() {
                       {fmtPeso(item.rev)}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                     <div style={{ flex: 1, height: 3, background: T.line2, borderRadius: 2 }}>
                       <div style={{ width: `${(item.rev / maxRev) * 100}%`, height: '100%', background: `${T.accent}66`, borderRadius: 2 }} />
                     </div>
                     <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute }}>{item.qty}×</span>
                   </div>
+                  {item.cost > 0 && (
+                    <div style={{ display: 'flex', gap: 8, paddingLeft: 24 }}>
+                      <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute }}>
+                        cost {fmtPeso(item.cost)}
+                      </span>
+                      {margin !== null && (
+                        <span style={{
+                          fontFamily: T.mono, fontSize: 10, fontWeight: 600,
+                          color: margin >= 60 ? T.ok : margin >= 40 ? T.warn : T.bad,
+                        }}>
+                          {margin.toFixed(0)}% margin
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
               )
             })}
           </div>
         </div>
       </div>
+
+      {/* Category breakdown */}
+      {catBreakdown.length > 0 && (
+        <div style={{ flexShrink: 0, borderTop: `1px solid ${T.line}` }}>
+          <SectionHd title="By Category · 30 days" />
+          {/* header */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1fr 130px 130px 130px 90px',
+            padding: '0 24px', height: 32, alignItems: 'center',
+            background: T.surface2, borderBottom: `1px solid ${T.line}`,
+          }}>
+            {['Category','Gross','Cost','Net','Margin'].map(h => (
+              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>
+                {h}
+              </span>
+            ))}
+          </div>
+          {catBreakdown.map((row, i) => {
+            const margin = row.gross > 0 ? (row.net / row.gross) * 100 : 0
+            return (
+              <div key={row.category} style={{
+                display: 'grid', gridTemplateColumns: '1fr 130px 130px 130px 90px',
+                padding: '0 24px', height: 40, alignItems: 'center',
+                borderBottom: `1px solid ${T.line}`,
+                background: i % 2 === 0 ? 'transparent' : T.surface,
+              }}>
+                <span style={{ fontSize: 13, fontWeight: 500, color: T.text }}>{row.category}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 12, color: T.accent, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(row.gross)}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(row.cost)}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 12, color: T.ok, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(row.net)}</span>
+                <span style={{
+                  fontFamily: T.mono, fontSize: 12, fontWeight: 600,
+                  color: margin >= 60 ? T.ok : margin >= 40 ? T.warn : T.bad,
+                }}>
+                  {margin.toFixed(1)}%
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
@@ -853,11 +945,13 @@ function ExpensesTab() {
   const [saving, setSaving]    = useState(false)
 
   // Form state
-  const [fCat,  setFCat]  = useState<string>('Petty Cash')
-  const [fDesc, setFDesc] = useState('')
-  const [fAmt,  setFAmt]  = useState('')
-  const [fTo,   setFTo]   = useState('')
-  const [fRef,  setFRef]  = useState('')
+  const [fCat,       setFCat]       = useState<string>('Petty Cash')
+  const [fDesc,      setFDesc]      = useState('')
+  const [fQty,       setFQty]       = useState('1')
+  const [fUnitPrice, setFUnitPrice] = useState('')
+  const [fAmt,       setFAmt]       = useState('')
+  const [fTo,        setFTo]        = useState('')
+  const [fRef,       setFRef]       = useState('')
 
   const today = new Date().toISOString().slice(0, 10)
 
@@ -874,6 +968,7 @@ function ExpensesTab() {
     setRows((data ?? []).map((r: any) => ({
       id: r.id, expenseDate: r.expense_date, category: r.category,
       description: r.description, amount: r.amount,
+      qty: r.qty ?? 1, unitPrice: r.unit_price ?? null,
       paidTo: r.paid_to, receiptRef: r.receipt_ref,
       addedBy: r.added_by, createdAt: r.created_at,
     })))
@@ -883,7 +978,9 @@ function ExpensesTab() {
   useEffect(() => { fetchRows() }, [fetchRows])
 
   async function addExpense() {
-    const amt = parseFloat(fAmt)
+    const qty  = parseFloat(fQty) || 1
+    const up   = fUnitPrice !== '' ? parseFloat(fUnitPrice) : null
+    const amt  = up != null ? qty * up : parseFloat(fAmt)
     if (!fDesc.trim() || isNaN(amt) || amt <= 0) return
     setSaving(true)
     await sb.from('daily_expenses').insert({
@@ -891,10 +988,12 @@ function ExpensesTab() {
       category:     fCat,
       description:  fDesc.trim(),
       amount:       amt,
+      qty,
+      unit_price:   up,
       paid_to:      fTo.trim() || null,
       receipt_ref:  fRef.trim() || null,
     })
-    setFDesc(''); setFAmt(''); setFTo(''); setFRef('')
+    setFDesc(''); setFQty('1'); setFUnitPrice(''); setFAmt(''); setFTo(''); setFRef('')
     setShowForm(false)
     await fetchRows()
     setSaving(false)
@@ -931,78 +1030,112 @@ function ExpensesTab() {
       />
 
       {/* Add form */}
-      {showForm && (
-        <div style={{
-          padding: '16px 24px',
-          background: T.surface2, borderBottom: `1px solid ${T.line}`,
-          display: 'grid', gridTemplateColumns: '140px 1fr 100px 140px 120px auto',
-          gap: 8, alignItems: 'end', flexShrink: 0,
-        }}>
-          {/* Category */}
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Category</div>
-            <select value={fCat} onChange={e => setFCat(e.target.value)} style={{
-              width: '100%', fontFamily: 'inherit', fontSize: 12,
-              background: T.surface, border: `1px solid ${T.line2}`,
-              color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none',
-            }}>
-              {EXPENSE_CATS.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-          {/* Description */}
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Description *</div>
-            <input value={fDesc} onChange={e => setFDesc(e.target.value)} placeholder="What was this for?" style={{
-              width: '100%', fontFamily: 'inherit', fontSize: 12,
-              background: T.surface, border: `1px solid ${T.line2}`,
-              color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box',
-            }} />
-          </div>
-          {/* Amount */}
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Amount ₱ *</div>
-            <input value={fAmt} onChange={e => setFAmt(e.target.value)} placeholder="0.00" type="number" min="0" style={{
-              width: '100%', fontFamily: T.mono, fontSize: 13,
-              background: T.surface, border: `1px solid ${T.line2}`,
-              color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box',
-            }} />
-          </div>
-          {/* Paid to */}
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Paid To</div>
-            <input value={fTo} onChange={e => setFTo(e.target.value)} placeholder="Supplier / person" style={{
-              width: '100%', fontFamily: 'inherit', fontSize: 12,
-              background: T.surface, border: `1px solid ${T.line2}`,
-              color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box',
-            }} />
-          </div>
-          {/* Receipt */}
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Receipt #</div>
-            <input value={fRef} onChange={e => setFRef(e.target.value)} placeholder="OR-001" style={{
-              width: '100%', fontFamily: T.mono, fontSize: 12,
-              background: T.surface, border: `1px solid ${T.line2}`,
-              color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box',
-            }} />
-          </div>
-          <button onClick={addExpense} disabled={saving || !fDesc.trim() || !fAmt} style={{
-            padding: '7px 16px', fontSize: 12, fontFamily: 'inherit', fontWeight: 700,
-            background: T.accent, color: T.accentInk,
-            border: 'none', borderRadius: T.radius, cursor: 'pointer',
-            opacity: (!fDesc.trim() || !fAmt) ? 0.4 : 1,
+      {showForm && (() => {
+        const qty  = parseFloat(fQty) || 1
+        const up   = fUnitPrice !== '' ? parseFloat(fUnitPrice) : null
+        const autoAmt = up != null ? (qty * up).toFixed(2) : fAmt
+        const canSave = fDesc.trim() && (up != null ? up > 0 : (parseFloat(fAmt) > 0))
+        return (
+          <div style={{
+            padding: '16px 24px',
+            background: T.surface2, borderBottom: `1px solid ${T.line}`,
+            display: 'grid', gridTemplateColumns: '140px 1fr 70px 100px 110px 130px 110px auto',
+            gap: 8, alignItems: 'end', flexShrink: 0,
           }}>
-            Save
-          </button>
-        </div>
-      )}
+            {/* Category */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Category</div>
+              <select value={fCat} onChange={e => setFCat(e.target.value)} style={{
+                width: '100%', fontFamily: 'inherit', fontSize: 12,
+                background: T.surface, border: `1px solid ${T.line2}`,
+                color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none',
+              }}>
+                {EXPENSE_CATS.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            {/* Description */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Description *</div>
+              <input value={fDesc} onChange={e => setFDesc(e.target.value)} placeholder="What was this for?" style={{
+                width: '100%', fontFamily: 'inherit', fontSize: 12,
+                background: T.surface, border: `1px solid ${T.line2}`,
+                color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box',
+              }} />
+            </div>
+            {/* Qty */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Qty</div>
+              <input value={fQty} onChange={e => setFQty(e.target.value)} placeholder="1" type="number" min="0.001" step="any" style={{
+                width: '100%', fontFamily: T.mono, fontSize: 13,
+                background: T.surface, border: `1px solid ${T.line2}`,
+                color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box',
+              }} />
+            </div>
+            {/* Unit Price */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Unit ₱</div>
+              <input value={fUnitPrice} onChange={e => { setFUnitPrice(e.target.value); setFAmt('') }} placeholder="0.00" type="number" min="0" style={{
+                width: '100%', fontFamily: T.mono, fontSize: 13,
+                background: T.surface, border: `1px solid ${T.line2}`,
+                color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box',
+              }} />
+            </div>
+            {/* Amount — auto-calculated or manual */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>
+                Total ₱ {up != null ? <span style={{ color: T.accent }}>auto</span> : '*'}
+              </div>
+              <input
+                value={up != null ? autoAmt : fAmt}
+                onChange={e => { if (up == null) setFAmt(e.target.value) }}
+                readOnly={up != null}
+                placeholder="0.00" type="number" min="0"
+                style={{
+                  width: '100%', fontFamily: T.mono, fontSize: 13,
+                  background: up != null ? T.chip : T.surface,
+                  border: `1px solid ${T.line2}`,
+                  color: up != null ? T.accent : T.text,
+                  borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box',
+                }}
+              />
+            </div>
+            {/* Paid to */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Paid To</div>
+              <input value={fTo} onChange={e => setFTo(e.target.value)} placeholder="Supplier / person" style={{
+                width: '100%', fontFamily: 'inherit', fontSize: 12,
+                background: T.surface, border: `1px solid ${T.line2}`,
+                color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box',
+              }} />
+            </div>
+            {/* Receipt */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Receipt #</div>
+              <input value={fRef} onChange={e => setFRef(e.target.value)} placeholder="OR-001" style={{
+                width: '100%', fontFamily: T.mono, fontSize: 12,
+                background: T.surface, border: `1px solid ${T.line2}`,
+                color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box',
+              }} />
+            </div>
+            <button onClick={addExpense} disabled={saving || !canSave} style={{
+              padding: '7px 16px', fontSize: 12, fontFamily: 'inherit', fontWeight: 700,
+              background: T.accent, color: T.accentInk,
+              border: 'none', borderRadius: T.radius, cursor: 'pointer',
+              opacity: !canSave ? 0.4 : 1,
+            }}>
+              Save
+            </button>
+          </div>
+        )
+      })()}
 
       {/* List header */}
       <div style={{
-        display: 'grid', gridTemplateColumns: '120px 100px 1fr 130px 100px 80px 36px',
+        display: 'grid', gridTemplateColumns: '90px 100px 1fr 120px 100px 100px 80px 36px',
         padding: '0 24px', height: 36, alignItems: 'center',
         borderBottom: `1px solid ${T.line}`, background: T.surface2, flexShrink: 0,
       }}>
-        {['Time','Category','Description','Paid To','Receipt','Amount',''].map(h => (
+        {['Time','Category','Description','Qty × Unit','Paid To','Receipt','Amount',''].map(h => (
           <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>
             {h}
           </span>
@@ -1019,21 +1152,22 @@ function ExpensesTab() {
         ) : rows.map((row, i) => {
           const dt = new Date(row.createdAt)
           const time = `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`
+          const qtyUnit = row.unitPrice != null
+            ? `${row.qty % 1 === 0 ? row.qty : row.qty.toFixed(3)} × ₱${row.unitPrice.toFixed(2)}`
+            : '—'
           return (
             <div key={row.id} style={{
-              display: 'grid', gridTemplateColumns: '120px 100px 1fr 130px 100px 80px 36px',
+              display: 'grid', gridTemplateColumns: '90px 100px 1fr 120px 100px 100px 80px 36px',
               padding: '0 24px', height: 44, alignItems: 'center',
               borderBottom: `1px solid ${T.line}`,
               background: i % 2 === 0 ? 'transparent' : T.surface,
             }}>
               <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute, fontVariantNumeric: 'tabular-nums' }}>{time}</span>
-              <span style={{
-                fontSize: 11, fontWeight: 600,
-                color: catColor[row.category] ?? T.textDim,
-              }}>
+              <span style={{ fontSize: 11, fontWeight: 600, color: catColor[row.category] ?? T.textDim }}>
                 {row.category}
               </span>
               <span style={{ fontSize: 13, color: T.text }}>{row.description}</span>
+              <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute }}>{qtyUnit}</span>
               <span style={{ fontSize: 12, color: T.textDim }}>{row.paidTo ?? '—'}</span>
               <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute }}>{row.receiptRef ?? '—'}</span>
               <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: T.bad, fontVariantNumeric: 'tabular-nums' }}>
