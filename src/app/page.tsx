@@ -14,7 +14,8 @@ import OrderView    from '@/components/order/OrderView'
 import ReportsView  from '@/components/reports/ReportsView'
 import OwnerView    from '@/components/owner/OwnerView'
 import ExpensesView from '@/components/expenses/ExpensesView'
-import StaffPicker  from '@/components/StaffPicker'
+import StaffPicker     from '@/components/StaffPicker'
+import MessengerBadge  from '@/components/floor/MessengerBadge'
 
 // ── View discriminant ──────────────────────────────────────────────────────
 type View =
@@ -65,7 +66,7 @@ export default function POSApp() {
 
   // ── Data ──────────────────────────────────────────────────────────────────
   const { tables }         = useTables()
-  const { orders }         = useOpenOrders()
+  const { orders, totals: dbTotals } = useOpenOrders()
   const { byId: menuById } = useMenuItems()
 
   // ── KDS tickets — live from Supabase (Step 6) ─────────────────────────────
@@ -73,7 +74,9 @@ export default function POSApp() {
 
   // ── Per-table cart state — Map keeps every open ticket intact ─────────────
   // Initialise once from Supabase in useOrder; here we just hold the master map
-  const [carts, setCarts] = useState<Map<string, CartLine[]>>(new Map())
+  const [carts, setCarts]             = useState<Map<string, CartLine[]>>(new Map())
+  // Records when each table's cart first became non-empty (for accurate floor timer)
+  const [cartStartTimes, setCartStartTimes] = useState<Map<string, number>>(new Map())
   const lineCounter = useRef(1)
 
   const setCart = useCallback((tableId: string, updater: (prev: CartLine[]) => CartLine[]) => {
@@ -121,10 +124,20 @@ export default function POSApp() {
       next.set(tableId, lines)
       return next
     })
+    // Start the timer the moment the cart goes non-empty; clear it when empty
+    setCartStartTimes(prev => {
+      const hadItems = (prev.has(tableId))
+      const hasItems = lines.length > 0
+      if (hasItems === hadItems) return prev   // no transition, skip re-render
+      const next = new Map(prev)
+      if (hasItems) next.set(tableId, Date.now())
+      else          next.delete(tableId)
+      return next
+    })
   }, [])
 
   // ── Auto-status derivation ─────────────────────────────────────────────────
-  const tablesWithStatus = useAutoStatus(tables, orders, tickets, carts, tick)
+  const tablesWithStatus = useAutoStatus(tables, orders, tickets, carts, cartStartTimes, dbTotals, tick)
 
   // ── Navigation helpers ─────────────────────────────────────────────────────
   const openTable = useCallback((tableId: string) => {
@@ -188,6 +201,7 @@ export default function POSApp() {
             onBump={bump}
           />
         )}
+        {view === 'floor' && <MessengerBadge />}
 
         {view === 'expenses' && <ExpensesView />}
 

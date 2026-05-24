@@ -15,7 +15,7 @@ function fmtElapsed(sec: number): string {
 
 function KdsTicketRow({ ticket, onBump }: {
   ticket: KdsTicket
-  onBump: (orderId: number, station: 'kitchen' | 'bar') => void
+  onBump: (itemId: number) => void
 }) {
   const isLate  = ticket.elapsedSec > 600
   const isAging = ticket.elapsedSec > 360
@@ -42,7 +42,7 @@ function KdsTicketRow({ ticket, onBump }: {
         }}>{badge}</div>
       </div>
 
-      {/* Meta + items */}
+      {/* Meta + item name */}
       <div style={{ minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
           <span style={{
@@ -53,24 +53,30 @@ function KdsTicketRow({ ticket, onBump }: {
           }}>
             {ticket.station === 'kitchen' ? 'KIT' : 'BAR'}
           </span>
-          <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute }}>{ticket.id}</span>
           <span style={{ fontSize: 12, color: T.textDim }}>· {ticket.tableId}</span>
           <span style={{ fontSize: 12, color: T.textMute }}>· {ticket.server}</span>
         </div>
-        <div style={{
-          fontSize: 13, color: T.text, fontWeight: 500,
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {ticket.items.length > 0
-            ? ticket.items.join(' • ')
-            : <span style={{ color: T.textMute, fontStyle: 'italic' }}>No items yet</span>
-          }
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+          {ticket.qty > 1 && (
+            <span style={{
+              fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: T.accent,
+              flexShrink: 0,
+            }}>
+              ×{ticket.qty}
+            </span>
+          )}
+          <span style={{
+            fontSize: 13, color: T.text, fontWeight: 500,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {ticket.itemName}
+          </span>
         </div>
       </div>
 
       {/* Served button */}
       <button
-        onClick={e => { e.stopPropagation(); onBump(ticket.orderId, ticket.station) }}
+        onClick={e => { e.stopPropagation(); onBump(ticket.itemId) }}
         style={{
           padding: '5px 12px', fontSize: 11, fontFamily: 'inherit', fontWeight: 600,
           background: 'transparent', border: `1px solid ${T.line2}`, color: T.textDim,
@@ -104,7 +110,7 @@ export default function KdsPanel({
 }: {
   tickets: KdsTicket[]
   tick: number
-  onBump: (orderId: number, station: 'kitchen' | 'bar') => void
+  onBump: (itemId: number) => void
 }) {
   const [filter, setFilter] = useState<FilterMode>('all')
 

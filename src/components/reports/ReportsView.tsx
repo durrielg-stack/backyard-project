@@ -6,6 +6,7 @@ import { useReports } from '@/hooks/useReports'
 import type { TableWithStatus } from '@/lib/types'
 import type { RevenueBar, TransactionRow, ExpenseRow } from '@/hooks/useReports'
 import { PanelHd } from '@/components/floor/FloorView'
+import StockAlertsStrip from '@/components/floor/InventoryPanel'
 
 const T = THEME
 
@@ -347,6 +348,9 @@ export default function ReportsView({ tables: _tables }: { tables: TableWithStat
         left={<TransactionsPanel transactions={txRows} />}
         right={<ExpensesListPanel expenseRows={expRows} />}
       />
+
+      {/* ── Stock alerts strip ───────────────────────────────────────────── */}
+      <StockAlertsStrip />
     </div>
   )
 }

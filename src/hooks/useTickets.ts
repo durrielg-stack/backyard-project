@@ -15,6 +15,15 @@ function getStation(category: string): 'kitchen' | 'bar' {
   return BAR_CATS.has(category) ? 'bar' : 'kitchen'
 }
 
+// Per-category thresholds in seconds
+// aging: when the item turns amber   late: when it turns red / needs attention
+function getThresholds(category: string): { agingSec: number; lateSec: number } {
+  if (category === 'Beer')                                  return { agingSec: 180,  lateSec: 300  }
+  if (category === 'Cocktails' || category === 'Hard Drinks') return { agingSec: 300,  lateSec: 600  }
+  if (BAR_CATS.has(category))                               return { agingSec: 300,  lateSec: 600  }
+  return { agingSec: 600, lateSec: 900 } // food / kitchen
+}
+
 // ── Internal raw item snapshot ───────────────────────────────────────────────
 // Stores DB values; elapsedSec is derived per-render from `tick`.
 interface RawItem {
@@ -24,6 +33,7 @@ interface RawItem {
   openedAtMs:  number
   firedAtMs:   number | null
   itemName:    string
+  qty:         number
   category:    string
   server?:     string
 }
@@ -40,7 +50,7 @@ interface RawItem {
  */
 export function useTickets(tick: number): {
   tickets: KdsTicket[]
-  bump: (orderId: number, station: 'kitchen' | 'bar') => Promise<void>
+  bump: (itemId: number) => Promise<void>
 } {
   const [rawItems, setRawItems] = useState<RawItem[]>([])
 
@@ -53,7 +63,7 @@ export function useTickets(tick: number): {
     const { data, error } = await sb
       .from('order_items')
       .select(`
-        id, order_id, status, fired_at,
+        id, order_id, qty, status, fired_at,
         orders(id, table_id, opened_at, status, opened_by),
         menu_items(name, category)
       `)
@@ -78,6 +88,7 @@ export function useTickets(tick: number): {
         openedAtMs: new Date(order.opened_at as string).getTime(),
         firedAtMs:  row.fired_at ? new Date(row.fired_at as string).getTime() : null,
         itemName:   mi.name as string,
+        qty:        (row.qty as number) ?? 1,
         category:   mi.category as string,
         server:     (order.opened_by as string | null) ?? undefined,
       })
@@ -110,60 +121,31 @@ export function useTickets(tick: number): {
   }, [fetchAll])
 
   // ── Derive KdsTicket[] from rawItems + current time ──────────────────────────
-  // Re-runs on every `tick` so elapsedSec stays live.
+  // One ticket per order_item so each product has its own independent timer.
   const tickets = useMemo(() => {
     const now = Date.now()
 
-    // Group by orderId + station
-    type Group = {
-      orderId:   number
-      tableId:   string
-      station:   'kitchen' | 'bar'
-      startMs:   number
-      itemNames: string[]
-      server?:   string
-    }
-    const groups = new Map<string, Group>()
-
-    for (const item of rawItems) {
-      const station = getStation(item.category)
-      const key     = `${item.orderId}-${station}`
-      const startMs = item.firedAtMs ?? item.openedAtMs
-
-      if (!groups.has(key)) {
-        groups.set(key, {
-          orderId:   item.orderId,
-          tableId:   item.tableId,
-          station,
-          startMs,
-          itemNames: [],
-          server:    item.server,
-        })
-      }
-
-      const g = groups.get(key)!
-      if (startMs < g.startMs) g.startMs = startMs
-      g.itemNames.push(item.itemName)
-    }
-
-    // Convert groups → KdsTicket[], compute live elapsedSec
-    const result: KdsTicket[] = []
-    for (const [, g] of groups) {
-      const elapsedSec = Math.max(0, Math.floor((now - g.startMs) / 1_000))
+    const result: KdsTicket[] = rawItems.map(item => {
+      const station    = getStation(item.category)
+      const startMs    = item.firedAtMs ?? item.openedAtMs
+      const elapsedSec = Math.max(0, Math.floor((now - startMs) / 1_000))
+      const { agingSec, lateSec } = getThresholds(item.category)
       const status: KdsTicket['status'] =
-        elapsedSec > 600 ? 'late' : elapsedSec > 360 ? 'aging' : 'firing'
+        elapsedSec >= lateSec ? 'late' : elapsedSec >= agingSec ? 'aging' : 'firing'
 
-      result.push({
-        id:         `#${g.orderId}-${g.station === 'kitchen' ? 'K' : 'B'}`,
-        orderId:    g.orderId,
-        tableId:    g.tableId,
-        station:    g.station,
-        server:     g.server ?? 'Staff',
-        items:      g.itemNames,
+      return {
+        id:         `#${item.id}`,
+        itemId:     item.id,
+        orderId:    item.orderId,
+        tableId:    item.tableId,
+        station,
+        server:     item.server ?? 'Staff',
+        itemName:   item.itemName,
+        qty:        item.qty,
         elapsedSec,
         status,
-      })
-    }
+      }
+    })
 
     // Sort: oldest (highest elapsed) first — most urgent at top
     result.sort((a, b) => b.elapsedSec - a.elapsedSec)
@@ -173,31 +155,20 @@ export function useTickets(tick: number): {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rawItems, tick])
 
-  // ── Bump: mark all items for (orderId, station) as 'served' ─────────────────
-  const bump = useCallback(async (orderId: number, station: 'kitchen' | 'bar') => {
+  // ── Bump: mark a single order_item as 'served' ───────────────────────────────
+  const bump = useCallback(async (itemId: number) => {
     const sb = getClient()
 
-    // Find the item IDs to bump
-    const ids = rawItems
-      .filter(i => i.orderId === orderId && getStation(i.category) === station)
-      .map(i => i.id)
-
-    if (ids.length === 0) return
-
     // Optimistic: remove from local state immediately
-    setRawItems(prev => prev.filter(i => !(i.orderId === orderId && getStation(i.category) === station)))
+    setRawItems(prev => prev.filter(i => i.id !== itemId))
 
-    // Persist
     const { error } = await (sb as any)
       .from('order_items')
       .update({ status: 'served', completed_at: new Date().toISOString() })
-      .in('id', ids)
+      .eq('id', itemId)
 
-    if (error) {
-      // Rollback: refetch
-      fetchAll()
-    }
-  }, [rawItems, fetchAll])
+    if (error) fetchAll()
+  }, [fetchAll])
 
   return { tickets, bump }
 }

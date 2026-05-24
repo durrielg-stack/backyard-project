@@ -4,8 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { THEME, statusColor, statusLabel } from '@/lib/theme'
 import { getClient } from '@/lib/supabase'
 import type { TableWithStatus, KdsTicket } from '@/lib/types'
-import KdsPanel       from './KdsPanel'
-import InventoryPanel from './InventoryPanel'
+import KdsPanel from './KdsPanel'
 
 const T = THEME
 
@@ -78,6 +77,7 @@ function TablePin({
   const isBar   = table.section === 'bar'
   const color   = statusColor(table.status)
   const isAttn  = table.status === 'attention'
+  const isAging = table.status === 'aging'
   const isActive = ['occupied','aging','attention'].includes(table.status)
 
   const left = `${((table.pos_x ?? 0) / COORD_MAX) * 100}%`
@@ -90,7 +90,7 @@ function TablePin({
       onClick={onClick}
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
-      className={isAttn ? 'bp-attn' : ''}
+      className={isAttn ? 'bp-attn' : isAging ? 'bp-aging' : ''}
       style={{
         position:  'absolute',
         left, top,
@@ -357,12 +357,13 @@ function TableCard({
 }) {
   const color     = statusColor(table.status)
   const isAttn    = table.status === 'attention'
+  const isAging   = table.status === 'aging'
   const isActive  = ['occupied','aging','attention'].includes(table.status)
 
   return (
     <button
       onClick={onClick}
-      className={isAttn ? 'bp-attn' : ''}
+      className={isAttn ? 'bp-attn' : isAging ? 'bp-aging' : ''}
       style={{
         textAlign: 'left', padding: 12, cursor: 'pointer',
         background: T.surface, fontFamily: 'inherit', color: T.text,
@@ -585,7 +586,14 @@ function FloorPanel({
   tickets:     KdsTicket[]
   onOpenTable: (id: string) => void
 }) {
+  const [removeBlockedTable, setRemoveBlockedTable] = useState<string | null>(null)
+
   async function removeWalkup(tableId: string) {
+    const t = tables.find(t => t.id === tableId)
+    if (t && ['occupied', 'aging', 'attention'].includes(t.status)) {
+      setRemoveBlockedTable(t.label)
+      return
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (getClient() as any).from('restaurant_tables').delete().eq('id', tableId)
   }
@@ -609,6 +617,37 @@ function FloorPanel({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%' }}>
+
+      {/* ── Remove blocked warning ── */}
+      {removeBlockedTable && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 200,
+          background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }} onClick={() => setRemoveBlockedTable(null)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: T.surface2, border: `1px solid ${T.line}`, borderRadius: 6,
+            padding: '28px 32px', width: 360, display: 'flex', flexDirection: 'column', gap: 16,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 18, color: T.bad }}>⚠</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: T.text }}>Cannot Remove Table</span>
+            </div>
+            <p style={{ margin: 0, fontSize: 13, color: T.textDim, lineHeight: 1.6 }}>
+              Table <strong style={{ color: T.text }}>{removeBlockedTable}</strong> has an open order.
+              Close or settle the order before removing this table.
+            </p>
+            <button
+              onClick={() => setRemoveBlockedTable(null)}
+              style={{
+                alignSelf: 'flex-end', padding: '8px 20px', fontSize: 13, fontFamily: 'inherit', fontWeight: 600,
+                background: T.accent, color: T.accentInk, border: 'none', borderRadius: T.radius, cursor: 'pointer',
+              }}
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
       {/* Panel header */}
       <div style={{
         height: 46, padding: '0 20px', borderBottom: `1px solid ${T.line}`,
@@ -667,7 +706,7 @@ export default function FloorView({
   tickets: KdsTicket[]
   tick: number
   onOpenTable: (id: string) => void
-  onBump: (orderId: number, station: 'kitchen' | 'bar') => void
+  onBump: (itemId: number) => void
 }) {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -680,12 +719,7 @@ export default function FloorView({
           onOpenTable={onOpenTable}
         />
         <div style={{ background: T.line }} />
-        {/* Right rail: KDS (1fr) + divider + Inventory (clamp) */}
-        <div style={{ display: 'grid', gridTemplateRows: `1fr 1px clamp(200px, 26vh, 360px)`, minHeight: 0 }}>
-          <KdsPanel tickets={tickets} tick={tick} onBump={onBump} />
-          <div style={{ background: T.line }} />
-          <InventoryPanel />
-        </div>
+        <KdsPanel tickets={tickets} tick={tick} onBump={onBump} />
       </div>
     </div>
   )

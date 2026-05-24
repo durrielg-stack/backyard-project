@@ -6,15 +6,21 @@
 .bp-no-scrollbar::-webkit-scrollbar { display: none; }
 .bp-no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* ── bp-attn — box-shadow halo breath on Attention tables ───
-   Applied to: table grid cards, floor-plan dots, ticket header
-   badges when status = 'attention'. Calm — not jumpy.
+/* ── bp-attn — red halo breath on Attention (late) tables ───
    2.4s ease-in-out infinite                                   */
 @keyframes bp-attn {
-  0%, 100% { box-shadow: 0 0 0 0   rgba(255, 99, 99, 0);    }
-  50%       { box-shadow: 0 0 18px 2px rgba(255, 99, 99, 0.55); }
+  0%, 100% { box-shadow: 0 0 0 0      rgba(255, 99,  99,  0);    }
+  50%       { box-shadow: 0 0 18px 2px rgba(255, 99,  99,  0.55); }
 }
 .bp-attn { animation: bp-attn 2.4s ease-in-out infinite; }
+
+/* ── bp-aging — amber halo breath on Aging tables ───────────
+   Slower pulse (3s) to feel calmer than attention.            */
+@keyframes bp-aging {
+  0%, 100% { box-shadow: 0 0 0 0      rgba(230, 160, 40, 0);    }
+  50%       { box-shadow: 0 0 14px 2px rgba(230, 160, 40, 0.45); }
+}
+.bp-aging { animation: bp-aging 3s ease-in-out infinite; }
 
 /* ── bp-pulse — scale-out ripple for tiny live-status dots ──
    Applied ONLY to the small dot next to "POS · Floor 1".

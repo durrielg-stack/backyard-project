@@ -102,13 +102,15 @@ export interface CartLine {
 
 // KDS ticket: derived from orders + order_items
 export interface KdsTicket {
-  id: string              // '#' + order.id
+  id: string              // '#' + order_item.id
+  itemId: number          // order_item.id — bumping a single item
   orderId: number
   tableId: string
   station: 'kitchen' | 'bar'
   server: string
-  items: string[]         // item names
-  elapsedSec: number      // computed live from opened_at
+  itemName: string
+  qty: number
+  elapsedSec: number      // computed live from fired_at (or order opened_at)
   status: 'firing' | 'aging' | 'late'
 }
 
