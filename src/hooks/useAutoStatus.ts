@@ -57,8 +57,9 @@ export function useAutoStatus(
       else if (hasActivity)   status = 'occupied'
       else                    status = 'available'
 
-      // Compute openMin from the oldest open order on this table
-      const openMin = order
+      // Only count time when there's actual activity (cart items or KDS tickets).
+      // An open order with an empty cart is a ghost — don't show elapsed time.
+      const openMin = (hasActivity || elapsed > 0) && order
         ? Math.floor((now - new Date(order.opened_at).getTime()) / 60_000)
         : 0
 
