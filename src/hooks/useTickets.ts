@@ -5,10 +5,11 @@ import { getClient } from '@/lib/supabase'
 import type { KdsTicket } from '@/lib/types'
 
 // ── Station routing ──────────────────────────────────────────────────────────
-// Bar categories — everything else goes to kitchen
-const BAR_CATS = new Set([
-  'Beer', 'Cocktails/Hard', 'Non-Alcohol', 'Cigarettes',
-])
+// Categories that go to the bar station
+const BAR_CATS = new Set(['Beer', 'Cocktails/Hard', 'Non-Alcohol'])
+
+// Categories that need no prep — excluded from KDS entirely
+const NO_PREP_CATS = new Set(['Cigarettes', 'Charges'])
 
 function getStation(category: string): 'kitchen' | 'bar' {
   return BAR_CATS.has(category) ? 'bar' : 'kitchen'
@@ -64,9 +65,10 @@ export function useTickets(tick: number): {
       const order = Array.isArray(row.orders) ? row.orders[0] : row.orders
       const mi    = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
 
-      // Only show tickets for open orders
+      // Only show tickets for open orders; skip no-prep items
       if (!order || order.status !== 'open') continue
       if (!mi) continue
+      if (NO_PREP_CATS.has(mi.category as string)) continue
 
       items.push({
         id:         row.id as number,
