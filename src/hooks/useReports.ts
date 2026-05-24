@@ -23,6 +23,10 @@ export interface TransactionRow {
 
 export interface ReportsData {
   todayRevenue:  number
+  weekRevenue:   number
+  todayCost:     number
+  todayExpenses: number
+  weekExpenses:  number
   avgOrder:      number
   txCount:       number
   hourlyBars:    RevenueBar[]
@@ -45,75 +49,96 @@ function makePeak(bars: Omit<RevenueBar, 'isPeak'>[]): RevenueBar[] {
 
 // ── useReports ────────────────────────────────────────────────────────────────
 export function useReports(): ReportsData {
-  const [loading,      setLoading]      = useState(true)
-  const [todayRevenue, setTodayRevenue] = useState(0)
-  const [avgOrder,     setAvgOrder]     = useState(0)
-  const [txCount,      setTxCount]      = useState(0)
-  const [hourlyBars,   setHourlyBars]   = useState<RevenueBar[]>([])
-  const [weeklyBars,   setWeeklyBars]   = useState<RevenueBar[]>([])
-  const [transactions, setTransactions] = useState<TransactionRow[]>([])
+  const [loading,       setLoading]       = useState(true)
+  const [todayRevenue,  setTodayRevenue]  = useState(0)
+  const [weekRevenue,   setWeekRevenue]   = useState(0)
+  const [todayCost,     setTodayCost]     = useState(0)
+  const [todayExpenses, setTodayExpenses] = useState(0)
+  const [weekExpenses,  setWeekExpenses]  = useState(0)
+  const [avgOrder,      setAvgOrder]      = useState(0)
+  const [txCount,       setTxCount]       = useState(0)
+  const [hourlyBars,    setHourlyBars]    = useState<RevenueBar[]>([])
+  const [weeklyBars,    setWeeklyBars]    = useState<RevenueBar[]>([])
+  const [transactions,  setTransactions]  = useState<TransactionRow[]>([])
 
   const fetchAll = useCallback(async () => {
-    const sb  = getClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb  = getClient() as any
     const now = new Date()
 
-    // ── Today's payments ───────────────────────────────────────────────────
-    const todayStart = new Date(now)
-    todayStart.setHours(0, 0, 0, 0)
+    const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0)
+    const weekStart  = new Date(now); weekStart.setDate(weekStart.getDate() - 6); weekStart.setHours(0, 0, 0, 0)
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: todayPmts } = await (sb as any)
-      .from('payments')
-      .select('id, amount, method, processed_at, notes, order_id, orders(table_id, opened_by)')
-      .gte('processed_at', todayStart.toISOString())
-      .order('processed_at', { ascending: false })
+    // ── Sales: order-items via orders.opened_at ────────────────────────────
+    const { data: allOrders } = await sb
+      .from('orders').select('id, opened_at')
+      .gte('opened_at', weekStart.toISOString())
+    const allOrderIds = (allOrders ?? []).map((o: any) => o.id as number)
+    const orderOpenedMap: Record<number, Date> = {}
+    for (const o of (allOrders ?? [])) orderOpenedMap[o.id] = new Date(o.opened_at)
 
-    const pmts: any[] = todayPmts ?? []
-
-    // KPI totals
-    const todayTotal = pmts.reduce((s: number, p: any) => s + (p.amount as number), 0)
-    setTodayRevenue(todayTotal)
-    setTxCount(pmts.length)
-    setAvgOrder(pmts.length > 0 ? todayTotal / pmts.length : 0)
-
-    // Hourly bars — 24 slots (0–23), only show up to current hour + 1
+    let todayGross = 0; let weekGross = 0; let costToday = 0
     const hourBuckets: Record<number, number> = {}
-    for (const p of pmts) {
-      const h = new Date(p.processed_at as string).getHours()
-      hourBuckets[h] = (hourBuckets[h] ?? 0) + (p.amount as number)
+    const dayBuckets:  Record<string, number> = {}
+    const todayOrderIds: number[] = []
+    const todayStartMs = todayStart.getTime()
+    const weekStartMs  = weekStart.getTime()
+
+    if (allOrderIds.length > 0) {
+      const { data: lines } = await sb
+        .from('order_items')
+        .select('order_id, qty, unit_price, menu_items(cost)')
+        .in('order_id', allOrderIds)
+        .neq('status', 'voided')
+
+      for (const row of (lines ?? [])) {
+        const openedAt = orderOpenedMap[row.order_id as number]
+        if (!openedAt) continue
+        const ts  = openedAt.getTime()
+        const val = (row.qty as number) * (row.unit_price as number)
+        const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
+        const dk  = openedAt.toISOString().slice(0, 10)
+
+        weekGross += val
+        dayBuckets[dk] = (dayBuckets[dk] ?? 0) + val
+
+        if (ts >= todayStartMs) {
+          todayGross += val
+          costToday  += (row.qty as number) * ((mi as any)?.cost ?? 0)
+          const h = openedAt.getHours()
+          hourBuckets[h] = (hourBuckets[h] ?? 0) + val
+        }
+      }
+
+      for (const o of (allOrders ?? [])) {
+        if (new Date(o.opened_at).getTime() >= todayStartMs) todayOrderIds.push(o.id)
+      }
     }
+
+    const txTodayN = todayOrderIds.length
+    setTodayRevenue(todayGross)
+    setWeekRevenue(weekGross)
+    setTodayCost(costToday)
+    setTxCount(txTodayN)
+    setAvgOrder(txTodayN > 0 ? todayGross / txTodayN : 0)
+
     const maxHour = now.getHours()
-    const hourly = Array.from({ length: maxHour + 1 }, (_, h) => ({
-      label: fmtHour(h),
-      value: hourBuckets[h] ?? 0,
-    }))
-    setHourlyBars(makePeak(hourly))
+    setHourlyBars(makePeak(Array.from({ length: maxHour + 1 }, (_, h) => ({ label: fmtHour(h), value: hourBuckets[h] ?? 0 }))))
+    setWeeklyBars(makePeak(Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(weekStart); d.setDate(d.getDate() + i)
+      return { label: DAY_LABELS[d.getDay()], value: dayBuckets[d.toISOString().slice(0, 10)] ?? 0 }
+    })))
 
-    // ── This week's payments (last 7 days) ─────────────────────────────────
-    const weekStart = new Date(now)
-    weekStart.setDate(weekStart.getDate() - 6)
-    weekStart.setHours(0, 0, 0, 0)
+    // ── Expenses ───────────────────────────────────────────────────────────
+    const { data: expToday } = await sb
+      .from('daily_expenses').select('amount')
+      .eq('expense_date', todayStart.toISOString().slice(0, 10))
+    setTodayExpenses((expToday ?? []).reduce((s: number, r: any) => s + r.amount, 0))
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: weekPmts } = await (sb as any)
-      .from('payments')
-      .select('amount, processed_at')
-      .gte('processed_at', weekStart.toISOString())
-
-    const wPmts: any[] = weekPmts ?? []
-    const dayBuckets: Record<number, number> = {}
-    for (const p of wPmts) {
-      const d = new Date(p.processed_at as string).getDay()  // 0=Sun
-      dayBuckets[d] = (dayBuckets[d] ?? 0) + (p.amount as number)
-    }
-    // Build 7 day slots anchored to today
-    const weekly = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(weekStart)
-      d.setDate(d.getDate() + i)
-      const dow = d.getDay()
-      return { label: DAY_LABELS[dow], value: dayBuckets[dow] ?? 0 }
-    })
-    setWeeklyBars(makePeak(weekly))
+    const { data: expWeek } = await sb
+      .from('daily_expenses').select('amount')
+      .gte('expense_date', weekStart.toISOString().slice(0, 10))
+    setWeekExpenses((expWeek ?? []).reduce((s: number, r: any) => s + r.amount, 0))
 
     // ── Recent transactions (last 100) ─────────────────────────────────────
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -171,7 +196,9 @@ export function useReports(): ReportsData {
   useEffect(() => { fetchAll() }, [fetchAll])
 
   return {
-    todayRevenue, avgOrder, txCount,
+    todayRevenue, weekRevenue, todayCost,
+    todayExpenses, weekExpenses,
+    avgOrder, txCount,
     hourlyBars, weeklyBars, transactions, loading,
   }
 }

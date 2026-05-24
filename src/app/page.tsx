@@ -13,10 +13,12 @@ import FloorView    from '@/components/floor/FloorView'
 import OrderView    from '@/components/order/OrderView'
 import ReportsView  from '@/components/reports/ReportsView'
 import OwnerView    from '@/components/owner/OwnerView'
+import ExpensesView from '@/components/expenses/ExpensesView'
 
 // ── View discriminant ──────────────────────────────────────────────────────
 type View =
   | 'floor'
+  | 'expenses'
   | 'reports'
   | 'owner'
   | { kind: 'order'; tableId: string }
@@ -112,9 +114,10 @@ export default function POSApp() {
     setView(v => (typeof v === 'object' && v.tableId === tableId) ? 'floor' : v)
   }, [])
 
-  const goFloor   = useCallback(() => setView('floor'),   [])
-  const goReports = useCallback(() => setView('reports'), [])
-  const goOwner   = useCallback(() => setView('owner'),   [])
+  const goFloor    = useCallback(() => setView('floor'),    [])
+  const goExpenses = useCallback(() => setView('expenses'), [])
+  const goReports  = useCallback(() => setView('reports'),  [])
+  const goOwner    = useCallback(() => setView('owner'),    [])
   const goOrder   = useCallback((tableId: string) => setView({ kind: 'order', tableId }), [])
 
   // ── Attention count for bell badge ────────────────────────────────────────
@@ -140,6 +143,7 @@ export default function POSApp() {
         attnCount={attnCount}
         now={now}
         onFloor={goFloor}
+        onExpenses={goExpenses}
         onReports={goReports}
         onOwner={goOwner}
         onOrder={goOrder}
@@ -156,6 +160,8 @@ export default function POSApp() {
             onBump={bump}
           />
         )}
+
+        {view === 'expenses' && <ExpensesView />}
 
         {view === 'reports' && (
           <ReportsView tables={tablesWithStatus} />

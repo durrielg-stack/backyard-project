@@ -1262,14 +1262,13 @@ function ExpensesTab() {
 
 // ── OwnerView ─────────────────────────────────────────────────────────────────
 
-type OwnerTab = 'reports' | 'tables' | 'menu' | 'inventory' | 'expenses'
+type OwnerTab = 'reports' | 'tables' | 'menu' | 'inventory'
 
 const TABS: { id: OwnerTab; label: string }[] = [
   { id: 'reports',   label: 'Reports'   },
   { id: 'tables',    label: 'Tables'    },
   { id: 'menu',      label: 'Menu'      },
   { id: 'inventory', label: 'Inventory' },
-  { id: 'expenses',  label: 'Expenses'  },
 ]
 
 interface OwnerViewProps {
@@ -1334,7 +1333,6 @@ export default function OwnerView({ tables }: OwnerViewProps) {
         {tab === 'tables'    && <TablesTab liveTableStatuses={tables} />}
         {tab === 'menu'      && <MenuTab />}
         {tab === 'inventory' && <InventoryTab />}
-        {tab === 'expenses'  && <ExpensesTab />}
       </div>
     </div>
   )

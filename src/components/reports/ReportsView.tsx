@@ -9,45 +9,28 @@ import { PanelHd } from '@/components/floor/FloorView'
 
 const T = THEME
 
-// ── KPI strip (100px, 6 columns) ──────────────────────────────────────────────
+// ── KPI strip ─────────────────────────────────────────────────────────────────
 function KpiStrip({
-  tables, todayRevenue, avgOrder, txCount,
+  todayRevenue, weekRevenue, todayCost, todayExpenses, weekExpenses, txCount,
 }: {
-  tables:       TableWithStatus[]
-  todayRevenue: number
-  avgOrder:     number
-  txCount:      number
+  todayRevenue:  number
+  weekRevenue:   number
+  todayCost:     number
+  todayExpenses: number
+  weekExpenses:  number
+  txCount:       number
 }) {
-  const open     = tables.filter(t => ['occupied','aging','attention'].includes(t.status)).length
-  const reserved = tables.filter(t => t.status === 'reserved').length
+  const fp = (v: number) => `₱${v.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  const todayNet = todayRevenue - todayCost - todayExpenses
+  const weekNet  = weekRevenue  - weekExpenses
 
   const kpis = [
-    {
-      label: 'Revenue · Today',
-      value: `₱${todayRevenue.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      note: todayRevenue > 0 ? '▲ Live' : 'No sales yet',
-      noteColor: todayRevenue > 0 ? T.ok : T.textDim,
-      accent: true,
-    },
-    {
-      label: 'Open Tables',
-      value: `${open}/${tables.length}`,
-      note: `${reserved} reserved`,
-      noteColor: T.textDim,
-      accent: false,
-    },
-    {
-      label: 'Avg. Order',
-      value: avgOrder > 0
-        ? `₱${avgOrder.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-        : '—',
-      note: `${txCount} transaction${txCount !== 1 ? 's' : ''}`,
-      noteColor: T.textDim,
-      accent: false,
-    },
-    { label: 'Staff on Floor', value: '—', note: '4 svr · 2 bar · 1 expo', noteColor: T.textDim, accent: false },
-    { label: 'Covers',         value: '—', note: '—', noteColor: T.textDim, accent: false },
-    { label: 'Avg. Turn Time', value: '—', note: '—', noteColor: T.textDim, accent: false },
+    { label: 'Sales · Today',    value: fp(todayRevenue),  note: `${txCount} orders`,                                                               color: T.accent },
+    { label: 'Expenses · Today', value: fp(todayExpenses), note: 'logged today',                                                                    color: T.bad },
+    { label: 'Net · Today',      value: fp(todayNet),      note: todayRevenue > 0 ? `${((todayNet/todayRevenue)*100).toFixed(1)}% margin` : '—',    color: todayNet >= 0 ? T.ok : T.bad },
+    { label: 'Sales · Week',     value: fp(weekRevenue),   note: 'last 7 days',                                                                     color: T.text },
+    { label: 'Expenses · Week',  value: fp(weekExpenses),  note: 'last 7 days',                                                                     color: T.textDim },
+    { label: 'Net · Week',       value: fp(weekNet),       note: weekRevenue > 0 ? `${((weekNet/weekRevenue)*100).toFixed(1)}% margin` : '—',        color: weekNet >= 0 ? T.ok : T.bad },
   ]
 
   return (
@@ -59,25 +42,16 @@ function KpiStrip({
         <div key={k.label} style={{
           padding: '16px 24px',
           borderRight: i < 5 ? `1px solid ${T.line}` : 'none',
+          borderLeft: i === 3 ? `2px solid ${T.line2}` : 'none',
           display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
         }}>
-          <div style={{
-            fontSize: 11, fontWeight: 600, letterSpacing: '0.12em',
-            textTransform: 'uppercase', color: T.textMute,
-          }}>
+          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>
             {k.label}
           </div>
-          <div style={{
-            fontSize: i === 0 ? 28 : 24, fontWeight: 700,
-            fontFamily: T.mono, letterSpacing: '-0.02em',
-            color: k.accent ? T.accent : T.text,
-            fontVariantNumeric: 'tabular-nums', lineHeight: 1,
-          }}>
+          <div style={{ fontSize: 22, fontWeight: 700, fontFamily: T.mono, letterSpacing: '-0.02em', color: k.color, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
             {k.value}
           </div>
-          <div style={{ fontSize: 11, color: k.noteColor, fontWeight: 500 }}>
-            {k.note}
-          </div>
+          <div style={{ fontSize: 11, color: T.textMute, fontWeight: 500 }}>{k.note}</div>
         </div>
       ))}
     </div>
@@ -357,17 +331,19 @@ function TransactionsPanel({ transactions }: { transactions: TransactionRow[] })
 }
 
 // ── ReportsView ───────────────────────────────────────────────────────────────
-export default function ReportsView({ tables }: { tables: TableWithStatus[] }) {
-  const { todayRevenue, avgOrder, txCount, hourlyBars, weeklyBars, transactions } = useReports()
+export default function ReportsView({ tables: _tables }: { tables: TableWithStatus[] }) {
+  const { todayRevenue, weekRevenue, todayCost, todayExpenses, weekExpenses, txCount, hourlyBars, weeklyBars, transactions } = useReports()
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
 
       {/* ── KPI strip ─────────────────────────────────────────────────────── */}
       <KpiStrip
-        tables={tables}
         todayRevenue={todayRevenue}
-        avgOrder={avgOrder}
+        weekRevenue={weekRevenue}
+        todayCost={todayCost}
+        todayExpenses={todayExpenses}
+        weekExpenses={weekExpenses}
         txCount={txCount}
       />
 

@@ -3,7 +3,7 @@
 import { THEME, statusColor } from '@/lib/theme'
 import type { TableWithStatus, CartLine } from '@/lib/types'
 
-type View = 'floor' | 'reports' | 'owner' | { kind: 'order'; tableId: string }
+type View = 'floor' | 'expenses' | 'reports' | 'owner' | { kind: 'order'; tableId: string }
 
 interface NavBarProps {
   view: View
@@ -13,6 +13,7 @@ interface NavBarProps {
   attnCount: number
   now: Date
   onFloor: () => void
+  onExpenses: () => void
   onReports: () => void
   onOwner: () => void
   onOrder: (tableId: string) => void
@@ -129,7 +130,7 @@ function NavTab({ active, onClick, label, sub, dot, dashed, dimmed, onClose }: T
 // ── NavBar ───────────────────────────────────────────────────────────────────
 export default function NavBar({
   view, openTabs, tables, carts,
-  attnCount, now, onFloor, onReports, onOwner, onOrder, onCloseTab,
+  attnCount, now, onFloor, onExpenses, onReports, onOwner, onOrder, onCloseTab,
 }: NavBarProps) {
   const time    = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
   const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
@@ -187,12 +188,20 @@ export default function NavBar({
         overflow: 'hidden', // tabs truncate, not scroll
         gap: 0,
       }}>
-        {/* Floor */}
+        {/* Sales (floor) */}
         <NavTab
           active={view === 'floor'}
           onClick={onFloor}
-          label="Floor"
+          label="Sales"
           sub={`${openCount} open · ${attnTabs} attn`}
+        />
+
+        {/* Expenses */}
+        <NavTab
+          active={view === 'expenses'}
+          onClick={onExpenses}
+          label="Expenses"
+          sub="Daily log"
         />
 
         {/* Reports */}
@@ -200,7 +209,7 @@ export default function NavBar({
           active={view === 'reports'}
           onClick={onReports}
           label="Reports"
-          sub="Revenue · Sales"
+          sub="Sales · Expenses"
         />
 
         {/* Owner */}
