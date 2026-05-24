@@ -14,13 +14,12 @@ interface UseOrderReturn {
   removeItem:  (lineId: string) => Promise<void>
   voidItem:    (lineId: string, reason: string) => Promise<void>
   setNote:     (lineId: string, note: string) => Promise<void>
-  toggleMod:   (lineId: string, mod: string) => void
-  closeOrder:  (method: PayMethod, tendered: number, total: number, tip: number) => Promise<boolean>
-  // Pay a partial split — marks lineIds as paid; closes order when all lines paid
+  toggleMod:   (lineId: string, mod: string) => Promise<void>
+  closeOrder:  (method: PayMethod, tendered: number, total: number, tip: number, discount?: number) => Promise<boolean>
   payPartial:  (lineIds: string[], method: PayMethod, amount: number, tendered: number) => Promise<'partial' | 'closed' | 'error'>
 }
 
-export function useOrder(tableId: string): UseOrderReturn {
+export function useOrder(tableId: string, staff?: string): UseOrderReturn {
   const [orderId, setOrderId]   = useState<number | null>(null)
   const [lines, setLines]       = useState<CartLine[]>([])
   const [loading, setLoading]   = useState(true)
@@ -86,7 +85,7 @@ export function useOrder(tableId: string): UseOrderReturn {
 
     const { data: order, error } = await sb
       .from('orders')
-      .insert({ table_id: tableId, status: 'open' })
+      .insert({ table_id: tableId, status: 'open', opened_by: staff ?? null })
       .select('id')
       .single()
 
@@ -211,14 +210,17 @@ export function useOrder(tableId: string): UseOrderReturn {
     setLines(prev => prev.map(l => l.lineId === lineId ? { ...l, note } : l))
   }, [lines])
 
-  // ── Toggle modifier (local only — persisted on next item-level save) ─────
-  const toggleMod = useCallback((lineId: string, mod: string) => {
-    setLines(prev => prev.map(l => {
-      if (l.lineId !== lineId) return l
-      const mods = l.mods.includes(mod) ? l.mods.filter(m => m !== mod) : [...l.mods, mod]
-      return { ...l, mods }
-    }))
-  }, [])
+  // ── Toggle modifier — updates local state and persists to DB ────────────
+  const toggleMod = useCallback(async (lineId: string, mod: string) => {
+    const sb   = getClient()
+    const line = lines.find(l => l.lineId === lineId)
+    if (!line) return
+    const newMods = line.mods.includes(mod) ? line.mods.filter(m => m !== mod) : [...line.mods, mod]
+    setLines(prev => prev.map(l => l.lineId === lineId ? { ...l, mods: newMods } : l))
+    if (line.dbId) {
+      await sb.from('order_items').update({ modifiers: newMods }).eq('id', line.dbId)
+    }
+  }, [lines])
 
   // ── Close order: insert payment, close order, free table ────────────────
   const closeOrder = useCallback(async (
@@ -226,9 +228,15 @@ export function useOrder(tableId: string): UseOrderReturn {
     tendered: number,
     total: number,
     tip: number,
+    discount = 0,
   ): Promise<boolean> => {
     if (!orderId) return false
     const sb = getClient()
+
+    // Build notes string
+    const noteParts: string[] = []
+    if (tip > 0)      noteParts.push(`Tip: ₱${tip.toFixed(2)}`)
+    if (discount > 0) noteParts.push(`Discount: ₱${discount.toFixed(2)}`)
 
     // 1. Insert payment row
     const { error: payErr } = await sb.from('payments').insert({
@@ -237,7 +245,7 @@ export function useOrder(tableId: string): UseOrderReturn {
       amount:     total,
       tendered:   method === 'cash' ? tendered : total,
       change_due: method === 'cash' ? Math.max(0, tendered - total) : 0,
-      notes:      tip > 0 ? `Tip: ₱${tip.toFixed(2)}` : null,
+      notes:      noteParts.length > 0 ? noteParts.join(' · ') : null,
     })
     if (payErr) { setError(payErr.message); return false }
 
@@ -304,4 +312,5 @@ export function useOrder(tableId: string): UseOrderReturn {
   }, [orderId, tableId, lines])
 
   return { orderId, lines, loading, error, addItem, updateQty, removeItem, voidItem, setNote, toggleMod, closeOrder, payPartial }
+
 }

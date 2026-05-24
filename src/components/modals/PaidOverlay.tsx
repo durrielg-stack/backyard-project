@@ -7,11 +7,13 @@ const T = THEME
 const DELAY = 4
 
 interface PaidOverlayProps {
-  total:   number
-  onDone:  () => void
+  total:       number
+  tableLabel?: string
+  orderId?:    number | null
+  onDone:      () => void
 }
 
-export default function PaidOverlay({ total, onDone }: PaidOverlayProps) {
+export default function PaidOverlay({ total, tableLabel, orderId, onDone }: PaidOverlayProps) {
   const onDoneRef = useRef(onDone)
   const [remaining, setRemaining] = useState(DELAY)
 
@@ -75,6 +77,35 @@ export default function PaidOverlay({ total, onDone }: PaidOverlayProps) {
         }}>
           ₱{total.toFixed(2)}
         </div>
+
+        {/* Table + order info */}
+        {(tableLabel || orderId) && (
+          <div style={{
+            fontFamily: T.mono, fontSize: 12, color: T.textMute,
+            letterSpacing: '0.04em', textAlign: 'center',
+          }}>
+            {tableLabel && <span>{tableLabel}</span>}
+            {tableLabel && orderId && <span> · </span>}
+            {orderId && <span>ORDER #{orderId}</span>}
+          </div>
+        )}
+
+        {/* Print button */}
+        <button
+          onClick={e => { e.stopPropagation(); window.print() }}
+          style={{
+            marginTop: 4,
+            padding: '8px 20px', fontSize: 12, fontFamily: 'inherit', fontWeight: 600,
+            background: T.surface2, border: `1px solid ${T.line2}`,
+            color: T.textDim, borderRadius: T.radius, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 6,
+          }}
+        >
+          <svg viewBox="0 0 16 16" width={13} height={13} fill="none" stroke="currentColor" strokeWidth={1.5}>
+            <path d="M4 6V2h8v4M4 12H2V7h12v5h-2M4 10h8v4H4z" />
+          </svg>
+          Print Receipt
+        </button>
 
         {/* Countdown */}
         <div style={{

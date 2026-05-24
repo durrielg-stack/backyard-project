@@ -16,7 +16,10 @@ interface OrderPanelProps {
   subtotal:        number
   tip:             number
   setTip:          (amount: number) => void
+  discount:        number
+  setDiscount:     (amount: number) => void
   total:           number
+  held:            boolean
   selectedLine:    string | null
   setSelectedLine: (id: string | null) => void
   selectedSeat:    number
@@ -24,7 +27,7 @@ interface OrderPanelProps {
   onUpdateQty:     (lineId: string, delta: number) => Promise<void>
   onVoid:          (lineId: string, reason: string) => Promise<void>
   onSetNote:       (lineId: string, note: string) => Promise<void>
-  onToggleMod:     (lineId: string, mod: string) => void
+  onToggleMod:     (lineId: string, mod: string) => Promise<void>
   onBack:          () => void
   onHold:          () => void
   onSplit:         () => void
@@ -33,7 +36,7 @@ interface OrderPanelProps {
 
 export default function OrderPanel({
   table, orderId, lines, menuById,
-  subtotal, tip, setTip, total,
+  subtotal, tip, setTip, discount, setDiscount, total, held,
   selectedLine, setSelectedLine, selectedSeat, setSelectedSeat,
   onUpdateQty, onVoid, onSetNote, onToggleMod,
   onBack, onHold, onSplit, onCharge,
@@ -120,6 +123,18 @@ export default function OrderPanel({
         )}
 
         <div style={{ flex: 1 }} />
+
+        {held && (
+          <span style={{
+            fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
+            textTransform: 'uppercase',
+            color: T.warn, background: `${T.warn}18`,
+            border: `1px solid ${T.warn}44`,
+            padding: '4px 10px', borderRadius: T.radius, flexShrink: 0,
+          }}>
+            On Hold
+          </span>
+        )}
 
         {/* Status badge — bp-attn halo when attention */}
         <span style={{
@@ -226,6 +241,8 @@ export default function OrderPanel({
         subtotal={subtotal}
         tip={tip}
         setTip={setTip}
+        discount={discount}
+        setDiscount={setDiscount}
         total={total}
         onHold={onHold}
         onSplit={onSplit}

@@ -56,6 +56,15 @@
 }
 .bp-bar { animation: bp-bar 0.4s ease both; transform-origin: bottom; }
 
+/* ── Print receipt ───────────────────────────────────────── */
+@media print {
+  body { background: #fff !important; overflow: visible !important; color: #000 !important; }
+  /* Hide everything except the PaidOverlay card */
+  body > * { display: none !important; }
+  /* The overlay backdrop */
+  body [data-print-receipt] { display: block !important; }
+}
+
 /* ── Base reset ──────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 

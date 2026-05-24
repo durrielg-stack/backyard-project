@@ -12,12 +12,14 @@ interface NavBarProps {
   carts: Map<string, CartLine[]>
   attnCount: number
   now: Date
+  staff: { name: string; initials: string; role: string }
   onFloor: () => void
   onExpenses: () => void
   onReports: () => void
   onOwner: () => void
   onOrder: (tableId: string) => void
   onCloseTab: (tableId: string) => void
+  onSignOut: () => void
 }
 
 const T = THEME
@@ -130,7 +132,7 @@ function NavTab({ active, onClick, label, sub, dot, dashed, dimmed, onClose }: T
 // ── NavBar ───────────────────────────────────────────────────────────────────
 export default function NavBar({
   view, openTabs, tables, carts,
-  attnCount, now, onFloor, onExpenses, onReports, onOwner, onOrder, onCloseTab,
+  attnCount, now, staff, onFloor, onExpenses, onReports, onOwner, onOrder, onCloseTab, onSignOut,
 }: NavBarProps) {
   const time    = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
   const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
@@ -273,18 +275,22 @@ export default function NavBar({
         <div style={{ width: 1, height: 20, background: T.line }} />
 
         {/* Avatar + name */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div
+          onClick={onSignOut}
+          title="Sign out"
+          style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+        >
           <div style={{
             width: 22, height: 22, borderRadius: '50%',
             background: T.chip, border: `1px solid ${T.line2}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 10, fontWeight: 600, color: T.text, flexShrink: 0,
           }}>
-            LM
+            {staff.initials}
           </div>
           <div>
-            <div style={{ fontSize: 12, fontWeight: 500, color: T.text, lineHeight: 1 }}>Lia M.</div>
-            <div style={{ fontSize: 10, color: T.textMute, lineHeight: 1, marginTop: 2 }}>· Server + Mgr</div>
+            <div style={{ fontSize: 12, fontWeight: 500, color: T.text, lineHeight: 1 }}>{staff.name}</div>
+            <div style={{ fontSize: 10, color: T.textMute, lineHeight: 1, marginTop: 2 }}>· {staff.role}</div>
           </div>
         </div>
 

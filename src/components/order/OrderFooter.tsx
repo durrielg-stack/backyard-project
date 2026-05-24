@@ -6,14 +6,16 @@ import { THEME } from '@/lib/theme'
 const T = THEME
 
 interface OrderFooterProps {
-  subtotal:  number
-  tip:       number
-  setTip:    (amount: number) => void
-  total:     number
-  onHold:    () => void
-  onSplit:   () => void
-  onCharge:  () => void
-  disabled:  boolean    // true when cart is empty
+  subtotal:    number
+  tip:         number
+  setTip:      (amount: number) => void
+  discount:    number
+  setDiscount: (amount: number) => void
+  total:       number
+  onHold:      () => void
+  onSplit:     () => void
+  onCharge:    () => void
+  disabled:    boolean
 }
 
 function TotalsRow({ label, value, accent, large, mute }: {
@@ -47,15 +49,29 @@ function TotalsRow({ label, value, accent, large, mute }: {
 }
 
 export default function OrderFooter({
-  subtotal, tip, setTip, total, onHold, onSplit, onCharge, disabled,
+  subtotal, tip, setTip, discount, setDiscount, total, onHold, onSplit, onCharge, disabled,
 }: OrderFooterProps) {
-  const [editing, setEditing]   = useState(false)
-  const [inputVal, setInputVal] = useState('')
+  const [editingTip,      setEditingTip]      = useState(false)
+  const [editingDiscount, setEditingDiscount] = useState(false)
+  const [tipVal,          setTipVal]          = useState('')
+  const [discountVal,     setDiscountVal]     = useState('')
+
+  // keep backward-compat alias
+  const editing  = editingTip
+  const setEditing = setEditingTip
+  const inputVal   = tipVal
+  const setInputVal = setTipVal
 
   function applyTip() {
-    const v = parseFloat(inputVal)
+    const v = parseFloat(tipVal)
     setTip(!isNaN(v) && v >= 0 ? v : 0)
-    setEditing(false)
+    setEditingTip(false)
+  }
+
+  function applyDiscount() {
+    const v = parseFloat(discountVal)
+    setDiscount(!isNaN(v) && v >= 0 ? v : 0)
+    setEditingDiscount(false)
   }
 
   return (
@@ -65,6 +81,57 @@ export default function OrderFooter({
     }}>
       {/* ── Totals ──────────────────────────────────────────────────── */}
       <TotalsRow label="Subtotal" value={`₱${subtotal.toFixed(2)}`} mute />
+
+      {/* Discount row */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '4px 0',
+      }}>
+        <span style={{ fontSize: 12, color: T.textDim }}>
+          Discount
+          {discount > 0 && (
+            <span style={{
+              marginLeft: 6, fontFamily: T.mono, fontSize: 12,
+              color: T.ok, fontVariantNumeric: 'tabular-nums',
+            }}>
+              −₱{discount.toFixed(2)}
+            </span>
+          )}
+        </span>
+        {editingDiscount ? (
+          <input
+            autoFocus
+            value={discountVal}
+            onChange={e => setDiscountVal(e.target.value)}
+            onBlur={applyDiscount}
+            onKeyDown={e => {
+              if (e.key === 'Enter')  { applyDiscount(); e.stopPropagation() }
+              if (e.key === 'Escape') { setEditingDiscount(false); e.stopPropagation() }
+              e.stopPropagation()
+            }}
+            placeholder="0.00"
+            style={{
+              width: 80, padding: '4px 8px', fontSize: 12,
+              background: T.surface2, border: `1px solid ${T.ok}`,
+              color: T.text, fontFamily: T.mono, borderRadius: T.radius, outline: 'none',
+            }}
+          />
+        ) : (
+          <button
+            onClick={() => { setDiscountVal(discount > 0 ? discount.toFixed(2) : ''); setEditingDiscount(true) }}
+            style={{
+              padding: '4px 12px', fontSize: 12, fontFamily: 'inherit',
+              background: discount > 0 ? `${T.ok}24` : 'transparent',
+              color:      discount > 0 ? T.ok : T.textDim,
+              border:     `1px solid ${discount > 0 ? T.ok : T.line2}`,
+              borderRadius: T.radius, cursor: 'pointer',
+              transition: 'background 0.12s ease',
+            }}
+          >
+            {discount > 0 ? 'Edit' : 'Add discount'}
+          </button>
+        )}
+      </div>
 
       {/* Tip row — custom amount only */}
       <div style={{

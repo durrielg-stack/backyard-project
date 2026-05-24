@@ -21,20 +21,25 @@ type ModalState =
 interface OrderViewProps {
   tableId:    string
   table:      TableWithStatus
+  staff:      string
   onBack:     () => void
   onCartSync: (tableId: string, lines: CartLine[]) => void
 }
 
-export default function OrderView({ tableId, table, onBack, onCartSync }: OrderViewProps) {
+export default function OrderView({ tableId, table, staff, onBack, onCartSync }: OrderViewProps) {
   const {
     orderId, lines, loading,
     addItem, updateQty, voidItem, setNote, toggleMod, closeOrder, payPartial,
-  } = useOrder(tableId)
+  } = useOrder(tableId, staff)
 
   const { byCategory, byId: menuById } = useMenuItems()
 
-  // ── Tip state — custom amount only, default 0 ────────────────────────────
-  const [tip, setTip] = useState(0)
+  // ── Tip + discount state ──────────────────────────────────────────────────
+  const [tip, setTip]           = useState(0)
+  const [discount, setDiscount] = useState(0)
+
+  // ── Hold state ────────────────────────────────────────────────────────────
+  const [held, setHeld] = useState(false)
 
   // ── Selected order line (expanded) ────────────────────────────────────────
   const [selectedLine, setSelectedLine] = useState<string | null>(null)
@@ -59,13 +64,21 @@ export default function OrderView({ tableId, table, onBack, onCartSync }: OrderV
 
   // ── Totals — prices are tax-inclusive ────────────────────────────────────
   const subtotal = lines.reduce((sum, l) => sum + l.unitPrice * l.qty, 0)
-  const total    = subtotal + tip
+  const total    = Math.max(0, subtotal - discount + tip)
 
   // ── Action handlers ───────────────────────────────────────────────────────
-  function handleHold()   { /* TODO: hold ticket persistence */ }
+  function handleHold()   { setHeld(h => !h) }
   function handleSplit()  { if (lines.length > 0) setModal({ kind: 'split' }) }
   function handleCharge() {
     if (lines.length > 0) setModal({ kind: 'pay', payAmount: total, splitLineIds: null })
+  }
+
+  // Quick actions
+  function handleCompItem() {
+    if (selectedLine) voidItem(selectedLine, 'comp')
+  }
+  function handleManagerVoid() {
+    lines.forEach(l => voidItem(l.lineId, 'manager void'))
   }
 
   async function handlePaid(method: PayMethod, tendered: number) {
@@ -73,17 +86,14 @@ export default function OrderView({ tableId, table, onBack, onCartSync }: OrderV
     const { payAmount, splitLineIds } = modal
 
     if (splitLineIds) {
-      // Partial split payment
       const result = await payPartial(splitLineIds, method, payAmount, tendered)
       if (result === 'closed') {
         setModal({ kind: 'paid', total: payAmount })
       } else if (result === 'partial') {
-        // Remaining items — re-open split modal
         setModal({ kind: 'split' })
       }
     } else {
-      // Full order payment
-      const ok = await closeOrder(method, tendered, payAmount, tip)
+      const ok = await closeOrder(method, tendered, payAmount, tip, discount)
       if (ok) setModal({ kind: 'paid', total: payAmount })
     }
   }
@@ -148,10 +158,13 @@ export default function OrderView({ tableId, table, onBack, onCartSync }: OrderV
             byCategory={byCategory}
             onAdd={item => addItem(item, 1, [], selectedSeat)}
             onKeyboardShortcut={handleKeyboardShortcut}
+            selectedLine={selectedLine}
+            onCompItem={handleCompItem}
+            onManagerVoid={handleManagerVoid}
           />
         </div>
 
-        {/* ── Order panel — fixed 720px right column ──────────────────────── */}
+        {/* ── Order panel — fixed right column ────────────────────────────── */}
         <OrderPanel
           table={table}
           orderId={orderId}
@@ -160,7 +173,10 @@ export default function OrderView({ tableId, table, onBack, onCartSync }: OrderV
           subtotal={subtotal}
           tip={tip}
           setTip={setTip}
+          discount={discount}
+          setDiscount={setDiscount}
           total={total}
+          held={held}
           selectedLine={selectedLine}
           setSelectedLine={setSelectedLine}
           selectedSeat={selectedSeat}
@@ -200,6 +216,8 @@ export default function OrderView({ tableId, table, onBack, onCartSync }: OrderV
       {modal.kind === 'paid' && (
         <PaidOverlay
           total={modal.total}
+          tableLabel={table.label}
+          orderId={orderId}
           onDone={handlePaidOverlayDone}
         />
       )}

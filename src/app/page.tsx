@@ -14,6 +14,7 @@ import OrderView    from '@/components/order/OrderView'
 import ReportsView  from '@/components/reports/ReportsView'
 import OwnerView    from '@/components/owner/OwnerView'
 import ExpensesView from '@/components/expenses/ExpensesView'
+import StaffPicker  from '@/components/StaffPicker'
 
 // ── View discriminant ──────────────────────────────────────────────────────
 type View =
@@ -23,8 +24,30 @@ type View =
   | 'owner'
   | { kind: 'order'; tableId: string }
 
+// ── Staff context ─────────────────────────────────────────────────────────
+interface StaffSession { name: string; initials: string; role: string }
+
+function loadStaff(): StaffSession | null {
+  try {
+    const raw = localStorage.getItem('bp_staff')
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+
 // ── POSApp ─────────────────────────────────────────────────────────────────
 export default function POSApp() {
+  // ── Staff session ─────────────────────────────────────────────────────────
+  const [staff, setStaff] = useState<StaffSession | null>(() => {
+    if (typeof window === 'undefined') return null
+    return loadStaff()
+  })
+
+  function handleSelectStaff(name: string, initials: string, role: string) {
+    const s = { name, initials, role }
+    localStorage.setItem('bp_staff', JSON.stringify(s))
+    setStaff(s)
+  }
+
   // ── View router ───────────────────────────────────────────────────────────
   const [view, setView]         = useState<View>('floor')
   const [openTabs, setOpenTabs] = useState<string[]>([])  // table IDs in tab strip
@@ -126,6 +149,9 @@ export default function POSApp() {
   // ── Render ────────────────────────────────────────────────────────────────
   const T = THEME
 
+  // ── Show staff picker if no one is logged in ──────────────────────────────
+  if (!staff) return <StaffPicker onSelect={handleSelectStaff} />
+
   return (
     <div style={{
       width: '100vw', height: '100vh',
@@ -142,12 +168,14 @@ export default function POSApp() {
         carts={carts}
         attnCount={attnCount}
         now={now}
+        staff={staff}
         onFloor={goFloor}
         onExpenses={goExpenses}
         onReports={goReports}
         onOwner={goOwner}
         onOrder={goOrder}
         onCloseTab={closeTab}
+        onSignOut={() => { localStorage.removeItem('bp_staff'); setStaff(null) }}
       />
 
       <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
@@ -178,6 +206,7 @@ export default function POSApp() {
             <OrderView
               tableId={view.tableId}
               table={tws}
+              staff={staff.name}
               onBack={goFloor}
               onCartSync={syncCart}
             />

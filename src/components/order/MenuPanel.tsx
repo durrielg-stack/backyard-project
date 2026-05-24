@@ -95,12 +95,15 @@ function MenuCard({ item, onAdd }: { item: MenuItem; onAdd: () => void }) {
 
 // ── MenuPanel ─────────────────────────────────────────────────────────────────
 interface MenuPanelProps {
-  byCategory: Record<string, MenuItem[]>
-  onAdd: (item: MenuItem) => void
-  onKeyboardShortcut?: (key: string) => void   // bubble ↵/S/H up to OrderView
+  byCategory:      Record<string, MenuItem[]>
+  onAdd:           (item: MenuItem) => void
+  onKeyboardShortcut?: (key: string) => void
+  selectedLine:    string | null
+  onCompItem:      () => void
+  onManagerVoid:   () => void
 }
 
-export default function MenuPanel({ byCategory, onAdd, onKeyboardShortcut }: MenuPanelProps) {
+export default function MenuPanel({ byCategory, onAdd, onKeyboardShortcut, selectedLine, onCompItem, onManagerVoid }: MenuPanelProps) {
   const [group, setGroup]         = useState<GroupId>('food')
   const [activeCat, setActiveCat] = useState<string | null>(null)
   const [query, setQuery]         = useState('')
@@ -302,16 +305,33 @@ export default function MenuPanel({ byCategory, onAdd, onKeyboardShortcut }: Men
         }}>
           Quick
         </div>
-        {QUICK_ACTIONS.map(label => (
-          <button key={label} style={{
-            padding: '6px 12px', fontSize: 12, background: 'transparent',
-            border: `1px solid ${T.line2}`, color: T.text,
-            fontFamily: 'inherit', borderRadius: T.radius, cursor: 'pointer',
-            transition: 'background 0.12s ease, border-color 0.12s ease',
-          }}>
-            {label}
-          </button>
-        ))}
+        {QUICK_ACTIONS.map(label => {
+          const isComp    = label === 'Comp item'
+          const isVoid    = label === 'Manager void'
+          const isComp_disabled  = isComp && !selectedLine
+          const handler   = isComp ? onCompItem : isVoid ? onManagerVoid : undefined
+          const color     = isComp ? T.warn : isVoid ? T.bad : T.text
+          const borderC   = isComp ? `${T.warn}55` : isVoid ? `${T.bad}55` : T.line2
+          const disabled  = isComp_disabled
+          return (
+            <button
+              key={label}
+              onClick={handler}
+              disabled={disabled}
+              title={isComp && !selectedLine ? 'Select an order line first' : undefined}
+              style={{
+                padding: '6px 12px', fontSize: 12, background: 'transparent',
+                border: `1px solid ${borderC}`, color: disabled ? T.textMute : color,
+                fontFamily: 'inherit', borderRadius: T.radius,
+                cursor: disabled ? 'not-allowed' : handler ? 'pointer' : 'default',
+                opacity: disabled ? 0.5 : 1,
+                transition: 'background 0.12s ease, border-color 0.12s ease',
+              }}
+            >
+              {label}
+            </button>
+          )
+        })}
       </div>
     </div>
   )

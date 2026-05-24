@@ -21,10 +21,11 @@ interface RawItem {
   id:          number
   orderId:     number
   tableId:     string
-  openedAtMs:  number          // fallback if fired_at is null
-  firedAtMs:   number | null   // epoch ms when item was fired
+  openedAtMs:  number
+  firedAtMs:   number | null
   itemName:    string
   category:    string
+  server?:     string
 }
 
 // ── useTickets ────────────────────────────────────────────────────────────────
@@ -53,7 +54,7 @@ export function useTickets(tick: number): {
       .from('order_items')
       .select(`
         id, order_id, status, fired_at,
-        orders(id, table_id, opened_at, status),
+        orders(id, table_id, opened_at, status, opened_by),
         menu_items(name, category)
       `)
       .in('status', ['pending', 'preparing', 'ready']) as { data: any[] | null; error: any }
@@ -78,6 +79,7 @@ export function useTickets(tick: number): {
         firedAtMs:  row.fired_at ? new Date(row.fired_at as string).getTime() : null,
         itemName:   mi.name as string,
         category:   mi.category as string,
+        server:     (order.opened_by as string | null) ?? undefined,
       })
     }
 
@@ -114,11 +116,12 @@ export function useTickets(tick: number): {
 
     // Group by orderId + station
     type Group = {
-      orderId:    number
-      tableId:    string
-      station:    'kitchen' | 'bar'
-      startMs:    number      // earliest start among items in this group
-      itemNames:  string[]
+      orderId:   number
+      tableId:   string
+      station:   'kitchen' | 'bar'
+      startMs:   number
+      itemNames: string[]
+      server?:   string
     }
     const groups = new Map<string, Group>()
 
@@ -134,11 +137,11 @@ export function useTickets(tick: number): {
           station,
           startMs,
           itemNames: [],
+          server:    item.server,
         })
       }
 
       const g = groups.get(key)!
-      // Use the earliest start time across items in this ticket
       if (startMs < g.startMs) g.startMs = startMs
       g.itemNames.push(item.itemName)
     }
@@ -155,7 +158,7 @@ export function useTickets(tick: number): {
         orderId:    g.orderId,
         tableId:    g.tableId,
         station:    g.station,
-        server:     'Server',   // TODO: pull from orders.opened_by when auth lands
+        server:     g.server ?? 'Staff',
         items:      g.itemNames,
         elapsedSec,
         status,

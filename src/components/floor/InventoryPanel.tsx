@@ -29,13 +29,27 @@ export default function InventoryPanel() {
         title="Stock Alerts"
         badge={critical > 0 ? `${critical} critical` : undefined}
         action={
-          <button style={{
-            padding: '5px 12px', fontSize: 11, fontFamily: 'inherit', fontWeight: 600,
-            background: T.chip, border: `1px solid ${T.line2}`, color: T.textDim,
-            borderRadius: T.radius, cursor: 'pointer', letterSpacing: '0.06em', textTransform: 'uppercase',
-          }}>
-            Reorder all
-          </button>
+          rows.length > 0 ? (
+            <button
+              onClick={() => {
+                const lines = rows.map(r => {
+                  const name = (r.menu_items as { name: string } | undefined)?.name ?? r.id
+                  return `${name}: ${r.quantity} ${r.unit} remaining (threshold ${r.low_stock_threshold})`
+                }).join('\n')
+                window.prompt(
+                  `Copy this reorder list:`,
+                  `REORDER LIST — ${new Date().toLocaleDateString()}\n${lines}`,
+                )
+              }}
+              style={{
+                padding: '5px 12px', fontSize: 11, fontFamily: 'inherit', fontWeight: 600,
+                background: T.chip, border: `1px solid ${T.line2}`, color: T.textDim,
+                borderRadius: T.radius, cursor: 'pointer', letterSpacing: '0.06em', textTransform: 'uppercase',
+              }}
+            >
+              Reorder list
+            </button>
+          ) : undefined
         }
       />
 
