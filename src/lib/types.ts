@@ -91,6 +91,7 @@ export interface CartLine {
   lineId: string          // temp local ID ('L1', 'L2', …)
   itemId: string          // menu_items.id
   itemName: string        // denormalised for display
+  category: string        // menu_items.category — used for inventory deduction routing
   unitPrice: number
   qty: number
   mods: string[]

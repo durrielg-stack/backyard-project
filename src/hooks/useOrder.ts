@@ -50,7 +50,7 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
 
       const { data: items, error: iErr } = await sb
         .from('order_items')
-        .select('id, menu_item_id, qty, unit_price, modifiers, notes, status, seat, menu_items(id, name)')
+        .select('id, menu_item_id, qty, unit_price, modifiers, notes, status, seat, menu_items(id, name, category)')
         .eq('order_id', order.id)
         .neq('status', 'voided')
         .order('id')
@@ -63,6 +63,7 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
         dbId:      row.id,
         itemId:    row.menu_item_id,
         itemName:  row.menu_items?.name ?? '—',
+        category:  row.menu_items?.category ?? '',
         unitPrice: row.unit_price,
         qty:       row.qty,
         mods:      row.modifiers ?? [],
@@ -125,7 +126,7 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
       const tempLineId = 'L' + (lineCount.current++)
       const optimistic: CartLine = {
         lineId: tempLineId, itemId: item.id, itemName: item.name,
-        unitPrice: item.price, qty, mods, note: '', seat,
+        category: item.category, unitPrice: item.price, qty, mods, note: '', seat,
       }
       setLines(prev => [...prev, optimistic])
 
@@ -246,7 +247,14 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
     // 3. Free the table
     await sb.from('restaurant_tables').update({ status: 'available' }).eq('id', tableId)
 
-    // 4. Clear local state
+    // 4. Deduct inventory for 1:1 items (Beer, Cigarettes)
+    const DEDUCT_CATS = new Set(['Beer', 'Cigarettes'])
+    const deductLines = lines.filter(l => DEDUCT_CATS.has(l.category))
+    for (const line of deductLines) {
+      await sb.rpc('deduct_inventory', { p_menu_item_id: line.itemId, p_qty: line.qty })
+    }
+
+    // 5. Clear local state
     setLines([])
     setOrderId(null)
     return true
