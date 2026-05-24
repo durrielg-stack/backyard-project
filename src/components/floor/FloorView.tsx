@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { THEME, statusColor, statusLabel } from '@/lib/theme'
 import { getClient } from '@/lib/supabase'
 import type { TableWithStatus, KdsTicket } from '@/lib/types'
@@ -432,6 +432,143 @@ function TableCard({
   )
 }
 
+// ── New table card + modal ────────────────────────────────────────────────────
+function NewTableCard({ tables, onOrder }: { tables: TableWithStatus[]; onOrder: (id: string) => void }) {
+  const [open,   setOpen]   = useState(false)
+  const [label,  setLabel]  = useState('')
+  const [cap,    setCap]    = useState('2')
+  const [saving, setSaving] = useState(false)
+  const tablesRef = useRef(tables)
+  useEffect(() => { tablesRef.current = tables })
+
+  useEffect(() => {
+    if (!open) return
+    setLabel('Takeout')
+    setCap('2')
+  }, [open])
+
+  async function create() {
+    const trimmed = label.trim()
+    if (!trimmed || saving) return
+    setSaving(true)
+    const existing = tablesRef.current
+      .filter(t => t.id.startsWith('W'))
+      .map(t => parseInt(t.id.slice(1)) || 0)
+    const nextNum = existing.length > 0 ? Math.max(...existing) + 1 : 1
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (getClient() as any).from('restaurant_tables').insert({
+      id: `W${nextNum}`, label: trimmed, section: 'walkup',
+      capacity: parseInt(cap) || 2, status: 'available', pos_x: null, pos_y: null,
+    })
+    setSaving(false)
+    if (!error) { setOpen(false); onOrder(`W${nextNum}`) }
+  }
+
+  return (
+    <>
+      {/* Card */}
+      <button
+        onClick={() => setOpen(true)}
+        style={{
+          textAlign: 'left', padding: 12, cursor: 'pointer',
+          background: 'transparent', fontFamily: 'inherit', color: T.textMute,
+          border: `1px dashed ${T.line2}`,
+          borderRadius: T.radius,
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          justifyContent: 'center', gap: 6,
+          minHeight: 96,
+          transition: 'background 0.12s ease, border-color 0.12s ease, color 0.12s ease',
+        }}
+        onMouseEnter={e => {
+          const el = e.currentTarget as HTMLElement
+          el.style.background = T.surface2
+          el.style.borderColor = T.accent
+          el.style.color = T.accent
+        }}
+        onMouseLeave={e => {
+          const el = e.currentTarget as HTMLElement
+          el.style.background = 'transparent'
+          el.style.borderColor = T.line2
+          el.style.color = T.textMute
+        }}
+      >
+        <svg viewBox="0 0 16 16" width={20} height={20} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round">
+          <path d="M8 3v10M3 8h10" />
+        </svg>
+        <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+          New Table
+        </span>
+      </button>
+
+      {/* Modal */}
+      {open && (
+        <div
+          onClick={e => { if (e.target === e.currentTarget) setOpen(false) }}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 2000,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(0,0,0,0.72)',
+            backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+            animation: 'bp-fade-in 0.15s ease forwards',
+          }}
+        >
+          <div style={{
+            background: T.surface, border: `1px solid ${T.line2}`,
+            borderRadius: T.radiusLg, boxShadow: T.shadowModal,
+            width: 360, padding: '32px 32px 28px',
+            animation: 'bp-modal-pop 0.22s ease forwards',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: T.text }}>New Temporary Table</div>
+              <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: T.textMute, cursor: 'pointer', fontSize: 18, padding: 4 }}>×</button>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 6 }}>Name / Label</div>
+              <input
+                autoFocus value={label} onChange={e => setLabel(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') create(); if (e.key === 'Escape') setOpen(false) }}
+                placeholder="e.g. Takeout, Bar Tab"
+                style={{
+                  width: '100%', boxSizing: 'border-box', fontFamily: 'inherit', fontSize: 14,
+                  background: T.surface2, border: `1px solid ${T.line2}`,
+                  color: T.text, borderRadius: T.radius, padding: '9px 12px', outline: 'none',
+                }}
+              />
+            </div>
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 6 }}>Capacity</div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {['1','2','4','6','8'].map(n => (
+                  <button key={n} onClick={() => setCap(n)} style={{
+                    flex: 1, padding: '8px 0', fontSize: 13, fontFamily: T.mono, fontWeight: 600,
+                    background: cap === n ? T.accent : T.chip,
+                    color:      cap === n ? T.accentInk : T.textDim,
+                    border:     `1px solid ${cap === n ? T.accent : T.line2}`,
+                    borderRadius: T.radius, cursor: 'pointer',
+                  }}>{n}</button>
+                ))}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setOpen(false)} style={{
+                flex: 1, padding: '10px 0', fontSize: 13, fontFamily: 'inherit',
+                background: T.chip, color: T.textDim,
+                border: `1px solid ${T.line2}`, borderRadius: T.radius, cursor: 'pointer',
+              }}>Cancel</button>
+              <button onClick={create} disabled={saving || !label.trim()} style={{
+                flex: 2, padding: '10px 0', fontSize: 14, fontFamily: 'inherit', fontWeight: 700,
+                background: T.accent, color: T.accentInk,
+                border: 'none', borderRadius: T.radius, cursor: 'pointer',
+                opacity: (!label.trim() || saving) ? 0.5 : 1,
+              }}>{saving ? 'Creating…' : 'Add Table'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
 // ── Floor panel (left 1280px) ─────────────────────────────────────────────────
 function FloorPanel({
   tables, tickets,
@@ -530,6 +667,7 @@ function FloorPanel({
                 onRemove={t.id.startsWith('W') ? () => removeWalkup(t.id) : undefined}
               />
             ))}
+            <NewTableCard tables={tables} onOrder={onOpenTable} />
           </div>
         </div>
       ) : (
