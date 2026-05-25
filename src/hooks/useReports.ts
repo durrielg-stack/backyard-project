@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useReducer, useCallback } from 'react'
 import { getClient } from '@/lib/supabase'
 
 // ── Output shapes ────────────────────────────────────────────────────────────
@@ -41,26 +41,51 @@ export interface CatBreakdown {
 }
 
 export interface ReportsData {
-  todayRevenue:    number
-  weekRevenue:     number
-  todayCost:       number
-  todayExpenses:   number
-  weekExpenses:    number
-  avgOrder:        number
-  weekAvgOrder:    number
-  txCount:         number
-  weekTxCount:     number
-  avgTurnMin:      number | null   // today avg table turn (minutes)
-  weekAvgTurnMin:  number | null   // 7-day avg table turn
-  hourlyBars:      RevenueBar[]
-  weeklyBars:      RevenueBar[]
-  expenseDayBars:  RevenueBar[]
-  transactions:    TransactionRow[]
+  todayRevenue:     number
+  weekRevenue:      number
+  todayCost:        number
+  todayExpenses:    number
+  weekExpenses:     number
+  avgOrder:         number
+  weekAvgOrder:     number
+  txCount:          number
+  weekTxCount:      number
+  avgTurnMin:       number | null
+  weekAvgTurnMin:   number | null
+  hourlyBars:       RevenueBar[]
+  weeklyBars:       RevenueBar[]
+  expenseDayBars:   RevenueBar[]
+  transactions:     TransactionRow[]
   weekTransactions: TransactionRow[]
-  expenseRows:     ExpenseRow[]
-  weekExpenseRows: ExpenseRow[]
-  expCatBreakdown: CatBreakdown[]
-  loading:         boolean
+  expenseRows:      ExpenseRow[]
+  weekExpenseRows:  ExpenseRow[]
+  expCatBreakdown:  CatBreakdown[]
+  loading:          boolean
+}
+
+// ── Reducer ───────────────────────────────────────────────────────────────────
+type Action =
+  | { type: 'loading' }
+  | { type: 'data'; payload: Omit<ReportsData, 'loading'> }
+
+const EMPTY: ReportsData = {
+  todayRevenue: 0, weekRevenue: 0, todayCost: 0,
+  todayExpenses: 0, weekExpenses: 0,
+  avgOrder: 0, weekAvgOrder: 0,
+  txCount: 0, weekTxCount: 0,
+  avgTurnMin: null, weekAvgTurnMin: null,
+  hourlyBars: [], weeklyBars: [], expenseDayBars: [],
+  transactions: [], weekTransactions: [],
+  expenseRows: [], weekExpenseRows: [],
+  expCatBreakdown: [],
+  loading: true,
+}
+
+function reducer(state: ReportsData, action: Action): ReportsData {
+  switch (action.type) {
+    case 'loading': return { ...state, loading: true }
+    case 'data':    return { ...action.payload, loading: false }
+  }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -79,28 +104,10 @@ const EXP_CATS = ['OPEX','Food','Beer','Cocktails/Hard','Non-Alcohol','Cigarette
 
 // ── useReports ────────────────────────────────────────────────────────────────
 export function useReports(): ReportsData {
-  const [loading,           setLoading]           = useState(true)
-  const [todayRevenue,      setTodayRevenue]      = useState(0)
-  const [weekRevenue,       setWeekRevenue]       = useState(0)
-  const [todayCost,         setTodayCost]         = useState(0)
-  const [todayExpenses,     setTodayExpenses]     = useState(0)
-  const [weekExpenses,      setWeekExpenses]      = useState(0)
-  const [avgOrder,          setAvgOrder]          = useState(0)
-  const [weekAvgOrder,      setWeekAvgOrder]      = useState(0)
-  const [txCount,           setTxCount]           = useState(0)
-  const [weekTxCount,       setWeekTxCount]       = useState(0)
-  const [avgTurnMin,        setAvgTurnMin]        = useState<number | null>(null)
-  const [weekAvgTurnMin,    setWeekAvgTurnMin]    = useState<number | null>(null)
-  const [hourlyBars,        setHourlyBars]        = useState<RevenueBar[]>([])
-  const [weeklyBars,        setWeeklyBars]        = useState<RevenueBar[]>([])
-  const [expenseDayBars,    setExpenseDayBars]    = useState<RevenueBar[]>([])
-  const [transactions,      setTransactions]      = useState<TransactionRow[]>([])
-  const [weekTransactions,  setWeekTransactions]  = useState<TransactionRow[]>([])
-  const [expenseRows,       setExpenseRows]       = useState<ExpenseRow[]>([])
-  const [weekExpenseRows,   setWeekExpenseRows]   = useState<ExpenseRow[]>([])
-  const [expCatBreakdown,   setExpCatBreakdown]   = useState<CatBreakdown[]>([])
+  const [state, dispatch] = useReducer(reducer, EMPTY)
 
   const fetchAll = useCallback(async () => {
+    dispatch({ type: 'loading' })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb  = getClient() as any
     const now = new Date()
@@ -157,13 +164,6 @@ export function useReports(): ReportsData {
 
     const txTodayN = todayOrderIds.length
     const txWeekN  = allOrderIds.length
-    setTodayRevenue(todayGross)
-    setWeekRevenue(weekGross)
-    setTodayCost(costToday)
-    setTxCount(txTodayN)
-    setWeekTxCount(txWeekN)
-    setAvgOrder(txTodayN > 0 ? todayGross / txTodayN : 0)
-    setWeekAvgOrder(txWeekN > 0 ? weekGross / txWeekN : 0)
 
     // Avg turn time
     const { data: closedOrders } = await sb
@@ -173,27 +173,26 @@ export function useReports(): ReportsData {
       .not('closed_at', 'is', null)
     const allClosed: any[] = closedOrders ?? []
     const todayClosed = allClosed.filter(o => new Date(o.opened_at).getTime() >= todayStartMs)
+
+    let avgTurnMin: number | null = null
+    let weekAvgTurnMin: number | null = null
     if (todayClosed.length > 0) {
       const totalMin = todayClosed.reduce((s: number, o: any) =>
         s + (new Date(o.closed_at).getTime() - new Date(o.opened_at).getTime()) / 60000, 0)
-      setAvgTurnMin(Math.round(totalMin / todayClosed.length))
-    } else {
-      setAvgTurnMin(null)
+      avgTurnMin = Math.round(totalMin / todayClosed.length)
     }
     if (allClosed.length > 0) {
       const totalMin = allClosed.reduce((s: number, o: any) =>
         s + (new Date(o.closed_at).getTime() - new Date(o.opened_at).getTime()) / 60000, 0)
-      setWeekAvgTurnMin(Math.round(totalMin / allClosed.length))
-    } else {
-      setWeekAvgTurnMin(null)
+      weekAvgTurnMin = Math.round(totalMin / allClosed.length)
     }
 
     const maxHour = now.getHours()
-    setHourlyBars(makePeak(Array.from({ length: maxHour + 1 }, (_, h) => ({ label: fmtHour(h), value: hourBuckets[h] ?? 0 }))))
-    setWeeklyBars(makePeak(Array.from({ length: 7 }, (_, i) => {
+    const hourlyBars = makePeak(Array.from({ length: maxHour + 1 }, (_, h) => ({ label: fmtHour(h), value: hourBuckets[h] ?? 0 })))
+    const weeklyBars = makePeak(Array.from({ length: 7 }, (_, i) => {
       const d = new Date(weekStart); d.setDate(d.getDate() + i)
       return { label: DAY_LABELS[d.getDay()], value: dayBuckets[d.toISOString().slice(0, 10)] ?? 0 }
-    })))
+    }))
 
     // ── Expenses ───────────────────────────────────────────────────────────
     const { data: allExp } = await sb
@@ -205,35 +204,27 @@ export function useReports(): ReportsData {
     const expAll: any[] = allExp ?? []
     const expToday = expAll.filter((r: any) => r.expense_date === todayStr)
 
-    setTodayExpenses(expToday.reduce((s: number, r: any) => s + r.amount, 0))
-    setWeekExpenses(expAll.reduce((s: number, r: any) => s + r.amount, 0))
+    const todayExpenses = expToday.reduce((s: number, r: any) => s + r.amount, 0)
+    const weekExpenses  = expAll.reduce((s: number, r: any) => s + r.amount, 0)
 
-    // Daily expense bars for the week
     const expDayBuckets: Record<string, number> = {}
     for (const r of expAll) expDayBuckets[r.expense_date] = (expDayBuckets[r.expense_date] ?? 0) + r.amount
-    setExpenseDayBars(makePeak(Array.from({ length: 7 }, (_, i) => {
+    const expenseDayBars = makePeak(Array.from({ length: 7 }, (_, i) => {
       const d = new Date(weekStart); d.setDate(d.getDate() + i)
       const dk = d.toISOString().slice(0, 10)
       return { label: DAY_LABELS[d.getDay()], value: expDayBuckets[dk] ?? 0 }
-    })))
+    }))
 
-    // Category breakdown
-    const catToday:  Record<string, number> = {}
-    const catWeek:   Record<string, number> = {}
-    for (const r of expAll) {
-      catWeek[r.category]  = (catWeek[r.category]  ?? 0) + r.amount
-    }
-    for (const r of expToday) {
-      catToday[r.category] = (catToday[r.category] ?? 0) + r.amount
-    }
-    setExpCatBreakdown(EXP_CATS.map(cat => ({
+    const catToday: Record<string, number> = {}
+    const catWeek:  Record<string, number> = {}
+    for (const r of expAll)   catWeek[r.category]  = (catWeek[r.category]  ?? 0) + r.amount
+    for (const r of expToday) catToday[r.category] = (catToday[r.category] ?? 0) + r.amount
+    const expCatBreakdown: CatBreakdown[] = EXP_CATS.map(cat => ({
       category: cat,
-      today:    catToday[cat]  ?? 0,
-      week:     catWeek[cat]   ?? 0,
-    })))
+      today:    catToday[cat] ?? 0,
+      week:     catWeek[cat]  ?? 0,
+    }))
 
-    // Expense rows mapper
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function mapExpRow(r: any): ExpenseRow {
       const dt = new Date(r.created_at)
       return {
@@ -249,8 +240,6 @@ export function useReports(): ReportsData {
         paidTo:    r.paid_to ?? null,
       }
     }
-    setExpenseRows(expToday.map(mapExpRow))
-    setWeekExpenseRows(expAll.map(mapExpRow))
 
     // ── Transactions (week, last 500) ──────────────────────────────────────
     const { data: recentPmts } = await sb
@@ -294,10 +283,31 @@ export function useReports(): ReportsData {
       const dt = new Date(rp[i].processed_at as string)
       return dt.getTime() >= todayStartMs
     })
-    setTransactions(todayTx)
-    setWeekTransactions(allTx)
 
-    setLoading(false)
+    dispatch({
+      type: 'data',
+      payload: {
+        todayRevenue:  todayGross,
+        weekRevenue:   weekGross,
+        todayCost:     costToday,
+        todayExpenses,
+        weekExpenses,
+        avgOrder:      txTodayN > 0 ? todayGross / txTodayN : 0,
+        weekAvgOrder:  txWeekN  > 0 ? weekGross  / txWeekN  : 0,
+        txCount:       txTodayN,
+        weekTxCount:   txWeekN,
+        avgTurnMin,
+        weekAvgTurnMin,
+        hourlyBars,
+        weeklyBars,
+        expenseDayBars,
+        transactions:     todayTx,
+        weekTransactions: allTx,
+        expenseRows:      expToday.map(mapExpRow),
+        weekExpenseRows:  expAll.map(mapExpRow),
+        expCatBreakdown,
+      },
+    })
   }, [])
 
   useEffect(() => {
@@ -314,15 +324,5 @@ export function useReports(): ReportsData {
     return () => { sb.removeChannel(channel) }
   }, [fetchAll])
 
-  return {
-    todayRevenue, weekRevenue, todayCost,
-    todayExpenses, weekExpenses,
-    avgOrder, weekAvgOrder, txCount, weekTxCount,
-    avgTurnMin, weekAvgTurnMin,
-    hourlyBars, weeklyBars, expenseDayBars,
-    transactions, weekTransactions,
-    expenseRows, weekExpenseRows,
-    expCatBreakdown,
-    loading,
-  }
+  return state
 }
