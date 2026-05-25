@@ -205,10 +205,11 @@ export default function ExpensesView() {
         const autoAmt = up != null ? (qty * up).toFixed(2) : fAmt
         const canSave = fDesc.trim() && (up != null ? up > 0 : parseFloat(fAmt) > 0)
         return (
+          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', background: T.surface2, borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
           <div style={{
-            padding: '16px 24px', background: T.surface2, borderBottom: `1px solid ${T.line}`,
+            padding: '16px 24px',
             display: 'grid', gridTemplateColumns: '140px 1fr 70px 90px 110px 120px auto',
-            gap: 8, alignItems: 'end', flexShrink: 0,
+            gap: 8, alignItems: 'end', minWidth: 680,
           }}>
             {/* Category */}
             <div>
@@ -302,6 +303,7 @@ export default function ExpensesView() {
             <button onClick={addExpense} disabled={saving || !canSave} style={{ padding: '7px 16px', fontSize: 12, fontFamily: 'inherit', fontWeight: 700, background: T.accent, color: T.accentInk, border: 'none', borderRadius: T.radius, cursor: 'pointer', opacity: !canSave ? 0.4 : 1 }}>
               Save
             </button>
+          </div>
           </div>
         )
       })()}

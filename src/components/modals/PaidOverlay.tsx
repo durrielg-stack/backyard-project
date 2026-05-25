@@ -41,11 +41,11 @@ export default function PaidOverlay({ total, tableLabel, orderId, onDone }: Paid
         border:       `1px solid ${T.ok}44`,
         borderRadius: T.radiusLg,
         boxShadow:    `${T.shadowModal}, 0 0 60px ${T.ok}22`,
-        padding:      '48px 64px',
+        padding:      'clamp(24px, 5vw, 48px) clamp(24px, 6vw, 64px)',
         display:      'flex', flexDirection: 'column',
         alignItems:   'center', gap: 20,
         animation:    'bp-modal-pop 0.22s ease forwards',
-        minWidth:     320,
+        width:        'min(400px, calc(100vw - 32px))',
       }}>
 
         {/* Check circle */}
@@ -70,7 +70,7 @@ export default function PaidOverlay({ total, tableLabel, orderId, onDone }: Paid
 
         {/* Total */}
         <div style={{
-          fontFamily: T.mono, fontSize: 48, fontWeight: 700,
+          fontFamily: T.mono, fontSize: 'clamp(28px, 8vw, 48px)', fontWeight: 700,
           color: T.accent, letterSpacing: '-0.03em',
           fontVariantNumeric: 'tabular-nums',
           lineHeight: 1,

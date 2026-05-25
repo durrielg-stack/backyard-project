@@ -54,12 +54,12 @@ function EquallyTab({ total, onConfirm }: { total: number; onConfirm: (ways: num
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
-      padding: '32px 48px', gap: 28,
+      padding: 'clamp(20px, 4vw, 32px) clamp(20px, 5vw, 48px)', gap: 28,
     }}>
       {/* Big readout */}
       <div style={{ textAlign: 'center' }}>
         <div style={{
-          fontFamily: T.mono, fontSize: 96, fontWeight: 700,
+          fontFamily: T.mono, fontSize: 'clamp(48px, 12vw, 96px)', fontWeight: 700,
           color: T.accent, letterSpacing: '-0.04em',
           fontVariantNumeric: 'tabular-nums', lineHeight: 1,
         }}>
@@ -133,7 +133,7 @@ function ByItemTab({ lines, total, onConfirm }: {
   }
 
   return (
-    <div style={{ display: 'flex', gap: 0, height: 380 }}>
+    <div style={{ display: 'flex', gap: 0, height: 'clamp(240px, 45vh, 380px)' }}>
 
       {/* Items list */}
       <div style={{ flex: 1, overflowY: 'auto', borderRight: `1px solid ${T.line}` }} className="bp-no-scrollbar">
@@ -290,7 +290,7 @@ function BySeatTab({ lines, seats, total, onConfirm }: {
   const allAssigned = unassigned.length === 0
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 380 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'clamp(240px, 45vh, 380px)' }}>
 
       {/* Seat columns */}
       <div style={{

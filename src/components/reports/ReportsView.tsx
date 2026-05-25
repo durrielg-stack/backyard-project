@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react'
 import { THEME } from '@/lib/theme'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { useReports } from '@/hooks/useReports'
 import type { TableWithStatus } from '@/lib/types'
 import type { RevenueBar, TransactionRow, ExpenseRow } from '@/hooks/useReports'
@@ -53,15 +54,19 @@ function SalesKpiStrip({ range, todayRevenue, weekRevenue, todayCost, todayExpen
     { label: 'Avg Turn Time',        value: turn != null ? `${turn}m` : '—',        note: 'open → close',                                              color: T.info },
   ]
 
+  const bp = useBreakpoint()
+  const isMobile = bp === 'mobile'
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', height: 88, borderBottom: `1px solid ${T.line}`, flexShrink: 0, background: T.bg }}>
+    <div className="bp-no-scrollbar" style={{ display: isMobile ? 'flex' : 'grid', gridTemplateColumns: isMobile ? undefined : 'repeat(6, 1fr)', overflowX: isMobile ? 'auto' : undefined, WebkitOverflowScrolling: 'touch', height: isMobile ? 'auto' : 88, borderBottom: `1px solid ${T.line}`, flexShrink: 0, background: T.bg }}>
       {kpis.map((k, i) => (
         <div key={k.label} style={{
           padding: '10px 18px',
-          borderRight: i < 5 ? `1px solid ${T.line}` : 'none',
+          borderRight: `1px solid ${T.line}`,
           display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+          minWidth: isMobile ? 140 : undefined, flexShrink: 0,
+          gap: isMobile ? 4 : undefined,
         }}>
-          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{k.label}</div>
+          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, whiteSpace: 'nowrap' }}>{k.label}</div>
           <div style={{ fontSize: 19, fontWeight: 700, fontFamily: T.mono, letterSpacing: '-0.02em', color: k.color, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
           <div style={{ fontSize: 10, color: T.textMute, fontWeight: 500 }}>{k.note}</div>
         </div>
@@ -84,16 +89,20 @@ function ExpensesKpiStrip({ range, todayExpenses, weekExpenses, expCatBreakdown 
   const CAT_ORDER = ['OPEX', 'Food', 'Beer', 'Cocktails/Hard', 'Non-Alcohol', 'Cigarettes']
   const catMap = Object.fromEntries(expCatBreakdown.map(c => [c.category, c]))
 
+  const bp2 = useBreakpoint()
+  const isMobile2 = bp2 === 'mobile'
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', height: 88, borderBottom: `1px solid ${T.line}`, flexShrink: 0, background: T.surface }}>
+    <div className="bp-no-scrollbar" style={{ display: isMobile2 ? 'flex' : 'grid', gridTemplateColumns: isMobile2 ? undefined : 'repeat(6, 1fr)', overflowX: isMobile2 ? 'auto' : undefined, WebkitOverflowScrolling: 'touch', height: isMobile2 ? 'auto' : 88, borderBottom: `1px solid ${T.line}`, flexShrink: 0, background: T.surface }}>
       {CAT_ORDER.map((cat, i) => {
         const c   = catMap[cat] ?? { category: cat, today: 0, week: 0 }
         const val = isToday ? c.today : c.week
         return (
           <div key={cat} style={{
             padding: '10px 18px',
-            borderRight: i < 5 ? `1px solid ${T.line}` : 'none',
+            borderRight: `1px solid ${T.line}`,
             display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+            minWidth: isMobile2 ? 130 : undefined, flexShrink: 0,
+            gap: isMobile2 ? 4 : undefined,
           }}>
             <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: catColor[cat] ?? T.textMute }}>{cat}</div>
             <div style={{ fontSize: 17, fontWeight: 700, fontFamily: T.mono, color: val > 0 ? T.bad : T.textMute, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fp(val)}</div>
@@ -181,10 +190,11 @@ function TransactionsPanel({ transactions }: { transactions: TransactionRow[] })
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, borderRight: `1px solid ${T.line}` }}>
       <PanelHd title="Sales Transactions" badge={`${transactions.length}`} />
-      <div style={{ display: 'grid', gridTemplateColumns: TX_COLS, padding: '0 14px', height: 30, alignItems: 'center', borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
-        {TX_HDRS.map(h => <span key={h} style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>)}
-      </div>
-      <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+      <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <div style={{ minWidth: 420 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: TX_COLS, padding: '0 14px', height: 30, alignItems: 'center', borderBottom: `1px solid ${T.line}`, flexShrink: 0, position: 'sticky', top: 0, background: T.surface2, zIndex: 1 }}>
+          {TX_HDRS.map(h => <span key={h} style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>)}
+        </div>
         {transactions.length === 0 ? (
           <div style={{ padding: '20px 14px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No transactions</div>
         ) : transactions.map((tx, i) => (
@@ -208,6 +218,7 @@ function TransactionsPanel({ transactions }: { transactions: TransactionRow[] })
             </span>
           </div>
         ))}
+        </div>
       </div>
     </div>
   )
@@ -221,10 +232,11 @@ function ExpensesListPanel({ expenseRows }: { expenseRows: ExpenseRow[] }) {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <PanelHd title="Expenses Transactions" badge={`${expenseRows.length}`} badgeColor={T.bad} />
-      <div style={{ display: 'grid', gridTemplateColumns: EX_COLS, padding: '0 14px', height: 30, alignItems: 'center', borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
-        {EX_HDRS.map(h => <span key={h} style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>)}
-      </div>
-      <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+      <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <div style={{ minWidth: 300 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: EX_COLS, padding: '0 14px', height: 30, alignItems: 'center', borderBottom: `1px solid ${T.line}`, flexShrink: 0, position: 'sticky', top: 0, background: T.surface2, zIndex: 1 }}>
+          {EX_HDRS.map(h => <span key={h} style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>)}
+        </div>
         {expenseRows.length === 0 ? (
           <div style={{ padding: '20px 14px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No expenses</div>
         ) : expenseRows.map((row, i) => (
@@ -240,6 +252,7 @@ function ExpensesListPanel({ expenseRows }: { expenseRows: ExpenseRow[] }) {
             <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 700, color: T.bad, fontVariantNumeric: 'tabular-nums' }}>₱{row.amount.toFixed(2)}</span>
           </div>
         ))}
+        </div>
       </div>
     </div>
   )

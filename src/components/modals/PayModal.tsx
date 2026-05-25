@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { THEME } from '@/lib/theme'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 import ModalBase from './ModalBase'
 import type { PayMethod } from '@/lib/types'
 
@@ -286,6 +287,8 @@ interface PayModalProps {
 type Method = 'cash' | 'card' | 'qr'
 
 export default function PayModal({ total, subtotal, tipAmt, onPaid, onClose }: PayModalProps) {
+  const bp       = useBreakpoint()
+  const isMobile = bp === 'mobile'
   const [method, setMethod] = useState<Method>('cash')
   const [input,  setInput]  = useState('')
 
@@ -317,7 +320,7 @@ export default function PayModal({ total, subtotal, tipAmt, onPaid, onClose }: P
         flexShrink: 0,
       }}>
         <div style={{
-          fontFamily: T.mono, fontSize: 40, fontWeight: 700,
+          fontFamily: T.mono, fontSize: 'clamp(26px, 6vw, 40px)', fontWeight: 700,
           color: T.accent, letterSpacing: '-0.02em',
           fontVariantNumeric: 'tabular-nums', marginBottom: 8,
           lineHeight: 1,
@@ -366,7 +369,7 @@ export default function PayModal({ total, subtotal, tipAmt, onPaid, onClose }: P
 
         {/* Cash ──────────────────────────────────────────────────────── */}
         {method === 'cash' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 220px', gap: 24, alignItems: 'start' }}>
+          <div style={{ display: isMobile ? 'flex' : 'grid', flexDirection: isMobile ? 'column-reverse' : undefined, gridTemplateColumns: isMobile ? undefined : '1fr 220px', gap: 24, alignItems: 'start' }}>
 
             {/* Left: tendered display + num pad */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

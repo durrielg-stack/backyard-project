@@ -32,13 +32,14 @@ export default function ModalBase({ width, onBackdropClick, children }: ModalBas
         onClick={e => e.stopPropagation()}
         style={{
           width,
+          maxWidth:     'calc(100vw - 24px)',
           background:   T.surface,
           border:       `1px solid ${T.line2}`,
           borderRadius: T.radiusLg,
           boxShadow:    T.shadowModal,
           animation:    'bp-modal-pop 0.22s ease forwards',
           overflow:     'hidden',
-          maxHeight:    '90vh',
+          maxHeight:    '92vh',
           display:      'flex',
           flexDirection: 'column',
         }}

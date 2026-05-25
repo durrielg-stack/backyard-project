@@ -132,7 +132,7 @@ export default function OrderLine({
             <button
               onClick={e => { e.stopPropagation(); onUpdateQty(line.lineId, -1) }}
               style={{
-                width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 background: T.chip, border: `1px solid ${T.line2}`,
                 color: T.textDim, fontFamily: 'inherit', fontSize: 16, lineHeight: 1,
                 borderRadius: T.radius, cursor: 'pointer',
@@ -147,7 +147,7 @@ export default function OrderLine({
             <button
               onClick={e => { e.stopPropagation(); onUpdateQty(line.lineId, 1) }}
               style={{
-                width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 background: T.chip, border: `1px solid ${T.line2}`,
                 color: T.textDim, fontFamily: 'inherit', fontSize: 16, lineHeight: 1,
                 borderRadius: T.radius, cursor: 'pointer',
@@ -162,7 +162,7 @@ export default function OrderLine({
                 onClick={e => { e.stopPropagation(); onBill(line.lineId) }}
                 title="Bill this item"
                 style={{
-                  padding: '0 10px', height: 26, display: 'flex', alignItems: 'center',
+                  padding: '0 10px', height: 32, display: 'flex', alignItems: 'center',
                   gap: 4, fontSize: 11, fontFamily: 'inherit', fontWeight: 600,
                   background: `${T.ok}18`, border: `1px solid ${T.ok}44`,
                   color: T.ok, borderRadius: T.radius, cursor: 'pointer',
@@ -175,7 +175,7 @@ export default function OrderLine({
                 onClick={e => { e.stopPropagation(); setEditNote(true) }}
                 title="Add note"
                 style={{
-                  width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   background: T.chip, border: `1px solid ${T.line2}`,
                   color: line.note ? T.warn : T.textDim,
                   borderRadius: T.radius, cursor: 'pointer',
@@ -187,7 +187,7 @@ export default function OrderLine({
                 onClick={e => { e.stopPropagation(); setConfirmVoid(true) }}
                 title="Void item"
                 style={{
-                  width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   background: `${T.bad}18`, border: `1px solid ${T.bad}44`,
                   color: T.bad, borderRadius: T.radius, cursor: 'pointer',
                 }}
