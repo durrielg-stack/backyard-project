@@ -1870,7 +1870,7 @@ function BudgetTab() {
                           : g.key === 'expenses' ? row.expTotal
                           : g.key === 'incoming' ? row.incTotal
                           : row.endTotal
-                        const totalColor = g.key === 'ending'
+                        const totalColor = (g.key === 'ending' || g.key === 'starting')
                           ? (total >= 0 ? T.ok : T.bad)
                           : g.color
 
@@ -1878,9 +1878,8 @@ function BudgetTab() {
                           <div key={g.key} style={{ display: 'flex', borderLeft: `1px solid ${T.line}` }}>
                             {BUDGET_CATS.map(c => {
                               const v = groupData[c.id] ?? 0
-                              const cellColor = g.key === 'ending'
-                                ? (v >= 0 ? T.textDim : T.bad)
-                                : g.key === 'starting' ? T.textDim
+                              const cellColor = (g.key === 'ending' || g.key === 'starting')
+                                ? (v >= 0 ? T.ok : T.bad)
                                 : v > 0 ? g.color : T.textMute
                               return (
                                 <div key={c.id} style={{ width: COL_W, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 12 }}>
