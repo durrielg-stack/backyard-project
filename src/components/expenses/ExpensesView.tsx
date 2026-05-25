@@ -205,11 +205,11 @@ export default function ExpensesView() {
         const autoAmt = up != null ? (qty * up).toFixed(2) : fAmt
         const canSave = fDesc.trim() && (up != null ? up > 0 : parseFloat(fAmt) > 0)
         return (
-          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', background: T.surface2, borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
+          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', overflowY: 'visible', WebkitOverflowScrolling: 'touch', background: T.surface2, borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
           <div style={{
             padding: '16px 24px',
             display: 'grid', gridTemplateColumns: '140px 1fr 70px 90px 110px 120px auto',
-            gap: 8, alignItems: 'end', minWidth: 680,
+            gap: 8, alignItems: 'end', minWidth: 680, overflow: 'visible',
           }}>
             {/* Category */}
             <div>
@@ -234,7 +234,7 @@ export default function ExpensesView() {
               />
               {showSuggestions && suggestions.length > 0 && (
                 <div style={{
-                  position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                  position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200,
                   background: T.surface2, border: `1px solid ${T.line2}`,
                   borderRadius: T.radius, boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
                   maxHeight: 260, overflowY: 'auto',
