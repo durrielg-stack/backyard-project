@@ -18,7 +18,7 @@ const T = THEME
 // ── Modal state discriminant ───────────────────────────────────────────────
 type ModalState =
   | { kind: 'none' }
-  | { kind: 'pay';   payAmount: number; splitLineIds: string[] | null; singleItem?: boolean }
+  | { kind: 'pay';   payAmount: number; splitLineIds: string[] | null; singleItem?: boolean; waysRemaining?: number }
   | { kind: 'split' }
   | { kind: 'paid';  total: number }
 
@@ -87,13 +87,22 @@ export default function OrderView({ tableId, table, staff, onBack, onCartSync }:
     if (modal.kind !== 'pay') return
     const { payAmount, splitLineIds } = modal
 
-    if (splitLineIds) {
-      const result = await payPartial(splitLineIds, method, payAmount, tendered, !modal.singleItem)
+    if (splitLineIds !== null) {
+      const waysLeft   = modal.waysRemaining ?? 1
+      const isLastWay  = waysLeft <= 1
+      // For equally split: don't assign lines until last payment to avoid premature auto-close
+      const effectiveIds = modal.waysRemaining != null && !isLastWay ? [] : splitLineIds
+      const result = await payPartial(effectiveIds, method, payAmount, tendered, isLastWay && !modal.singleItem)
       if (result === 'closed') {
         setModal({ kind: 'paid', total: payAmount })
-      } else if (result === 'partial') {
-        // Single-item bill: just return to order; split flow: reopen split modal
-        setModal(modal.singleItem ? { kind: 'none' } : { kind: 'split' })
+      } else if (result === 'partial' || !isLastWay) {
+        if (modal.singleItem) {
+          setModal({ kind: 'none' })
+        } else if (modal.waysRemaining != null && waysLeft > 1) {
+          setModal({ ...modal, waysRemaining: waysLeft - 1 })
+        } else {
+          setModal({ kind: 'split' })
+        }
       }
     } else {
       const ok = await closeOrder(method, tendered, payAmount, tip, discount)
@@ -103,10 +112,10 @@ export default function OrderView({ tableId, table, staff, onBack, onCartSync }:
 
   function handleSplitConfirm(result: SplitResult) {
     if (result.mode === 'equally') {
-      // Equally: pay total/ways per transaction — assign all remaining lines
       const ways   = result.ways ?? 2
       const amount = parseFloat((total / ways).toFixed(2))
-      setModal({ kind: 'pay', payAmount: amount, splitLineIds: lines.map(l => l.lineId) })
+      // waysRemaining tracks how many payments left; all lineIds assigned only on the last payment
+      setModal({ kind: 'pay', payAmount: amount, splitLineIds: lines.map(l => l.lineId), waysRemaining: ways })
     } else if (result.mode === 'by-item' && result.items) {
       const amount = lines
         .filter(l => result.items!.includes(l.lineId))

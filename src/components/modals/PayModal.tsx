@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { THEME } from '@/lib/theme'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import ModalBase from './ModalBase'
@@ -124,19 +124,6 @@ const CARD_STEPS: { id: CardStep; label: string }[] = [
 function CardFlow({ total, onPaid }: { total: number; onPaid: () => void }) {
   const [step, setStep] = useState<CardStep>('insert')
 
-  useEffect(() => {
-    const delays: Record<CardStep, number> = { insert: 1400, processing: 1600, approved: 1200 }
-    const next:   Record<CardStep, CardStep | null> = {
-      insert: 'processing', processing: 'approved', approved: null,
-    }
-    const t = setTimeout(() => {
-      const n = next[step]
-      if (n) setStep(n)
-      else   onPaid()
-    }, delays[step])
-    return () => clearTimeout(t)
-  }, [step, onPaid])
-
   const idx = CARD_STEPS.findIndex(s => s.id === step)
 
   return (
@@ -213,6 +200,35 @@ function CardFlow({ total, onPaid }: { total: number; onPaid: () => void }) {
           </span>
         </div>
       )}
+
+      {/* Manual advance buttons — no auto-advance */}
+      {step === 'insert' && (
+        <button onClick={() => setStep('processing')} style={{
+          padding: '12px 32px', fontFamily: 'inherit', fontSize: 14, fontWeight: 600,
+          background: T.accent, color: T.accentInk, border: 'none',
+          borderRadius: T.radius, cursor: 'pointer',
+        }}>
+          Card Inserted →
+        </button>
+      )}
+      {step === 'processing' && (
+        <button onClick={() => setStep('approved')} style={{
+          padding: '12px 32px', fontFamily: 'inherit', fontSize: 14, fontWeight: 600,
+          background: T.chip, color: T.text, border: `1px solid ${T.line2}`,
+          borderRadius: T.radius, cursor: 'pointer',
+        }}>
+          Confirm Approved →
+        </button>
+      )}
+      {step === 'approved' && (
+        <button onClick={onPaid} style={{
+          padding: '12px 32px', fontFamily: 'inherit', fontSize: 14, fontWeight: 700,
+          background: T.ok, color: '#fff', border: 'none',
+          borderRadius: T.radius, cursor: 'pointer',
+        }}>
+          Confirm Payment Received
+        </button>
+      )}
     </div>
   )
 }
@@ -222,21 +238,6 @@ type QRStep = 'waiting' | 'scanned' | 'received'
 
 function QRFlow({ total, onPaid }: { total: number; onPaid: () => void }) {
   const [step, setStep] = useState<QRStep>('waiting')
-
-  useEffect(() => {
-    if (step === 'waiting') {
-      const t = setTimeout(() => setStep('scanned'),   3200)
-      return () => clearTimeout(t)
-    }
-    if (step === 'scanned') {
-      const t = setTimeout(() => setStep('received'),  1600)
-      return () => clearTimeout(t)
-    }
-    if (step === 'received') {
-      const t = setTimeout(onPaid, 1400)
-      return () => clearTimeout(t)
-    }
-  }, [step, onPaid])
 
   return (
     <div style={{
@@ -271,6 +272,35 @@ function QRFlow({ total, onPaid }: { total: number; onPaid: () => void }) {
       <div style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute, textAlign: 'center' }}>
         Open GCash / Maya and scan
       </div>
+
+      {/* Manual advance — staff confirms payment, no auto-advance */}
+      {step === 'waiting' && (
+        <button onClick={() => setStep('scanned')} style={{
+          padding: '10px 28px', fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
+          background: T.chip, color: T.text, border: `1px solid ${T.line2}`,
+          borderRadius: T.radius, cursor: 'pointer',
+        }}>
+          Mark Scanned →
+        </button>
+      )}
+      {step === 'scanned' && (
+        <button onClick={() => setStep('received')} style={{
+          padding: '10px 28px', fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
+          background: T.chip, color: T.text, border: `1px solid ${T.line2}`,
+          borderRadius: T.radius, cursor: 'pointer',
+        }}>
+          Confirm Received →
+        </button>
+      )}
+      {step === 'received' && (
+        <button onClick={onPaid} style={{
+          padding: '12px 32px', fontFamily: 'inherit', fontSize: 14, fontWeight: 700,
+          background: T.ok, color: '#fff', border: 'none',
+          borderRadius: T.radius, cursor: 'pointer',
+        }}>
+          Confirm Payment Received
+        </button>
+      )}
     </div>
   )
 }

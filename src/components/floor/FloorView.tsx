@@ -289,16 +289,9 @@ function KpiStrip({ tables, tickets }: { tables: TableWithStatus[]; tickets: Kds
     }
 
     refresh()
-
-    const channel = sb
-      .channel('kpi-rt')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' },     refresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' },          refresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' },        refresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'restaurant_tables' }, refresh)
-      .subscribe()
-
-    return () => { sb.removeChannel(channel) }
+    // Poll every 30s — avoids a 5th redundant realtime channel on order_items
+    const interval = setInterval(refresh, 30_000)
+    return () => clearInterval(interval)
   }, [])
 
   const open     = tables.filter(t => ['occupied','aging','attention'].includes(t.status)).length

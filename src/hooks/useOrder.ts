@@ -258,7 +258,7 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
     setLines([])
     setOrderId(null)
     return true
-  }, [orderId, tableId])
+  }, [orderId, tableId, lines])
 
   // ── Pay partial — marks items paid, closes order when all items covered ──
   const payPartial = useCallback(async (
