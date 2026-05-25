@@ -1,8 +1,9 @@
 'use client'
 
+import { useTheme } from '@/lib/ThemeContext'
 import { useState, useCallback, useEffect } from 'react'
 import { getClient } from '@/lib/supabase'
-import { T, SectionHd, fmtPeso } from './ownerShared'
+import { SectionHd, fmtPeso } from './ownerShared'
 
 export const BUDGET_CATS: { id: string; label: string }[] = [
   { id: 'opex',        label: 'OPEX'           },
@@ -64,18 +65,21 @@ function buildLedger(allRows: { entry_date: string; category: string; incoming: 
   return ledger
 }
 
-const GROUPS_L = [
-  { key: 'starting', label: 'Starting', color: T.textDim },
-  { key: 'expenses', label: 'Expenses', color: T.bad     },
-  { key: 'incoming', label: 'Incoming', color: T.ok      },
-  { key: 'ending',   label: 'Ending',   color: T.accent  },
-] as const
 
 const COL_W  = 110
 const TOT_W  = 130
 const DATE_W = 96
 
 export default function BudgetTab() {
+  const { T } = useTheme()
+
+  const GROUPS_L = [
+    { key: 'starting', label: 'Starting', color: T.textDim },
+    { key: 'expenses', label: 'Expenses', color: T.bad     },
+    { key: 'incoming', label: 'Incoming', color: T.ok      },
+    { key: 'ending',   label: 'Ending',   color: T.accent  },
+  ] as const
+
   const [budgetView, setBudgetView] = useState<'day' | 'ledger'>('day')
   const [date,       setDate]       = useState(() => new Date().toISOString().slice(0, 10))
   const [entries,    setEntries]    = useState<BudgetEntry[]>(BUDGET_CATS.map(c => ({ id: null, category: c.id, incoming: 0, expenses: 0 })))

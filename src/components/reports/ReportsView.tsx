@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
-import { THEME } from '@/lib/theme'
+import { useTheme } from '@/lib/ThemeContext'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { useReports } from '@/hooks/useReports'
 import type { TableWithStatus } from '@/lib/types'
@@ -9,15 +9,16 @@ import type { RevenueBar, TransactionRow, ExpenseRow } from '@/hooks/useReports'
 import { PanelHd } from '@/components/floor/FloorView'
 import StockAlertsStrip from '@/components/floor/InventoryPanel'
 
-const T = THEME
 
 function fp(v: number) {
   return `₱${v.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-const catColor: Record<string, string> = {
-  'OPEX': T.textDim, 'Food': T.ok, 'Beer': T.warn,
-  'Cocktails/Hard': T.accent, 'Non-Alcohol': T.info, 'Cigarettes': T.textMute,
+function getCatColor(T: ReturnType<typeof useTheme>['T']): Record<string, string> {
+  return {
+    'OPEX': T.textDim, 'Food': T.ok, 'Beer': T.warn,
+    'Cocktails/Hard': T.accent, 'Non-Alcohol': T.info, 'Cigarettes': T.textMute,
+  }
 }
 
 // ── Sales KPI strip ────────────────────────────────────────────────────────────
@@ -35,6 +36,7 @@ function SalesKpiStrip({ range, todayRevenue, weekRevenue, todayCost, todayExpen
   avgTurnMin:     number | null
   weekAvgTurnMin: number | null
 }) {
+  const { T } = useTheme()
   const isToday = range === 'today'
   const rev     = isToday ? todayRevenue  : weekRevenue
   const exp     = isToday ? todayExpenses : weekExpenses
@@ -82,6 +84,7 @@ function ExpensesKpiStrip({ range, todayExpenses, weekExpenses, expCatBreakdown 
   weekExpenses:    number
   expCatBreakdown: { category: string; today: number; week: number }[]
 }) {
+  const { T } = useTheme()
   const isToday = range === 'today'
   const total   = isToday ? todayExpenses : weekExpenses
   const suffix  = isToday ? 'Today'       : 'Week'
@@ -104,7 +107,7 @@ function ExpensesKpiStrip({ range, todayExpenses, weekExpenses, expCatBreakdown 
             minWidth: isMobile2 ? 130 : undefined, flexShrink: 0,
             gap: isMobile2 ? 4 : undefined,
           }}>
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: catColor[cat] ?? T.textMute }}>{cat}</div>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: getCatColor(T)[cat] ?? T.textMute }}>{cat}</div>
             <div style={{ fontSize: 17, fontWeight: 700, fontFamily: T.mono, color: val > 0 ? T.bad : T.textMute, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fp(val)}</div>
             <div style={{ fontSize: 10, color: T.textMute }}>{isToday ? `wk ${fp(c.week)}` : `today ${fp(c.today)}`}</div>
           </div>
@@ -116,6 +119,7 @@ function ExpensesKpiStrip({ range, todayExpenses, weekExpenses, expCatBreakdown 
 
 // ── Bar chart ──────────────────────────────────────────────────────────────────
 function BarChart({ bars, barColor }: { bars: RevenueBar[]; barColor?: string }) {
+  const { T } = useTheme()
   if (bars.length === 0) {
     return <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No data yet</div>
   }
@@ -161,6 +165,7 @@ function BarChart({ bars, barColor }: { bars: RevenueBar[]; barColor?: string })
 
 // ── Revenue chart panel ────────────────────────────────────────────────────────
 function RevenuePanel({ range, hourlyBars, weeklyBars }: { range: 'today' | 'week'; hourlyBars: RevenueBar[]; weeklyBars: RevenueBar[] }) {
+  const { T } = useTheme()
   const bars  = range === 'today' ? hourlyBars : weeklyBars
   const total = bars.reduce((s, b) => s + b.value, 0)
   return (
@@ -173,6 +178,7 @@ function RevenuePanel({ range, hourlyBars, weeklyBars }: { range: 'today' | 'wee
 
 // ── Expenses chart panel ───────────────────────────────────────────────────────
 function ExpensesChartPanel({ range, expenseDayBars, todayExpenses, weekExpenses }: { range: 'today' | 'week'; expenseDayBars: RevenueBar[]; todayExpenses: number; weekExpenses: number }) {
+  const { T } = useTheme()
   const total = range === 'today' ? todayExpenses : weekExpenses
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -187,6 +193,7 @@ const TX_COLS = '60px 64px 46px 1fr 28px 90px 64px'
 const TX_HDRS = ['Time', 'ID', 'Tbl', 'Server', '×', 'Total', 'Pay']
 
 function TransactionsPanel({ transactions }: { transactions: TransactionRow[] }) {
+  const { T } = useTheme()
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, borderRight: `1px solid ${T.line}` }}>
       <PanelHd title="Sales Transactions" badge={`${transactions.length}`} />
@@ -229,6 +236,7 @@ const EX_COLS = '50px 80px 1fr 80px'
 const EX_HDRS = ['Time', 'Category', 'Name', 'Amount']
 
 function ExpensesListPanel({ expenseRows }: { expenseRows: ExpenseRow[] }) {
+  const { T } = useTheme()
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <PanelHd title="Expenses Transactions" badge={`${expenseRows.length}`} badgeColor={T.bad} />
@@ -247,7 +255,7 @@ function ExpensesListPanel({ expenseRows }: { expenseRows: ExpenseRow[] }) {
             background: i % 2 === 0 ? T.surface2 : 'transparent',
           }}>
             <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute, fontVariantNumeric: 'tabular-nums' }}>{row.time}</span>
-            <span style={{ fontSize: 10, fontWeight: 600, color: catColor[row.category] ?? T.textDim }}>{row.category}</span>
+            <span style={{ fontSize: 10, fontWeight: 600, color: getCatColor(T)[row.category] ?? T.textDim }}>{row.category}</span>
             <span style={{ fontSize: 11, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name}</span>
             <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 700, color: T.bad, fontVariantNumeric: 'tabular-nums' }}>₱{row.amount.toFixed(2)}</span>
           </div>
@@ -260,6 +268,7 @@ function ExpensesListPanel({ expenseRows }: { expenseRows: ExpenseRow[] }) {
 
 // ── Drag-resizable split panel ─────────────────────────────────────────────────
 function ResizableSplit({ left, right }: { left: React.ReactNode; right: React.ReactNode }) {
+  const { T } = useTheme()
   const [split, setSplit] = useState(50) // percent
   const dragging = useRef(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -297,6 +306,7 @@ function ResizableSplit({ left, right }: { left: React.ReactNode; right: React.R
 
 // ── ReportsView ────────────────────────────────────────────────────────────────
 export default function ReportsView({ tables: _tables }: { tables: TableWithStatus[] }) {
+  const { T } = useTheme()
   const [range, setRange] = useState<'today' | 'week'>('today')
   const {
     todayRevenue, weekRevenue, todayCost, todayExpenses, weekExpenses,

@@ -1,8 +1,9 @@
 'use client'
 
+import { useTheme } from '@/lib/ThemeContext'
 import { useState, useCallback, useEffect } from 'react'
 import { getClient } from '@/lib/supabase'
-import { T, SectionHd, Pill } from './ownerShared'
+import { SectionHd, Pill } from './ownerShared'
 
 interface MenuRow {
   id:          string
@@ -17,6 +18,8 @@ interface MenuRow {
 }
 
 export default function MenuTab() {
+  const { T } = useTheme()
+
   const [items,     setItems]     = useState<MenuRow[]>([])
   const [loading,   setLoading]   = useState(true)
   const [editId,    setEditId]    = useState<string | null>(null)

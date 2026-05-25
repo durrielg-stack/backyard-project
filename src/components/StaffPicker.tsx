@@ -1,9 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { THEME } from '@/lib/theme'
+import { useTheme } from '@/lib/ThemeContext'
 
-const T = THEME
 
 const STAFF_LIST = [
   { name: 'Albert',  initials: 'AB', role: 'Owner' },
@@ -24,6 +23,7 @@ interface StaffPickerProps {
 }
 
 export default function StaffPicker({ onSelect }: StaffPickerProps) {
+  const { T } = useTheme()
   const [custom, setCustom] = useState('')
 
   function handleCustom() {

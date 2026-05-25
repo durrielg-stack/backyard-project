@@ -1,12 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { THEME } from '@/lib/theme'
+import { useTheme } from '@/lib/ThemeContext'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import ModalBase from './ModalBase'
 import type { PayMethod } from '@/lib/types'
 
-const T = THEME
 
 // ── Quick tender calculator ────────────────────────────────────────────────
 function quickTenders(total: number): number[] {
@@ -23,6 +22,7 @@ function quickTenders(total: number): number[] {
 
 // ── Num pad ────────────────────────────────────────────────────────────────
 function NumPad({ onDigit }: { onDigit: (d: string) => void }) {
+  const { T } = useTheme()
   const keys = ['7','8','9','4','5','6','1','2','3','.','0','⌫']
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
@@ -48,6 +48,7 @@ function NumPad({ onDigit }: { onDigit: (d: string) => void }) {
 
 // ── QR code visual (non-scannable decoration) ──────────────────────────────
 function QRCodeVisual({ size = 160 }: { size?: number }) {
+  const { T } = useTheme()
   const N    = 21
   const cell = size / N
 
@@ -122,6 +123,7 @@ const CARD_STEPS: { id: CardStep; label: string }[] = [
 ]
 
 function CardFlow({ total, onPaid }: { total: number; onPaid: () => void }) {
+  const { T } = useTheme()
   const [step, setStep] = useState<CardStep>('insert')
 
   const idx = CARD_STEPS.findIndex(s => s.id === step)
@@ -229,6 +231,7 @@ type QRStep = 'waiting' | 'scanned' | 'received'
 type QRMethod = 'gcash' | 'maya'
 
 function QRFlow({ total, onPaid }: { total: number; onPaid: (method: QRMethod) => void }) {
+  const { T } = useTheme()
   const [step, setStep]         = useState<QRStep>('waiting')
   const [qrMethod, setQrMethod] = useState<QRMethod>('gcash')
 
@@ -325,6 +328,7 @@ interface PayModalProps {
 type Method = 'cash' | 'card' | 'qr'
 
 export default function PayModal({ total, subtotal, tipAmt, onPaid, onClose }: PayModalProps) {
+  const { T } = useTheme()
   const bp       = useBreakpoint()
   const isMobile = bp === 'mobile'
   const [method, setMethod] = useState<Method>('cash')

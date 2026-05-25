@@ -1,6 +1,7 @@
 'use client'
 
-import { THEME, statusColor } from '@/lib/theme'
+import { statusColor } from '@/lib/theme'
+import { useTheme } from '@/lib/ThemeContext'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import type { TableWithStatus, CartLine } from '@/lib/types'
 
@@ -23,8 +24,6 @@ interface NavBarProps {
   onSignOut: () => void
 }
 
-const T = THEME
-
 // ── Icon atoms (SVG inline, currentColor, 1.5px stroke) ─────────────────────
 function Icon({ name, size = 16 }: { name: 'bell' | 'close' | 'lock'; size?: number }) {
   const paths: Record<string, React.ReactNode> = {
@@ -45,6 +44,7 @@ function Icon({ name, size = 16 }: { name: 'bell' | 'close' | 'lock'; size?: num
 
 // ── Live-pulse dot (used next to brand label) ────────────────────────────────
 function PulseDot() {
+  const { T } = useTheme()
   return (
     <span style={{ position: 'relative', display: 'inline-flex', width: 6, height: 6 }}>
       <span className="bp-pulse" style={{
@@ -73,6 +73,7 @@ interface TabProps {
 }
 
 function NavTab({ active, onClick, label, sub, dot, dashed, dimmed, onClose, isMobile: isMobileTab = false }: TabProps) {
+  const { T } = useTheme()
   const borderColor = dashed ? T.line2 : 'transparent'
   return (
     <div
@@ -136,6 +137,7 @@ export default function NavBar({
   view, openTabs, tables, carts,
   attnCount, now, staff, onFloor, onExpenses, onReports, onOwner, onOrder, onCloseTab, onSignOut,
 }: NavBarProps) {
+  const { T, isDark, toggle } = useTheme()
   const bp = useBreakpoint()
   const isMobile = bp === 'mobile'
   const time    = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
@@ -268,6 +270,22 @@ export default function NavBar({
         padding: isMobile ? '0 10px' : '0 24px', flexShrink: 0,
         fontSize: 13, color: T.textDim,
       }}>
+        {/* Theme toggle */}
+        <button
+          onClick={toggle}
+          title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: T.textDim, fontSize: 14, lineHeight: 1,
+            padding: '4px 6px', borderRadius: T.radius,
+            display: 'flex', alignItems: 'center',
+          }}
+        >
+          {isDark ? '☀' : '🌙'}
+        </button>
+
+        {!isMobile && <div style={{ width: 1, height: 20, background: T.line }} />}
+
         {/* Bell + attention badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <Icon name="bell" size={14} />

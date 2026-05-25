@@ -1,8 +1,9 @@
 'use client'
 
+import { useTheme } from '@/lib/ThemeContext'
 import { useState, useCallback, useEffect } from 'react'
 import { getClient } from '@/lib/supabase'
-import { T, SectionHd } from './ownerShared'
+import { SectionHd } from './ownerShared'
 
 interface InvRow {
   id:             number
@@ -16,6 +17,8 @@ interface InvRow {
 }
 
 export default function InventoryTab() {
+  const { T } = useTheme()
+
   const [rows,    setRows]    = useState<InvRow[]>([])
   const [loading, setLoading] = useState(true)
   const [saving,  setSaving]  = useState<number | null>(null)

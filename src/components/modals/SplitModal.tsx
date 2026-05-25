@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { THEME } from '@/lib/theme'
+import { useTheme } from '@/lib/ThemeContext'
 import ModalBase from './ModalBase'
 import type { CartLine } from '@/lib/types'
 
-const T = THEME
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type SplitMode = 'equally' | 'by-item' | 'by-seat'
@@ -27,6 +26,7 @@ interface SplitModalProps {
 
 // ── Tab button ─────────────────────────────────────────────────────────────
 function Tab({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  const { T } = useTheme()
   return (
     <button onClick={onClick} style={{
       flex: 1, padding: '12px 0',
@@ -48,6 +48,7 @@ function Tab({ label, active, onClick }: { label: string; active: boolean; onCli
 
 // ── Equally tab ────────────────────────────────────────────────────────────
 function EquallyTab({ total, onConfirm }: { total: number; onConfirm: (ways: number) => void }) {
+  const { T } = useTheme()
   const [ways, setWays] = useState(2)
   const perPerson = total / ways
 
@@ -116,6 +117,7 @@ function EquallyTab({ total, onConfirm }: { total: number; onConfirm: (ways: num
 function ByItemTab({ lines, total, onConfirm }: {
   lines: CartLine[]; total: number; onConfirm: (ids: string[]) => void
 }) {
+  const { T } = useTheme()
   const [checked, setChecked] = useState<Set<string>>(new Set(lines.map(l => l.lineId)))
 
   const selectedTotal = useMemo(() => {
@@ -266,6 +268,7 @@ function ByItemTab({ lines, total, onConfirm }: {
 function BySeatTab({ lines, seats, total, onConfirm }: {
   lines: CartLine[]; seats: number; total: number; onConfirm: (map: Record<string, number>) => void
 }) {
+  const { T } = useTheme()
   // seatMap: lineId → seat (0 = unassigned)
   const [seatMap, setSeatMap] = useState<Record<string, number>>(() =>
     Object.fromEntries(lines.map(l => [l.lineId, l.seat ?? 0]))
@@ -424,6 +427,7 @@ function BySeatTab({ lines, seats, total, onConfirm }: {
 
 // ── SplitModal ─────────────────────────────────────────────────────────────
 export default function SplitModal({ lines, total, seats, onConfirm, onClose }: SplitModalProps) {
+  const { T } = useTheme()
   const [mode, setMode] = useState<SplitMode>('equally')
 
   return (

@@ -1,9 +1,9 @@
 // Single canonical token set for The Backyard Project POS.
-// Dark-only. Do not add light-mode variants — out of scope by spec.
+// Dark-only by default. Light theme added as opt-in.
 // Every value here is signed-off in the design README. Do not soften.
 
 export interface Theme {
-  bg: string; surface: string; surface2: string
+  bg: string; surface: string; surface2: string; surface3: string
   line: string; line2: string
   text: string; textDim: string; textMute: string
   accent: string; accentInk: string
@@ -14,11 +14,14 @@ export interface Theme {
   shadow: string; shadowModal: string
 }
 
+export type ThemeTokens = Theme
+
 export const THEME: Theme = {
   // Backgrounds
   bg:        '#0B0B0D',   // near-black with cool tint — page background
   surface:   '#131316',   // raised panels
   surface2:  '#1A1A1F',   // higher elevation — hovered card, active tab
+  surface3:  '#222228',   // highest elevation
 
   // Borders
   line:      '#23232A',   // hairline, 1px
@@ -55,6 +58,33 @@ export const THEME: Theme = {
   // Shadows — avoid on panels; only for modals
   shadow:      '0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 24px rgba(0,0,0,0.4)',
   shadowModal: '0 30px 90px rgba(0,0,0,0.55)',
+}
+
+export const LIGHT_THEME: Theme = {
+  bg:        '#F5F5F2',
+  surface:   '#FFFFFF',
+  surface2:  '#F0F0EC',
+  surface3:  '#E8E8E4',
+  line:      '#DDDDD8',
+  line2:     '#CCCCCA',
+  text:      '#18181A',
+  textDim:   '#48484E',
+  textMute:  '#888892',
+  accent:    '#2C6E49',
+  accentInk: '#FFFFFF',
+  ok:        '#2C6E49',
+  warn:      '#C07A00',
+  bad:       '#C0392B',
+  info:      '#2563EB',
+  chip:      '#EBEBEA',
+  chipBd:    'rgba(0,0,0,0.10)',
+  sansHead: '"Inter", "Helvetica Neue", system-ui, sans-serif',
+  sansBody: '"Inter", "Helvetica Neue", system-ui, sans-serif',
+  mono:     '"JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace',
+  radius:   '2px',
+  radiusLg: '4px',
+  shadow:      '0 1px 0 rgba(0,0,0,0.04) inset, 0 8px 24px rgba(0,0,0,0.12)',
+  shadowModal: '0 30px 90px rgba(0,0,0,0.25)',
 }
 
 // Status color helper — used by table cards, nav dots, ticket headers

@@ -1,9 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { THEME } from '@/lib/theme'
+import { useTheme } from '@/lib/ThemeContext'
 
-const T = THEME
 const DELAY = 4
 
 interface PaidOverlayProps {
@@ -14,6 +13,7 @@ interface PaidOverlayProps {
 }
 
 export default function PaidOverlay({ total, tableLabel, orderId, onDone }: PaidOverlayProps) {
+  const { T } = useTheme()
   const onDoneRef = useRef(onDone)
   const [remaining, setRemaining] = useState(DELAY)
 

@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { THEME, statusColor, statusLabel } from '@/lib/theme'
+import { statusColor, statusLabel } from '@/lib/theme'
+import { useTheme } from '@/lib/ThemeContext'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { getClient } from '@/lib/supabase'
 import type { TableWithStatus, KdsTicket } from '@/lib/types'
 import KdsPanel from './KdsPanel'
 
-const T = THEME
 
 // ── Coordinate space the seeded pos_x/pos_y values are mapped against ────────
 // Raw DB values range 80–500. We normalise against 640 so tables land at
@@ -16,6 +16,7 @@ const COORD_MAX = 640
 
 // ── Kitchen Pass strip (right edge of floor plan) ─────────────────────────────
 function KitchenPass({ readyCount }: { readyCount: number }) {
+  const { T } = useTheme()
   return (
     <div style={{
       width: 56, flexShrink: 0,
@@ -75,6 +76,7 @@ function TablePin({
   onLeave:  () => void
   onClick:  () => void
 }) {
+  const { T } = useTheme()
   const isBar   = table.section === 'bar'
   const color   = statusColor(table.status)
   const isAttn  = table.status === 'attention'
@@ -148,6 +150,7 @@ function FloorPlan({
   tickets:     KdsTicket[]
   onOpenTable: (id: string) => void
 }) {
+  const { T } = useTheme()
   const [hoveredId, setHoveredId] = useState<string | null>(null)
 
   // Tables that have a valid position (all seeded tables should)
@@ -219,6 +222,7 @@ function FloorPlan({
 export function PanelHd({ title, badge, badgeColor, action }: {
   title: React.ReactNode; badge?: React.ReactNode; badgeColor?: string; action?: React.ReactNode
 }) {
+  const { T } = useTheme()
   return (
     <div style={{
       height: 46, padding: '0 20px', borderBottom: `1px solid ${T.line}`,
@@ -244,6 +248,7 @@ export function PanelHd({ title, badge, badgeColor, action }: {
 
 // ── KPI strip (100px, 6 equal columns) ───────────────────────────────────────
 function KpiStrip({ tables, tickets }: { tables: TableWithStatus[]; tickets: KdsTicket[] }) {
+  const { T } = useTheme()
   const bp = useBreakpoint()
   const isMobile = bp === 'mobile'
   const [todayRev,  setTodayRev]  = useState(0)
@@ -366,6 +371,7 @@ function TableCard({
   onClick:  () => void
   onRemove?: () => void
 }) {
+  const { T } = useTheme()
   const color     = statusColor(table.status)
   const isAttn    = table.status === 'attention'
   const isAging   = table.status === 'aging'
@@ -453,6 +459,7 @@ function TableCard({
 
 // ── New table card + modal ────────────────────────────────────────────────────
 function NewTableCard({ tables, onOrder }: { tables: TableWithStatus[]; onOrder: (id: string) => void }) {
+  const { T } = useTheme()
   const [open,   setOpen]   = useState(false)
   const [label,  setLabel]  = useState('')
   const [cap,    setCap]    = useState('2')
@@ -597,6 +604,7 @@ function FloorPanel({
   tickets:     KdsTicket[]
   onOpenTable: (id: string) => void
 }) {
+  const { T } = useTheme()
   const bp = useBreakpoint()
   const isMobile = bp === 'mobile'
   const isTablet = bp === 'tablet'
@@ -726,6 +734,7 @@ export default function FloorView({
   onOpenTable: (id: string) => void
   onBump: (itemId: number) => void
 }) {
+  const { T } = useTheme()
   const bp = useBreakpoint()
   const isMobile = bp === 'mobile'
 

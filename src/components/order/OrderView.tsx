@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useOrder }       from '@/hooks/useOrder'
 import { useMenuItems }   from '@/hooks/useMenuItems'
 import { useBreakpoint }  from '@/hooks/useBreakpoint'
-import { THEME }          from '@/lib/theme'
+import { useTheme }       from '@/lib/ThemeContext'
 import type { CartLine, TableWithStatus, PayMethod } from '@/lib/types'
 import MenuPanel    from './MenuPanel'
 import OrderPanel   from './OrderPanel'
@@ -15,7 +15,6 @@ import BulkVoidModal   from '@/components/modals/BulkVoidModal'
 import MoveItemsModal  from '@/components/modals/MoveItemsModal'
 import type { SplitResult } from '@/components/modals/SplitModal'
 
-const T = THEME
 
 // ── Modal state discriminant ───────────────────────────────────────────────
 type ModalState =
@@ -36,6 +35,7 @@ interface OrderViewProps {
 }
 
 export default function OrderView({ tableId, table, tables, staff, onBack, onCartSync }: OrderViewProps) {
+  const { T } = useTheme()
   const {
     orderId, lines, loading, error, clearError,
     addItem, updateQty, voidItem, setNote, closeOrder, payPartial, moveItems,

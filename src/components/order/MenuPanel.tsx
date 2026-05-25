@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { THEME } from '@/lib/theme'
+import { useTheme } from '@/lib/ThemeContext'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import type { MenuItem } from '@/lib/types'
 
-const T = THEME
 
 // ── DB category → tab group mapping ─────────────────────────────────────────
 const GROUPS = [
@@ -23,6 +22,7 @@ type GroupId = (typeof GROUPS)[number]['id']
 
 // ── Kbd hint chip ─────────────────────────────────────────────────────────────
 function Kbd({ children }: { children: string }) {
+  const { T } = useTheme()
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -38,6 +38,7 @@ function Kbd({ children }: { children: string }) {
 
 // ── Menu card ─────────────────────────────────────────────────────────────────
 function MenuCard({ item, onAdd }: { item: MenuItem; onAdd: () => void }) {
+  const { T } = useTheme()
   const [hover, setHover] = useState(false)
   return (
     <button
@@ -100,6 +101,7 @@ interface MenuPanelProps {
 }
 
 export default function MenuPanel({ byCategory, onAdd, onKeyboardShortcut }: MenuPanelProps) {
+  const { T } = useTheme()
   const [group, setGroup]         = useState<GroupId>('food')
   const [activeCat, setActiveCat] = useState<string | null>(null)
   const [query, setQuery]         = useState('')

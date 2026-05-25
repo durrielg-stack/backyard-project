@@ -1,13 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { THEME } from '@/lib/theme'
+import { useTheme } from '@/lib/ThemeContext'
 import { getClient } from '@/lib/supabase'
 import type { InventoryRow } from '@/lib/types'
 
-const T = THEME
 
 export default function StockAlertsStrip() {
+  const { T } = useTheme()
   const [rows, setRows] = useState<(InventoryRow & { menu_items?: { name: string } })[]>([])
 
   useEffect(() => {

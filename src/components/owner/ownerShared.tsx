@@ -1,8 +1,6 @@
 'use client'
 
-import { THEME } from '@/lib/theme'
-
-export const T = THEME
+import { useTheme } from '@/lib/ThemeContext'
 
 // ── Shared types ──────────────────────────────────────────────────────────────
 export interface RevenueBar { label: string; value: number; isPeak: boolean }
@@ -28,6 +26,7 @@ export function fmtDate(d: Date) {
 
 // ── SectionHd ─────────────────────────────────────────────────────────────────
 export function SectionHd({ title, badge, action }: { title: string; badge?: React.ReactNode; action?: React.ReactNode }) {
+  const { T } = useTheme()
   return (
     <div style={{
       height: 48, padding: '0 24px', flexShrink: 0,
@@ -58,6 +57,7 @@ export function SectionHd({ title, badge, action }: { title: string; badge?: Rea
 
 // ── Pill ──────────────────────────────────────────────────────────────────────
 export function Pill({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  const { T } = useTheme()
   return (
     <button onClick={onClick} style={{
       padding: '4px 14px', fontSize: 12, fontFamily: 'inherit',
@@ -75,6 +75,7 @@ export function Pill({ label, active, onClick }: { label: string; active: boolea
 
 // ── BarChart ──────────────────────────────────────────────────────────────────
 export function BarChart({ bars, height = 200 }: { bars: RevenueBar[]; height?: number }) {
+  const { T } = useTheme()
   if (bars.length === 0) {
     return (
       <div style={{
@@ -160,6 +161,7 @@ export function BarChart({ bars, height = 200 }: { bars: RevenueBar[]; height?: 
 
 // ── HBarChart ─────────────────────────────────────────────────────────────────
 export function HBarChart({ data, color }: { data: { category: string; value: number; sub?: string }[]; color: string }) {
+  const { T } = useTheme()
   if (data.length === 0) {
     return <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No data</div>
   }
@@ -195,6 +197,7 @@ export function HBarChart({ data, color }: { data: { category: string; value: nu
 
 // ── GroupedBarChart ───────────────────────────────────────────────────────────
 export function GroupedBarChart({ bars, height = 220, mode = 'bar' }: { bars: MultiBar[]; height?: number; mode?: 'bar' | 'line' }) {
+  const { T } = useTheme()
   if (bars.length === 0) {
     return <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No data</div>
   }

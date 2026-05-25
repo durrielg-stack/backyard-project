@@ -1,8 +1,9 @@
 'use client'
 
+import { useTheme } from '@/lib/ThemeContext'
 import { useState, useCallback, useEffect } from 'react'
 import { getClient } from '@/lib/supabase'
-import { T, SectionHd, fmtPeso } from './ownerShared'
+import { SectionHd, fmtPeso } from './ownerShared'
 import type { TableWithStatus } from '@/lib/types'
 
 interface TableRow {
@@ -13,7 +14,10 @@ interface TableRow {
   status:   string
 }
 
-export default function TablesTab({ liveTableStatuses }: { liveTableStatuses: TableWithStatus[] }) {
+export default function TablesTab({
+  liveTableStatuses,
+}: { liveTableStatuses: TableWithStatus[] }) {
+  const { T } = useTheme()
   const [tables,  setTables]  = useState<TableRow[]>([])
   const [loading, setLoading] = useState(true)
   const [working, setWorking] = useState<string | null>(null)

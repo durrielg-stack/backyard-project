@@ -1,10 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { THEME } from '@/lib/theme'
+import { useTheme } from '@/lib/ThemeContext'
 import ModalBase from './ModalBase'
 
-const T = THEME
 
 const VOID_REASONS = ['Wrong item', 'Changed mind', 'Unavailable', 'Duplicate'] as const
 
@@ -15,6 +14,7 @@ interface BulkVoidModalProps {
 }
 
 export default function BulkVoidModal({ count, onConfirm, onClose }: BulkVoidModalProps) {
+  const { T } = useTheme()
   const [reason, setReason] = useState<string | null>(null)
 
   return (

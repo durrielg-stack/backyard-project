@@ -1,8 +1,9 @@
 'use client'
 
+import { useTheme } from '@/lib/ThemeContext'
 import { useState, useCallback, useEffect } from 'react'
 import { getClient } from '@/lib/supabase'
-import { T, SectionHd, fmtPeso } from './ownerShared'
+import { SectionHd, fmtPeso } from './ownerShared'
 
 const EXPENSE_CATS = ['Petty Cash', 'Supplies', 'Utilities', 'Wages', 'Marketing', 'Other'] as const
 
@@ -21,6 +22,8 @@ interface ExpenseRow {
 }
 
 export default function OwnerExpensesTab() {
+  const { T } = useTheme()
+
   const [rows,     setRows]     = useState<ExpenseRow[]>([])
   const [loading,  setLoading]  = useState(true)
   const [showForm, setShowForm] = useState(false)

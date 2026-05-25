@@ -1,11 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { THEME } from '@/lib/theme'
+import { useTheme } from '@/lib/ThemeContext'
 import ModalBase from './ModalBase'
 import type { CartLine, TableWithStatus } from '@/lib/types'
 
-const T = THEME
 
 interface MoveItemsModalProps {
   lines:           CartLine[]
@@ -18,6 +17,7 @@ interface MoveItemsModalProps {
 export default function MoveItemsModal({
   lines, tables, currentTableId, onConfirm, onClose,
 }: MoveItemsModalProps) {
+  const { T } = useTheme()
   const [selected, setSelected]     = useState<Set<string>>(new Set(lines.map(l => l.lineId)))
   const [targetTable, setTargetTable] = useState<string | null>(null)
 

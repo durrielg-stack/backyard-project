@@ -2,10 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { THEME } from '@/lib/theme'
+import { useTheme } from '@/lib/ThemeContext'
 import { getClient } from '@/lib/supabase'
 
-const T = THEME
 
 const EXPENSE_CATS = ['OPEX', 'Food', 'Beer', 'Cocktails/Hard', 'Non-Alcohol', 'Cigarettes'] as const
 
@@ -30,9 +29,11 @@ interface Preset {
   default_cost: number | null
 }
 
-const catColor: Record<string, string> = {
-  'OPEX': T.textDim, 'Food': T.ok, 'Beer': T.warn,
-  'Cocktails/Hard': T.accent, 'Non-Alcohol': T.info, 'Cigarettes': T.textMute,
+function catColor(T: ReturnType<typeof useTheme>['T']): Record<string, string> {
+  return {
+    'OPEX': T.textDim, 'Food': T.ok, 'Beer': T.warn,
+    'Cocktails/Hard': T.accent, 'Non-Alcohol': T.info, 'Cigarettes': T.textMute,
+  }
 }
 
 function fmtPeso(v: number) {
@@ -47,6 +48,7 @@ function SuggestionsPortal({ open, anchorRef, suggestions, activeIdx, onPick }: 
   activeIdx:   number
   onPick:      (p: Preset) => void
 }) {
+  const { T } = useTheme()
   const [rect, setRect] = useState<DOMRect | null>(null)
 
   useEffect(() => {
@@ -80,7 +82,7 @@ function SuggestionsPortal({ open, anchorRef, suggestions, activeIdx, onPick }: 
         >
           <div>
             <span style={{ fontSize: 12, color: T.text }}>{s.name}</span>
-            <span style={{ marginLeft: 8, fontSize: 10, color: catColor[s.category] ?? T.textMute }}>{s.category}</span>
+            <span style={{ marginLeft: 8, fontSize: 10, color: catColor(T)[s.category] ?? T.textMute }}>{s.category}</span>
           </div>
           {s.default_cost != null && (
             <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textDim }}>
@@ -95,6 +97,7 @@ function SuggestionsPortal({ open, anchorRef, suggestions, activeIdx, onPick }: 
 }
 
 export default function ExpensesView() {
+  const { T } = useTheme()
   const [rows,       setRows]       = useState<ExpenseRow[]>([])
   const [presets,    setPresets]    = useState<Preset[]>([])
   const [loading,    setLoading]    = useState(true)
@@ -376,7 +379,7 @@ export default function ExpensesView() {
             }}>
               <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute, fontVariantNumeric: 'tabular-nums' }}>{time}</span>
               <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute }}>{row.expenseDate.slice(5)}</span>
-              <span style={{ fontSize: 11, fontWeight: 600, color: catColor[row.category] ?? T.textDim }}>{row.category}</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: catColor(T)[row.category] ?? T.textDim }}>{row.category}</span>
               <span style={{ fontSize: 13, color: T.text }}>{row.description}</span>
               <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute }}>{qtyUnit}</span>
               <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: T.bad, fontVariantNumeric: 'tabular-nums' }}>

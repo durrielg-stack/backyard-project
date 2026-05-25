@@ -1,14 +1,13 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { THEME } from '@/lib/theme'
+import { useTheme } from '@/lib/ThemeContext'
 import { getClient } from '@/lib/supabase'
-
-const T = THEME
 
 const FB_INBOX_URL = 'https://www.facebook.com/messages/t'
 
 export default function MessengerBadge() {
+  const { T } = useTheme()
   const [unread, setUnread] = useState(0)
 
   const fetchUnread = useCallback(async () => {

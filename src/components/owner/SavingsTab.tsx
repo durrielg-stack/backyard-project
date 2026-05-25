@@ -1,8 +1,9 @@
 'use client'
 
+import { useTheme } from '@/lib/ThemeContext'
 import { useState, useCallback, useEffect } from 'react'
 import { getClient } from '@/lib/supabase'
-import { T, SectionHd, fmtPeso } from './ownerShared'
+import { SectionHd, fmtPeso } from './ownerShared'
 
 const PARTNERS = ['Albert', 'Arvin', 'Benok', 'Bimbo', 'Durriel', 'Ramon'] as const
 
@@ -25,6 +26,8 @@ interface Remittance {
 }
 
 export default function SavingsTab() {
+  const { T } = useTheme()
+
   const [rows,     setRows]     = useState<Remittance[]>([])
   const [loading,  setLoading]  = useState(true)
   const [showForm, setShowForm] = useState(false)

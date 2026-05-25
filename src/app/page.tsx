@@ -6,7 +6,7 @@ import { useOpenOrders }  from '@/hooks/useOpenOrders'
 import { useMenuItems }   from '@/hooks/useMenuItems'
 import { useAutoStatus }  from '@/hooks/useAutoStatus'
 import { useTickets }     from '@/hooks/useTickets'
-import { THEME }          from '@/lib/theme'
+import { useTheme }       from '@/lib/ThemeContext'
 import type { CartLine }  from '@/lib/types'
 import NavBar       from '@/components/NavBar'
 import FloorView    from '@/components/floor/FloorView'
@@ -37,6 +37,7 @@ function loadStaff(): StaffSession | null {
 
 // ── POSApp ─────────────────────────────────────────────────────────────────
 export default function POSApp() {
+  const { T } = useTheme()
   // ── Staff session ─────────────────────────────────────────────────────────
   const [staff, setStaff] = useState<StaffSession | null>(() => {
     if (typeof window === 'undefined') return null
@@ -160,7 +161,6 @@ export default function POSApp() {
   const attnCount = tablesWithStatus.filter(t => t.status === 'attention').length
 
   // ── Render ────────────────────────────────────────────────────────────────
-  const T = THEME
 
   // ── Show staff picker if no one is logged in ──────────────────────────────
   if (!staff) return <StaffPicker onSelect={handleSelectStaff} />

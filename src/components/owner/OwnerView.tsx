@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { THEME } from '@/lib/theme'
+import { useTheme } from '@/lib/ThemeContext'
 import { getClient } from '@/lib/supabase'
 import type { TableWithStatus } from '@/lib/types'
 
-const T = THEME
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -91,6 +90,7 @@ function fmtDate(d: Date) {
 // ── Shared UI atoms ───────────────────────────────────────────────────────────
 
 function SectionHd({ title, badge, action }: { title: string; badge?: React.ReactNode; action?: React.ReactNode }) {
+  const { T } = useTheme()
   return (
     <div style={{
       height: 48, padding: '0 24px', flexShrink: 0,
@@ -120,6 +120,7 @@ function SectionHd({ title, badge, action }: { title: string; badge?: React.Reac
 }
 
 function Pill({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  const { T } = useTheme()
   return (
     <button onClick={onClick} style={{
       padding: '4px 14px', fontSize: 12, fontFamily: 'inherit',
@@ -137,6 +138,7 @@ function Pill({ label, active, onClick }: { label: string; active: boolean; onCl
 
 // ── Bar chart (shared) ────────────────────────────────────────────────────────
 function BarChart({ bars, height = 200 }: { bars: RevenueBar[]; height?: number }) {
+  const { T } = useTheme()
   if (bars.length === 0) {
     return (
       <div style={{
@@ -223,6 +225,7 @@ function BarChart({ bars, height = 200 }: { bars: RevenueBar[]; height?: number 
 // ── Horizontal bar chart (category breakdown) ─────────────────────────────────
 
 function HBarChart({ data, color }: { data: { category: string; value: number; sub?: string }[]; color: string }) {
+  const { T } = useTheme()
   if (data.length === 0) {
     return <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No data</div>
   }
@@ -261,6 +264,7 @@ function HBarChart({ data, color }: { data: { category: string; value: number; s
 interface MultiBar { label: string; gross: number; cost: number; expenses: number }
 
 function GroupedBarChart({ bars, height = 220, mode = 'bar' }: { bars: MultiBar[]; height?: number; mode?: 'bar' | 'line' }) {
+  const { T } = useTheme()
   if (bars.length === 0) {
     return <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No data</div>
   }
@@ -369,6 +373,7 @@ function GroupedBarChart({ bars, height = 220, mode = 'bar' }: { bars: MultiBar[
 // ── REPORTS TAB ───────────────────────────────────────────────────────────────
 
 function ReportsTab() {
+  const { T } = useTheme()
   const [range, setRange]         = useState<'today' | 'week' | 'month'>('today')
   const [chartMode, setChartMode] = useState<'bar' | 'line'>('bar')
 
@@ -857,6 +862,7 @@ function ReportsTab() {
 // ── TABLES TAB ────────────────────────────────────────────────────────────────
 
 function TablesTab({ liveTableStatuses }: { liveTableStatuses: TableWithStatus[] }) {
+  const { T } = useTheme()
   const [tables, setTables]   = useState<TableRow[]>([])
   const [loading, setLoading] = useState(true)
   const [working, setWorking] = useState<string | null>(null)
@@ -990,6 +996,7 @@ function TablesTab({ liveTableStatuses }: { liveTableStatuses: TableWithStatus[]
 // ── MENU TAB ──────────────────────────────────────────────────────────────────
 
 function MenuTab() {
+  const { T } = useTheme()
   const [items,   setItems]   = useState<MenuRow[]>([])
   const [loading, setLoading] = useState(true)
   const [editId,  setEditId]  = useState<string | null>(null)
@@ -1141,6 +1148,7 @@ function MenuTab() {
 // ── INVENTORY TAB ─────────────────────────────────────────────────────────────
 
 function InventoryTab() {
+  const { T } = useTheme()
   const [rows,    setRows]    = useState<InvRow[]>([])
   const [loading, setLoading] = useState(true)
   const [saving,  setSaving]  = useState<number | null>(null)
@@ -1262,6 +1270,7 @@ function InventoryTab() {
 const EXPENSE_CATS = ['Petty Cash', 'Supplies', 'Utilities', 'Wages', 'Marketing', 'Other'] as const
 
 function ExpensesTab() {
+  const { T } = useTheme()
   const [rows,    setRows]    = useState<ExpenseRow[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -1593,6 +1602,7 @@ function buildLedger(allRows: { entry_date: string; category: string; incoming: 
 }
 
 function BudgetTab() {
+  const { T } = useTheme()
   const [budgetView, setBudgetView] = useState<'day' | 'ledger'>('day')
   const [date,    setDate]    = useState(() => new Date().toISOString().slice(0, 10))
   const [entries, setEntries] = useState<BudgetEntry[]>(BUDGET_CATS.map(c => ({ id: null, category: c.id, incoming: 0, expenses: 0 })))
@@ -1936,6 +1946,7 @@ interface RemittanceSplit {
 }
 
 function SavingsTab() {
+  const { T } = useTheme()
   const [rows,     setRows]     = useState<Remittance[]>([])
   const [loading,  setLoading]  = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -2160,6 +2171,7 @@ interface OwnerViewProps {
 }
 
 export default function OwnerView({ tables }: OwnerViewProps) {
+  const { T } = useTheme()
   const [tab, setTab] = useState<OwnerTab>('reports')
   const today = new Date()
 

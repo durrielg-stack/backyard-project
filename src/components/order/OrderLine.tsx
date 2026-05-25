@@ -1,10 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { THEME } from '@/lib/theme'
+import { useTheme } from '@/lib/ThemeContext'
 import type { CartLine } from '@/lib/types'
 
-const T = THEME
 
 const VOID_REASONS = ['Wrong item', 'Changed mind', 'Unavailable', 'Duplicate'] as const
 
@@ -41,6 +40,7 @@ export default function OrderLine({
   onSelect, onUpdateQty, onVoid, onSetNote, onBill,
   bulkMode = false, bulkChecked = false,
 }: OrderLineProps) {
+  const { T } = useTheme()
   const [editNote, setEditNote]       = useState(false)
   const [noteVal, setNoteVal]         = useState(line.note)
   const [confirmVoid, setConfirmVoid] = useState(false)

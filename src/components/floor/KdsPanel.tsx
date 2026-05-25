@@ -1,11 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { THEME } from '@/lib/theme'
+import { useTheme } from '@/lib/ThemeContext'
 import type { KdsTicket } from '@/lib/types'
 import { PanelHd } from './FloorView'
-
-const T = THEME
 
 function fmtElapsed(sec: number): string {
   const m = Math.floor(sec / 60)
@@ -17,6 +15,7 @@ function KdsTicketRow({ ticket, onBump }: {
   ticket: KdsTicket
   onBump: (itemId: number) => void
 }) {
+  const { T } = useTheme()
   const isLate  = ticket.elapsedSec > 600
   const isAging = ticket.elapsedSec > 360
   const color   = isLate ? T.bad : isAging ? T.warn : T.ok
@@ -112,6 +111,7 @@ export default function KdsPanel({
   tick: number
   onBump: (itemId: number) => void
 }) {
+  const { T } = useTheme()
   const [filter, setFilter] = useState<FilterMode>('all')
 
   const visible   = filter === 'all' ? tickets : tickets.filter(t => t.station === filter)

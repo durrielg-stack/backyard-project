@@ -1,8 +1,9 @@
 'use client'
 
+import { useTheme } from '@/lib/ThemeContext'
 import { useState, useEffect, useCallback } from 'react'
 import { getClient } from '@/lib/supabase'
-import { T, SectionHd, Pill, GroupedBarChart, HBarChart, fmtPeso, DAY_ABBR, MONTH_ABBR } from './ownerShared'
+import { SectionHd, Pill, GroupedBarChart, HBarChart, fmtPeso, DAY_ABBR, MONTH_ABBR } from './ownerShared'
 import type { MultiBar, CategoryBreakdown } from './ownerShared'
 
 // ── Types local to ReportsTab ─────────────────────────────────────────────────
@@ -12,6 +13,8 @@ interface TopItem { name: string; qty: number; rev: number; cost: number }
 // ── ReportsTab ────────────────────────────────────────────────────────────────
 
 export default function ReportsTab() {
+  const { T } = useTheme()
+
   const [range, setRange]         = useState<'today' | 'week' | 'month'>('today')
   const [chartMode, setChartMode] = useState<'bar' | 'line'>('bar')
 

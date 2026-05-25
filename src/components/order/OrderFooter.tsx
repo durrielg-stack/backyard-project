@@ -1,10 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { THEME } from '@/lib/theme'
+import { useTheme } from '@/lib/ThemeContext'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 
-const T = THEME
 
 interface OrderFooterProps {
   subtotal:    number
@@ -21,6 +20,7 @@ interface OrderFooterProps {
 function TotalsRow({ label, value, accent, large, mute }: {
   label: string; value: string; accent?: boolean; large?: boolean; mute?: boolean
 }) {
+  const { T } = useTheme()
   return (
     <div style={{
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -51,6 +51,7 @@ function TotalsRow({ label, value, accent, large, mute }: {
 export default function OrderFooter({
   subtotal, tip, setTip, discount, setDiscount, total, onSplit, onCharge, disabled,
 }: OrderFooterProps) {
+  const { T } = useTheme()
   const bp = useBreakpoint()
   const isMobile = bp === 'mobile'
   const [editingTip,      setEditingTip]      = useState(false)

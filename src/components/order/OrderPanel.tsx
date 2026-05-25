@@ -1,13 +1,12 @@
 'use client'
 
 import { useRef, useEffect } from 'react'
-import { THEME, statusColor, statusLabel } from '@/lib/theme'
+import { statusColor, statusLabel } from '@/lib/theme'
+import { useTheme } from '@/lib/ThemeContext'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import type { CartLine, TableWithStatus } from '@/lib/types'
 import OrderLine   from './OrderLine'
 import OrderFooter from './OrderFooter'
-
-const T = THEME
 
 interface OrderPanelProps {
   table:              TableWithStatus
@@ -46,6 +45,7 @@ export default function OrderPanel({
   onBack, onSplit, onCharge,
   bulkMode, bulkSelected, onToggleBulkMode, onToggleBulk, onBulkVoid, onMove,
 }: OrderPanelProps) {
+  const { T } = useTheme()
   const listRef = useRef<HTMLDivElement>(null)
   const bp = useBreakpoint()
   const isMobile = bp === 'mobile'

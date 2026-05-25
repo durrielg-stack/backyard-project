@@ -1,9 +1,8 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { THEME } from '@/lib/theme'
+import { useTheme } from '@/lib/ThemeContext'
 
-const T = THEME
 
 interface ModalBaseProps {
   width:              number | string
@@ -12,6 +11,7 @@ interface ModalBaseProps {
 }
 
 export default function ModalBase({ width, onBackdropClick, children }: ModalBaseProps) {
+  const { T } = useTheme()
   const cardRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
