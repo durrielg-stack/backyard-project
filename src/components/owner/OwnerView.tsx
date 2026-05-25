@@ -348,19 +348,6 @@ function GroupedBarChart({ bars, height = 220, mode = 'bar' }: { bars: MultiBar[
                     opacity={0.9}
                     vectorEffect="non-scaling-stroke"
                   />
-                  {bars.length <= 31 && vals.map((v, i) => {
-                    const x = bars.length > 1 ? (i / (bars.length - 1)) * 100 : 50
-                    const y = 100 - (maxVal > 0 ? (v / maxVal) * 96 : 0)
-                    return (
-                      <circle
-                        key={i}
-                        cx={x.toFixed(2)} cy={y.toFixed(2)}
-                        r={1.2}
-                        fill={s.color}
-                        vectorEffect="non-scaling-stroke"
-                      />
-                    )
-                  })}
                 </g>
               )
             })}
