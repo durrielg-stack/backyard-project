@@ -220,6 +220,7 @@ export default function POSApp() {
             <OrderView
               tableId={view.tableId}
               table={tws}
+              tables={tablesWithStatus}
               staff={staff.name}
               onBack={goFloor}
               onCartSync={syncCart}

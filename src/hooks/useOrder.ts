@@ -9,6 +9,7 @@ interface UseOrderReturn {
   lines:       CartLine[]
   loading:     boolean
   error:       string | null
+  clearError:  () => void
   addItem:     (item: MenuItem, qty?: number, mods?: string[], seat?: number) => Promise<void>
   updateQty:   (lineId: string, delta: number) => Promise<void>
   removeItem:  (lineId: string) => Promise<void>
@@ -16,6 +17,7 @@ interface UseOrderReturn {
   setNote:     (lineId: string, note: string) => Promise<void>
   closeOrder:  (method: PayMethod, tendered: number, total: number, tip: number, discount?: number) => Promise<boolean>
   payPartial:  (lineIds: string[], method: PayMethod, amount: number, tendered: number, autoClose?: boolean) => Promise<'partial' | 'closed' | 'error'>
+  moveItems:   (lineIds: string[], targetTableId: string) => Promise<boolean>
 }
 
 export function useOrder(tableId: string, staff?: string): UseOrderReturn {
@@ -258,7 +260,7 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
     setLines([])
     setOrderId(null)
     return true
-  }, [orderId, tableId, lines])
+  }, [orderId, tableId])
 
   // ── Pay partial — marks items paid, closes order when all items covered ──
   const payPartial = useCallback(async (
@@ -307,6 +309,48 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
     return 'partial'
   }, [orderId, tableId, lines])
 
-  return { orderId, lines, loading, error, addItem, updateQty, removeItem, voidItem, setNote, closeOrder, payPartial }
+  // ── Move items to another table's order ──────────────────────────────────
+  const moveItems = useCallback(async (lineIds: string[], targetTableId: string): Promise<boolean> => {
+    const sb = getClient()
+
+    // Find or create open order on target table
+    const { data: targetOrders, error: toErr } = await sb
+      .from('orders')
+      .select('id')
+      .eq('table_id', targetTableId)
+      .eq('status', 'open')
+      .order('opened_at', { ascending: false })
+      .limit(1)
+
+    if (toErr) { setError(toErr.message); return false }
+
+    let targetOrderId: number
+    if (targetOrders && targetOrders.length > 0) {
+      targetOrderId = targetOrders[0].id as number
+    } else {
+      const { data: newOrder, error: noErr } = await sb
+        .from('orders')
+        .insert({ table_id: targetTableId, status: 'open', opened_by: null })
+        .select('id')
+        .single()
+      if (noErr || !newOrder) { setError(noErr?.message ?? 'Could not create order'); return false }
+      targetOrderId = newOrder.id as number
+      await sb.from('restaurant_tables').update({ status: 'occupied' }).eq('id', targetTableId)
+    }
+
+    const dbIds = lines.filter(l => lineIds.includes(l.lineId) && l.dbId).map(l => l.dbId!)
+    if (dbIds.length > 0) {
+      const { error: updErr } = await sb
+        .from('order_items')
+        .update({ order_id: targetOrderId })
+        .in('id', dbIds)
+      if (updErr) { setError(updErr.message); return false }
+    }
+
+    setLines(prev => prev.filter(l => !lineIds.includes(l.lineId)))
+    return true
+  }, [lines])
+
+  return { orderId, lines, loading, error, clearError: () => setError(null), addItem, updateQty, removeItem, voidItem, setNote, closeOrder, payPartial, moveItems }
 
 }

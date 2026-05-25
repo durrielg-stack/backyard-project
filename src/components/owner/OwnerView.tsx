@@ -1,20 +1,2150 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { THEME } from '@/lib/theme'
+import { getClient } from '@/lib/supabase'
 import type { TableWithStatus } from '@/lib/types'
-import { fmtDate } from './ownerShared'
-import ReportsTab      from './ReportsTab'
-import BudgetTab       from './BudgetTab'
-import SavingsTab      from './SavingsTab'
-import TablesTab       from './TablesTab'
-import MenuTab         from './MenuTab'
-import InventoryTab    from './InventoryTab'
-import OwnerExpensesTab from './OwnerExpensesTab'
 
 const T = THEME
 
-type OwnerTab = 'reports' | 'budget' | 'savings' | 'tables' | 'menu' | 'inventory' | 'expenses'
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface RevenueBar { label: string; value: number; isPeak: boolean }
+
+interface SummaryRow {
+  date:     string   // YYYY-MM-DD
+  label:    string   // 'Mon 19'
+  revenue:  number
+  txCount:  number
+}
+
+interface ExpenseRow {
+  id:          number
+  expenseDate: string
+  category:    string
+  description: string
+  amount:      number
+  qty:         number
+  unitPrice:   number | null
+  paidTo:      string | null
+  receiptRef:  string | null
+  addedBy:     string | null
+  createdAt:   string
+}
+
+interface CategoryBreakdown {
+  category: string
+  gross:    number
+  cost:     number
+  net:      number
+}
+
+interface MenuRow {
+  id:          string
+  name:        string
+  category:    string
+  category2:   string
+  category3:   string
+  price:       number
+  cost:        number | null
+  isAvailable: boolean
+  sortOrder:   number
+}
+
+interface InvRow {
+  id:             number
+  menuItemId:     string
+  name:           string
+  category:       string
+  quantity:       number
+  unit:           string
+  lowStockThresh: number
+  updatedAt:      string
+}
+
+interface TableRow {
+  id:       string
+  label:    string
+  section:  string
+  capacity: number
+  status:   string
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const DAY_ABBR = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+function makePeak(bars: Omit<RevenueBar,'isPeak'>[]): RevenueBar[] {
+  const max = Math.max(...bars.map(b => b.value), 0.01)
+  return bars.map(b => ({ ...b, isPeak: b.value === max && b.value > 0 }))
+}
+
+function fmtPeso(v: number) {
+  return `₱${v.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+function fmtDate(d: Date) {
+  return `${DAY_ABBR[d.getDay()]} ${d.getDate()} ${MONTH_ABBR[d.getMonth()]} '${String(d.getFullYear()).slice(2)}`
+}
+
+// ── Shared UI atoms ───────────────────────────────────────────────────────────
+
+function SectionHd({ title, badge, action }: { title: string; badge?: React.ReactNode; action?: React.ReactNode }) {
+  return (
+    <div style={{
+      height: 48, padding: '0 24px', flexShrink: 0,
+      display: 'flex', alignItems: 'center', gap: 10,
+      borderBottom: `1px solid ${T.line}`,
+    }}>
+      <span style={{
+        fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
+        textTransform: 'uppercase', color: T.textMute,
+      }}>
+        {title}
+      </span>
+      {badge != null && (
+        <span style={{
+          fontFamily: T.mono, fontSize: 12, fontWeight: 600,
+          color: T.accent, background: `${T.accent}18`,
+          border: `1px solid ${T.accent}44`,
+          padding: '2px 8px', borderRadius: T.radius,
+        }}>
+          {badge}
+        </span>
+      )}
+      <div style={{ flex: 1 }} />
+      {action}
+    </div>
+  )
+}
+
+function Pill({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button onClick={onClick} style={{
+      padding: '4px 14px', fontSize: 12, fontFamily: 'inherit',
+      background: active ? T.accent : T.chip,
+      color:      active ? T.accentInk : T.textDim,
+      border:     `1px solid ${active ? T.accent : T.line2}`,
+      borderRadius: T.radius, cursor: 'pointer',
+      fontWeight: active ? 600 : 400,
+      transition: 'background 0.12s ease',
+    }}>
+      {label}
+    </button>
+  )
+}
+
+// ── Bar chart (shared) ────────────────────────────────────────────────────────
+function BarChart({ bars, height = 200 }: { bars: RevenueBar[]; height?: number }) {
+  if (bars.length === 0) {
+    return (
+      <div style={{
+        height, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: T.textMute, fontFamily: T.mono, fontSize: 12,
+      }}>
+        No data
+      </div>
+    )
+  }
+  const maxVal = Math.max(...bars.map(b => b.value), 1)
+  return (
+    <div style={{ height, padding: '12px 24px 0', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+        {[0.25, 0.5, 0.75, 1.0].map(pct => (
+          <div key={pct} style={{
+            position: 'absolute', left: 0, right: 0,
+            top: `${(1 - pct) * 100}%`,
+            borderTop: `1px solid ${T.line}`,
+            pointerEvents: 'none',
+          }}>
+            <span style={{
+              position: 'absolute', right: 0, transform: 'translateY(-100%)',
+              fontSize: 9, fontFamily: T.mono, color: T.textMute,
+              fontVariantNumeric: 'tabular-nums', paddingBottom: 1,
+            }}>
+              {(maxVal * pct) >= 1000
+                ? `${((maxVal * pct) / 1000).toFixed(1)}k`
+                : (maxVal * pct).toFixed(0)}
+            </span>
+          </div>
+        ))}
+        <div style={{
+          position: 'absolute', inset: 0,
+          display: 'grid',
+          gridTemplateColumns: `repeat(${bars.length}, 1fr)`,
+          alignItems: 'flex-end',
+        }}>
+          {bars.map(bar => {
+            const h = maxVal > 0 ? (bar.value / maxVal) * 100 : 0
+            return (
+              <div key={bar.label} style={{
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'flex-end', height: '100%',
+              }}>
+                {bar.value > 0 && (
+                  <div style={{
+                    fontFamily: T.mono, fontSize: 8, fontWeight: 600,
+                    color: bar.isPeak ? T.accent : T.textMute,
+                    marginBottom: 2, whiteSpace: 'nowrap',
+                  }}>
+                    {bar.value >= 1000 ? `${(bar.value / 1000).toFixed(1)}k` : bar.value.toFixed(0)}
+                  </div>
+                )}
+                <div style={{
+                  width: '70%', height: h > 0 ? `${h}%` : 2,
+                  background: bar.isPeak ? T.accent : `${T.accent}44`,
+                  borderRadius: `${T.radius} ${T.radius} 0 0`,
+                  minHeight: bar.value > 0 ? 4 : 2,
+                  transition: 'height 0.4s ease',
+                }} />
+              </div>
+            )
+          })}
+        </div>
+      </div>
+      <div style={{
+        display: 'grid', gridTemplateColumns: `repeat(${bars.length}, 1fr)`,
+        marginTop: 4, paddingBottom: 8,
+      }}>
+        {bars.map((bar, i) => (
+          <div key={bar.label} style={{
+            textAlign: 'center', fontFamily: T.mono, fontSize: 8, color: T.textMute,
+            visibility: (bars.length > 14 && i % 2 !== 0) ? 'hidden' : 'visible',
+          }}>
+            {bar.label}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Horizontal bar chart (category breakdown) ─────────────────────────────────
+
+function HBarChart({ data, color }: { data: { category: string; value: number; sub?: string }[]; color: string }) {
+  if (data.length === 0) {
+    return <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No data</div>
+  }
+  const max = Math.max(...data.map(d => d.value), 1)
+  return (
+    <div style={{ padding: '8px 0' }}>
+      {data.map(d => (
+        <div key={d.category} style={{ padding: '5px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 130, fontSize: 11, color: T.text, textAlign: 'right', flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {d.category}
+          </div>
+          <div style={{ flex: 1, height: 18, background: T.line2, borderRadius: T.radius, position: 'relative', overflow: 'hidden' }}>
+            <div style={{
+              position: 'absolute', left: 0, top: 0, bottom: 0,
+              width: `${(d.value / max) * 100}%`,
+              background: color, borderRadius: T.radius,
+              transition: 'width 0.4s ease',
+            }} />
+          </div>
+          <div style={{ width: 96, fontFamily: T.mono, fontSize: 11, color: T.text, fontVariantNumeric: 'tabular-nums', flexShrink: 0, textAlign: 'right' }}>
+            {fmtPeso(d.value)}
+          </div>
+          {d.sub && (
+            <div style={{ width: 64, fontFamily: T.mono, fontSize: 10, color: T.textMute, flexShrink: 0 }}>
+              {d.sub}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Grouped bar chart ─────────────────────────────────────────────────────────
+
+interface MultiBar { label: string; gross: number; cost: number; expenses: number }
+
+function GroupedBarChart({ bars, height = 220, mode = 'bar' }: { bars: MultiBar[]; height?: number; mode?: 'bar' | 'line' }) {
+  if (bars.length === 0) {
+    return <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No data</div>
+  }
+  const SERIES = [
+    { key: 'gross',    color: T.accent  },
+    { key: 'cost',     color: T.textDim },
+    { key: 'net',      color: T.ok      },
+    { key: 'expenses', color: T.bad     },
+  ] as const
+  const allVals = bars.flatMap(b => [b.gross, b.cost, Math.max(0, b.gross - b.cost), b.expenses])
+  const maxVal  = Math.max(...allVals, 1)
+
+  return (
+    <div style={{ height, padding: '10px 24px 0', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', gap: 14, paddingBottom: 6, flexShrink: 0 }}>
+        {(['Gross','Cost','Net','Expenses'] as const).map((lbl, i) => (
+          <div key={lbl} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{
+              width: mode === 'line' ? 16 : 8,
+              height: mode === 'line' ? 2 : 8,
+              borderRadius: 1, background: SERIES[i].color,
+            }} />
+            <span style={{ fontSize: 9, color: T.textMute, fontFamily: T.mono, letterSpacing: '0.06em' }}>{lbl}</span>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+        {/* Grid lines + y-axis labels */}
+        {[0.25, 0.5, 0.75, 1.0].map(pct => (
+          <div key={pct} style={{ position: 'absolute', left: 0, right: 0, top: `${(1-pct)*100}%`, borderTop: `1px solid ${T.line}`, pointerEvents: 'none' }}>
+            <span style={{ position: 'absolute', right: 0, transform: 'translateY(-100%)', fontSize: 9, fontFamily: T.mono, color: T.textMute, paddingBottom: 1 }}>
+              {(maxVal*pct) >= 1000 ? `${((maxVal*pct)/1000).toFixed(1)}k` : (maxVal*pct).toFixed(0)}
+            </span>
+          </div>
+        ))}
+
+        {mode === 'bar' ? (
+          <div style={{ position: 'absolute', inset: 0, display: 'grid', gridTemplateColumns: `repeat(${bars.length}, 1fr)`, alignItems: 'flex-end' }}>
+            {bars.map(bar => {
+              const vals = [bar.gross, bar.cost, Math.max(0, bar.gross - bar.cost), bar.expenses]
+              return (
+                <div key={bar.label} style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', height: '100%', gap: 1 }}>
+                  {SERIES.map((s, si) => {
+                    const v = vals[si]
+                    const h = maxVal > 0 ? (v / maxVal) * 100 : 0
+                    return (
+                      <div key={s.key} style={{
+                        width: '20%', height: h > 0 ? `${h}%` : 2,
+                        background: s.color, borderRadius: `${T.radius} ${T.radius} 0 0`,
+                        minHeight: v > 0 ? 3 : 2, opacity: v > 0 ? 1 : 0.2, transition: 'height 0.4s ease',
+                      }} />
+                    )
+                  })}
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          /* Line chart — viewBox 0 0 100 100, both axes normalised to 0-100 */
+          <svg
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+          >
+            {SERIES.map((s, si) => {
+              const vals = bars.map(b => {
+                const row = [b.gross, b.cost, Math.max(0, b.gross - b.cost), b.expenses]
+                return row[si]
+              })
+              const points = vals.map((v, i) => {
+                const x = bars.length > 1 ? (i / (bars.length - 1)) * 100 : 50
+                const y = 100 - (maxVal > 0 ? (v / maxVal) * 96 : 0)  // 96 = leave 2% padding top/bottom
+                return `${x.toFixed(2)},${y.toFixed(2)}`
+              }).join(' ')
+              return (
+                <g key={s.key}>
+                  <polyline
+                    points={points}
+                    fill="none"
+                    stroke={s.color}
+                    strokeWidth={1.5}
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                    opacity={0.9}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                </g>
+              )
+            })}
+          </svg>
+        )}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${bars.length}, 1fr)`, marginTop: 4, paddingBottom: 8 }}>
+        {bars.map((bar, i) => (
+          <div key={bar.label} style={{ textAlign: 'center', fontFamily: T.mono, fontSize: 8, color: T.textMute, visibility: (bars.length > 14 && i % 2 !== 0) ? 'hidden' : 'visible' }}>
+            {bar.label}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── REPORTS TAB ───────────────────────────────────────────────────────────────
+
+function ReportsTab() {
+  const [range, setRange]         = useState<'today' | 'week' | 'month'>('today')
+  const [chartMode, setChartMode] = useState<'bar' | 'line'>('bar')
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  const [todayGross,  setTodayGross]  = useState(0)
+  const [weekGross,   setWeekGross]   = useState(0)
+  const [monthGross,  setMonthGross]  = useState(0)
+  const [todayCost,   setTodayCost]   = useState(0)
+  const [weekCost,    setWeekCost]    = useState(0)
+  const [monthCost,   setMonthCost]   = useState(0)
+  const [todayExp,    setTodayExp]    = useState(0)
+  const [weekExp,     setWeekExp]     = useState(0)
+  const [monthExp,    setMonthExp]    = useState(0)
+  const [txToday,     setTxToday]     = useState(0)
+  const [txWeek,      setTxWeek]      = useState(0)
+  const [txMonth,     setTxMonth]     = useState(0)
+  const [hourlyGrouped,  setHourlyGrouped]  = useState<MultiBar[]>([])
+  const [weeklyGrouped,  setWeeklyGrouped]  = useState<MultiBar[]>([])
+  const [monthlyGrouped, setMonthlyGrouped] = useState<MultiBar[]>([])
+  const [methodMap,      setMethodMap]      = useState<Record<string, number>>({})
+  // Range-keyed top items and cat breakdown
+  const [topItemsAll,     setTopItemsAll]     = useState<Record<string, { name: string; qty: number; rev: number; cost: number }[]>>({ today: [], week: [], month: [] })
+  const [catBreakdownAll, setCatBreakdownAll] = useState<Record<string, CategoryBreakdown[]>>({ today: [], week: [], month: [] })
+  const [expCatAll,       setExpCatAll]       = useState<Record<string, { category: string; amount: number }[]>>({ today: [], week: [], month: [] })
+  const [voidedCount,     setVoidedCount]     = useState(0)
+  const [voidedAmount,    setVoidedAmount]    = useState(0)
+  const [avgTurnMin,      setAvgTurnMin]      = useState<number | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  const fetchAll = useCallback(async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sb  = getClient() as any
+    const now = new Date()
+
+    // Date boundaries
+    const todayStart = new Date(now); todayStart.setHours(0,0,0,0)
+    const weekStart  = new Date(now); weekStart.setDate(weekStart.getDate() - 6);  weekStart.setHours(0,0,0,0)
+    const monthStart = new Date(now); monthStart.setDate(monthStart.getDate() - 29); monthStart.setHours(0,0,0,0)
+
+    // All orders in last 30 days with their items (single fetch)
+    const { data: allOrders } = await sb
+      .from('orders').select('id, opened_at, status')
+      .gte('opened_at', monthStart.toISOString())
+    const allOrderIds = (allOrders ?? []).map((o: any) => o.id)
+
+    const todayStartMs = todayStart.getTime()
+    const weekStartMs  = weekStart.getTime()
+
+    if (allOrderIds.length === 0) {
+      setTodayGross(0); setTodayCost(0); setWeekGross(0); setWeekCost(0); setMonthGross(0); setMonthCost(0)
+      setTxToday(0); setTxWeek(0); setTxMonth(0)
+      setHourlyGrouped([]); setWeeklyGrouped([]); setMonthlyGrouped([])
+    } else {
+      const { data: allLines } = await sb
+        .from('order_items')
+        .select('order_id, qty, unit_price, menu_items(name, category, cost)')
+        .in('order_id', allOrderIds)
+        .neq('status', 'voided')
+      const lines: any[] = allLines ?? []
+
+      const orderDateMap: Record<number, string> = {}
+      const orderOpenedAtMap: Record<number, Date> = {}
+      for (const o of (allOrders ?? [])) {
+        orderDateMap[o.id] = new Date(o.opened_at).toISOString().slice(0,10)
+        orderOpenedAtMap[o.id] = new Date(o.opened_at)
+      }
+
+      // Revenue + cost buckets
+      const hourGross: Record<number, number> = {}; const hourCost: Record<number, number> = {}
+      const dayGross:  Record<string, number> = {}; const dayCost:  Record<string, number> = {}
+      let gToday = 0; let cToday = 0; let gWeek = 0; let cWeek = 0; let gMonth = 0; let cMonth = 0
+      let txTodayN = 0; let txWeekN = 0; let txMonthN = 0
+      const countedOrders = new Set<number>()
+
+      // Per-range item/cat aggregation
+      const itemAgg: Record<string, Record<string, { qty: number; rev: number; cost: number }>> = { today: {}, week: {}, month: {} }
+      const catAgg:  Record<string, Record<string, { gross: number; cost: number }>>             = { today: {}, week: {}, month: {} }
+
+      for (const row of lines) {
+        const openedAt = orderOpenedAtMap[row.order_id]
+        if (!openedAt) continue
+        const ts  = openedAt.getTime()
+        const val = row.qty * row.unit_price
+        const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
+        const rc  = row.qty * (mi?.cost ?? 0)
+        const dk  = orderDateMap[row.order_id]
+        const name = mi?.name ?? '—'; const cat = mi?.category ?? 'Other'
+
+        gMonth += val; cMonth += rc
+        dayGross[dk] = (dayGross[dk] ?? 0) + val; dayCost[dk] = (dayCost[dk] ?? 0) + rc
+
+        if (ts >= weekStartMs)  { gWeek  += val; cWeek  += rc }
+        if (ts >= todayStartMs) {
+          gToday += val; cToday += rc
+          const h = openedAt.getHours()
+          hourGross[h] = (hourGross[h] ?? 0) + val; hourCost[h] = (hourCost[h] ?? 0) + rc
+        }
+
+        if (!countedOrders.has(row.order_id)) {
+          countedOrders.add(row.order_id)
+          if (ts >= todayStartMs) txTodayN++
+          if (ts >= weekStartMs)  txWeekN++
+          txMonthN++
+        }
+
+        // Item / cat agg per range
+        for (const [rng, ms] of [['today', todayStartMs], ['week', weekStartMs], ['month', -Infinity]] as const) {
+          if (ts >= ms) {
+            if (!itemAgg[rng][name]) itemAgg[rng][name] = { qty: 0, rev: 0, cost: 0 }
+            itemAgg[rng][name].qty += row.qty; itemAgg[rng][name].rev += val; itemAgg[rng][name].cost += rc
+            if (!catAgg[rng][cat]) catAgg[rng][cat] = { gross: 0, cost: 0 }
+            catAgg[rng][cat].gross += val; catAgg[rng][cat].cost += rc
+          }
+        }
+      }
+
+      setTodayGross(gToday); setTodayCost(cToday); setTxToday(txTodayN)
+      setWeekGross(gWeek);   setWeekCost(cWeek);   setTxWeek(txWeekN)
+      setMonthGross(gMonth); setMonthCost(cMonth);  setTxMonth(txMonthN)
+
+      // Build grouped chart bars (expenses wired in after expense fetch)
+      const maxHour = now.getHours()
+      setHourlyGrouped(Array.from({ length: maxHour + 1 }, (_, h) => ({
+        label: `${String(h).padStart(2,'0')}:00`,
+        gross: hourGross[h] ?? 0, cost: hourCost[h] ?? 0, expenses: 0,
+      })))
+      setWeeklyGrouped(Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(weekStart); d.setDate(d.getDate() + i)
+        const dk = d.toISOString().slice(0,10)
+        return { label: DAY_ABBR[d.getDay()], gross: dayGross[dk] ?? 0, cost: dayCost[dk] ?? 0, expenses: 0 }
+      }))
+      setMonthlyGrouped(Array.from({ length: 30 }, (_, i) => {
+        const d = new Date(monthStart); d.setDate(d.getDate() + i)
+        const dk = d.toISOString().slice(0,10)
+        return { label: `${d.getDate()}`, gross: dayGross[dk] ?? 0, cost: dayCost[dk] ?? 0, expenses: 0 }
+      }))
+
+      // Top items and category breakdown (range-aware)
+      const buildTop = (rng: string) =>
+        Object.entries(itemAgg[rng]).map(([name, v]) => ({ name, ...v })).sort((a,b) => b.rev - a.rev).slice(0, 10)
+      const buildCat = (rng: string) =>
+        Object.entries(catAgg[rng]).map(([category, v]) => ({ category, gross: v.gross, cost: v.cost, net: v.gross - v.cost })).sort((a,b) => b.gross - a.gross)
+      setTopItemsAll({ today: buildTop('today'), week: buildTop('week'), month: buildTop('month') })
+      setCatBreakdownAll({ today: buildCat('today'), week: buildCat('week'), month: buildCat('month') })
+    }
+
+    // Expenses — fetch for month range, bucket by date and category
+    const { data: expData } = await sb
+      .from('daily_expenses').select('expense_date, category, amount')
+      .gte('expense_date', monthStart.toISOString().slice(0,10))
+    const expDayBuckets: Record<string, number> = {}
+    const expCatBuckets: Record<string, Record<string, number>> = { today: {}, week: {}, month: {} }
+    let expTodayTotal = 0; let expWeekTotal = 0; let expMonthTotal = 0
+    const todayStr = todayStart.toISOString().slice(0,10)
+    const weekStr  = weekStart.toISOString().slice(0,10)
+    for (const r of (expData ?? [])) {
+      expDayBuckets[r.expense_date] = (expDayBuckets[r.expense_date] ?? 0) + r.amount
+      expMonthTotal += r.amount
+      expCatBuckets.month[r.category] = (expCatBuckets.month[r.category] ?? 0) + r.amount
+      if (r.expense_date >= weekStr) {
+        expWeekTotal += r.amount
+        expCatBuckets.week[r.category] = (expCatBuckets.week[r.category] ?? 0) + r.amount
+      }
+      if (r.expense_date === todayStr) {
+        expTodayTotal += r.amount
+        expCatBuckets.today[r.category] = (expCatBuckets.today[r.category] ?? 0) + r.amount
+      }
+    }
+    setTodayExp(expTodayTotal); setWeekExp(expWeekTotal); setMonthExp(expMonthTotal)
+    const buildExpCat = (rng: string) =>
+      Object.entries(expCatBuckets[rng]).map(([category, amount]) => ({ category, amount })).sort((a, b) => b.amount - a.amount)
+    setExpCatAll({ today: buildExpCat('today'), week: buildExpCat('week'), month: buildExpCat('month') })
+
+    // Wire expenses into grouped bars (update after expense fetch)
+    setHourlyGrouped(prev => prev.map(b => ({ ...b, expenses: expDayBuckets[todayStr] ?? 0 })))
+    setWeeklyGrouped(prev => prev.map(b => {
+      const idx = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].indexOf(b.label)
+      if (idx < 0) return b
+      const d = new Date(); d.setDate(d.getDate() - (d.getDay() - idx + 7) % 7)
+      return { ...b, expenses: expDayBuckets[d.toISOString().slice(0,10)] ?? 0 }
+    }))
+    setMonthlyGrouped(prev => prev.map((b, i) => {
+      const d = new Date(monthStart.getTime() + i * 86400000)
+      return { ...b, expenses: expDayBuckets[d.toISOString().slice(0,10)] ?? 0 }
+    }))
+
+    // Payment method breakdown (range: today only — summary of cash vs card)
+    const { data: todayPmts } = await sb
+      .from('payments').select('amount, method')
+      .gte('processed_at', todayStart.toISOString())
+    const mm: Record<string,number> = {}
+    for (const p of (todayPmts ?? [])) { mm[p.method] = (mm[p.method]??0) + p.amount }
+    setMethodMap(mm)
+
+    // Voided items — today
+    const { data: todayOrdersV } = await sb.from('orders').select('id').gte('opened_at', todayStart.toISOString())
+    const todayOrderIds = (todayOrdersV ?? []).map((o: any) => o.id)
+    const vi: any[] = []
+    if (todayOrderIds.length > 0) {
+      const { data: voidedItems } = await sb.from('order_items').select('qty, unit_price').eq('status', 'voided').in('order_id', todayOrderIds)
+      vi.push(...(voidedItems ?? []))
+    }
+    setVoidedCount(vi.length)
+    setVoidedAmount(vi.reduce((s: number, r: any) => s + r.qty * r.unit_price, 0))
+
+    // Avg turn time — today
+    const { data: closedToday } = await sb.from('orders').select('opened_at, closed_at').eq('status', 'closed').gte('opened_at', todayStart.toISOString()).not('closed_at', 'is', null)
+    const ct: any[] = closedToday ?? []
+    if (ct.length > 0) {
+      const totalMin = ct.reduce((s: number, o: any) => s + (new Date(o.closed_at).getTime() - new Date(o.opened_at).getTime()) / 60000, 0)
+      setAvgTurnMin(Math.round(totalMin / ct.length))
+    } else {
+      setAvgTurnMin(null)
+    }
+
+    setLoading(false)
+  }, [])
+
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const debouncedFetch = useCallback(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(fetchAll, 800)
+  }, [fetchAll])
+
+  useEffect(() => {
+    fetchAll()
+    const sb = getClient()
+    const channel = sb
+      .channel('owner-sales-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' },      debouncedFetch)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' },           debouncedFetch)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' },         debouncedFetch)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_expenses' },   debouncedFetch)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'restaurant_tables' }, debouncedFetch)
+      .subscribe()
+    return () => { sb.removeChannel(channel) }
+  }, [fetchAll, debouncedFetch])
+
+  // Range-derived values
+  const gross    = range === 'today' ? todayGross : range === 'week' ? weekGross  : monthGross
+  const cost     = range === 'today' ? todayCost  : range === 'week' ? weekCost   : monthCost
+  const expenses = range === 'today' ? todayExp   : range === 'week' ? weekExp    : monthExp
+  const net      = gross - cost
+  const txc      = range === 'today' ? txToday    : range === 'week' ? txWeek     : txMonth
+  const bars     = range === 'today' ? hourlyGrouped : range === 'week' ? weeklyGrouped : monthlyGrouped
+  const topItems     = topItemsAll[range] ?? []
+  const catBreakdown = catBreakdownAll[range] ?? []
+  const expCat       = expCatAll[range] ?? []
+  const suffix       = range === 'today' ? 'Today' : range === 'week' ? 'Week' : 'Month'
+
+  const methodColors: Record<string, string> = {
+    cash: T.ok, card: T.info, gcash: T.accent, maya: T.warn, comp: T.textDim,
+  }
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+
+      {/* ── Global range toggle ─────────────────────────────────────────── */}
+      <div style={{ height: 46, padding: '0 24px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
+        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, marginRight: 4 }}>View</span>
+        {(['today','week','month'] as const).map(r => (
+          <Pill key={r} label={r === 'today' ? 'Today' : r === 'week' ? 'Week' : 'Month'} active={range === r} onClick={() => setRange(r)} />
+        ))}
+      </div>
+
+      {/* ── KPIs ────────────────────────────────────────────────────────── */}
+      {(() => {
+        const kpis = [
+          { label: `Gross · ${suffix}`,    value: fmtPeso(gross),    sub: `${txc} txn`,                                                              color: T.accent },
+          { label: `Cost · ${suffix}`,     value: fmtPeso(cost),     sub: gross > 0 ? `${((cost/gross)*100).toFixed(1)}% of gross` : '—',            color: T.textDim },
+          { label: `Net · ${suffix}`,      value: fmtPeso(net),      sub: gross > 0 ? `${((net/gross)*100).toFixed(1)}% margin` : '—',               color: net >= 0 ? T.ok : T.bad },
+          { label: `Expenses · ${suffix}`, value: fmtPeso(expenses), sub: 'logged',                                                                   color: T.bad },
+          { label: 'Voided Items',         value: String(voidedCount), sub: voidedCount > 0 ? fmtPeso(voidedAmount) : 'today',                        color: voidedCount > 0 ? T.bad : T.textMute },
+          { label: 'Avg Turn Time',        value: avgTurnMin != null ? `${avgTurnMin}m` : '—', sub: 'open → close today',                             color: T.info },
+        ]
+        return (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
+            {kpis.map((k, i) => (
+              <div key={k.label} style={{ padding: '14px 20px', borderRight: i < 5 ? `1px solid ${T.line}` : 'none' }}>
+                <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, marginBottom: 6 }}>{k.label}</div>
+                <div style={{ fontFamily: T.mono, fontSize: 18, fontWeight: 700, color: k.color, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
+                <div style={{ fontSize: 11, color: T.textMute, marginTop: 4 }}>{k.sub}</div>
+              </div>
+            ))}
+          </div>
+        )
+      })()}
+
+      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+        {/* Grouped chart: Gross / Cost / Net / Expenses */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: `1px solid ${T.line}` }}>
+          <SectionHd
+            title="P&L Overview"
+            badge={`Gross ${fmtPeso(gross)} · Net ${fmtPeso(net)}`}
+            action={
+              <div style={{ display: 'flex', gap: 2 }}>
+                {(['bar', 'line'] as const).map(m => (
+                  <button
+                    key={m}
+                    onClick={() => setChartMode(m)}
+                    title={m === 'bar' ? 'Bar chart' : 'Line chart'}
+                    style={{
+                      width: 28, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: chartMode === m ? T.accent : T.chip,
+                      border: `1px solid ${chartMode === m ? T.accent : T.line2}`,
+                      borderRadius: T.radius, cursor: 'pointer', padding: 0,
+                      transition: 'background 0.12s ease',
+                    }}
+                  >
+                    {m === 'bar' ? (
+                      <svg viewBox="0 0 12 10" width={12} height={10} fill="none">
+                        <rect x="0" y="4" width="2.5" height="6" fill={chartMode === 'bar' ? T.accentInk : T.textDim} />
+                        <rect x="3.5" y="1" width="2.5" height="9" fill={chartMode === 'bar' ? T.accentInk : T.textDim} />
+                        <rect x="7" y="2.5" width="2.5" height="7.5" fill={chartMode === 'bar' ? T.accentInk : T.textDim} />
+                        <rect x="10" y="5.5" width="2" height="4.5" fill={chartMode === 'bar' ? T.accentInk : T.textDim} />
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 12 10" width={12} height={10} fill="none" stroke={chartMode === 'line' ? T.accentInk : T.textDim} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round">
+                        <polyline points="0,8 3,4 6,5.5 9,1.5 12,3" />
+                      </svg>
+                    )}
+                  </button>
+                ))}
+              </div>
+            }
+          />
+          {loading ? (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>
+              Loading…
+            </div>
+          ) : (
+            <GroupedBarChart bars={bars} height={220} mode={chartMode} />
+          )}
+
+          {/* Payment method breakdown */}
+          <div style={{ padding: '12px 24px', borderTop: `1px solid ${T.line}`, flexShrink: 0 }}>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, marginBottom: 8 }}>
+              Payment Methods · Today
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {Object.entries(methodMap).length === 0 ? (
+                <span style={{ fontSize: 12, color: T.textMute, fontFamily: T.mono }}>No payments today</span>
+              ) : Object.entries(methodMap).map(([m, v]) => (
+                <div key={m} style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  background: T.surface2, border: `1px solid ${T.line2}`,
+                  padding: '4px 10px', borderRadius: T.radius,
+                }}>
+                  <span style={{
+                    width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+                    background: methodColors[m] ?? T.textDim,
+                  }} />
+                  <span style={{ fontSize: 11, fontFamily: T.mono, fontWeight: 600, textTransform: 'uppercase', color: T.textDim }}>
+                    {m === 'gcash' ? 'QR' : m.toUpperCase()}
+                  </span>
+                  <span style={{ fontSize: 12, fontFamily: T.mono, color: T.text, fontVariantNumeric: 'tabular-nums' }}>
+                    {fmtPeso(v)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Top items */}
+        <div style={{ width: 300, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+          <SectionHd title="Top Items" badge={suffix} />
+          <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+            {topItems.length === 0 ? (
+              <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No data</div>
+            ) : topItems.map((item, i) => {
+              const maxRev = topItems[0].rev
+              const margin = item.rev > 0 ? ((item.rev - item.cost) / item.rev) * 100 : null
+              return (
+                <div key={item.name} style={{
+                  padding: '10px 16px',
+                  borderBottom: `1px solid ${T.line}`,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                    <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute, width: 16 }}>
+                      {String(i+1).padStart(2,'0')}
+                    </span>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: T.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {item.name}
+                    </span>
+                    <span style={{ fontFamily: T.mono, fontSize: 11, color: T.accent, fontVariantNumeric: 'tabular-nums' }}>
+                      {fmtPeso(item.rev)}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                    <div style={{ flex: 1, height: 3, background: T.line2, borderRadius: 2 }}>
+                      <div style={{ width: `${(item.rev / maxRev) * 100}%`, height: '100%', background: `${T.accent}66`, borderRadius: 2 }} />
+                    </div>
+                    <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute }}>{item.qty}×</span>
+                  </div>
+                  {item.cost > 0 && (
+                    <div style={{ display: 'flex', gap: 8, paddingLeft: 24 }}>
+                      <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute }}>
+                        cost {fmtPeso(item.cost)}
+                      </span>
+                      {margin !== null && (
+                        <span style={{
+                          fontFamily: T.mono, fontSize: 10, fontWeight: 600,
+                          color: margin >= 60 ? T.ok : margin >= 40 ? T.warn : T.bad,
+                        }}>
+                          {margin.toFixed(0)}% margin
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Category charts ──────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', borderTop: `1px solid ${T.line}`, flexShrink: 0 }}>
+        {/* Sales by category */}
+        <div style={{ flex: 1, borderRight: `1px solid ${T.line}` }}>
+          <SectionHd title={`Sales by Category · ${suffix}`} badge={fmtPeso(gross)} />
+          <HBarChart
+            color={`${T.accent}88`}
+            data={catBreakdown.map(c => ({
+              category: c.category,
+              value: c.gross,
+              sub: c.gross > 0 ? `${((c.net/c.gross)*100).toFixed(0)}% net` : undefined,
+            }))}
+          />
+        </div>
+        {/* Expenses by category */}
+        <div style={{ flex: 1 }}>
+          <SectionHd title={`Expenses by Category · ${suffix}`} badge={fmtPeso(expenses)} />
+          <HBarChart
+            color={`${T.bad}88`}
+            data={expCat.map(c => ({ category: c.category, value: c.amount }))}
+          />
+        </div>
+      </div>
+
+      {/* Category breakdown */}
+      {catBreakdown.length > 0 && (
+        <div style={{ flexShrink: 0, borderTop: `1px solid ${T.line}` }}>
+          <SectionHd title={`By Category · ${suffix}`} />
+          {/* header */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1fr 130px 130px 130px 90px',
+            padding: '0 24px', height: 32, alignItems: 'center',
+            background: T.surface2, borderBottom: `1px solid ${T.line}`,
+          }}>
+            {['Category','Gross','Cost','Net','Margin'].map(h => (
+              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>
+                {h}
+              </span>
+            ))}
+          </div>
+          {catBreakdown.map((row, i) => {
+            const margin = row.gross > 0 ? (row.net / row.gross) * 100 : 0
+            return (
+              <div key={row.category} style={{
+                display: 'grid', gridTemplateColumns: '1fr 130px 130px 130px 90px',
+                padding: '0 24px', height: 40, alignItems: 'center',
+                borderBottom: `1px solid ${T.line}`,
+                background: i % 2 === 0 ? 'transparent' : T.surface,
+              }}>
+                <span style={{ fontSize: 13, fontWeight: 500, color: T.text }}>{row.category}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 12, color: T.accent, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(row.gross)}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(row.cost)}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 12, color: T.ok, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(row.net)}</span>
+                <span style={{
+                  fontFamily: T.mono, fontSize: 12, fontWeight: 600,
+                  color: margin >= 60 ? T.ok : margin >= 40 ? T.warn : T.bad,
+                }}>
+                  {margin.toFixed(1)}%
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── TABLES TAB ────────────────────────────────────────────────────────────────
+
+function TablesTab({ liveTableStatuses }: { liveTableStatuses: TableWithStatus[] }) {
+  const [tables, setTables]   = useState<TableRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [working, setWorking] = useState<string | null>(null)
+
+  const fetchTables = useCallback(async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (getClient() as any).from('restaurant_tables').select('id, label, section, capacity, status').order('id')
+    setTables(data ?? [])
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { fetchTables() }, [fetchTables])
+
+  // Merge live statuses from POSApp
+  const merged = tables.map(t => {
+    const live = liveTableStatuses.find(l => l.id === t.id)
+    return { ...t, status: live?.status ?? t.status, openMin: live?.openMin ?? 0, checkTotal: live?.checkTotal ?? 0 }
+  })
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = getClient() as any
+
+  async function setReserved(tableId: string, reserve: boolean) {
+    setWorking(tableId)
+    await sb.from('restaurant_tables').update({ status: reserve ? 'reserved' : 'available' }).eq('id', tableId)
+    await fetchTables()
+    setWorking(null)
+  }
+
+  async function forceClose(tableId: string) {
+    setWorking(tableId)
+    // Close any open orders for this table
+    const { data: orders } = await sb.from('orders').select('id').eq('table_id', tableId).eq('status', 'open')
+    for (const o of (orders ?? [])) {
+      await sb.from('orders').update({ status: 'closed', closed_at: new Date().toISOString() }).eq('id', o.id)
+    }
+    await sb.from('restaurant_tables').update({ status: 'available' }).eq('id', tableId)
+    await fetchTables()
+    setWorking(null)
+  }
+
+  const statusColor: Record<string, string> = {
+    available: T.ok, occupied: T.accent, aging: T.warn,
+    attention: T.bad, reserved: T.info,
+  }
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <SectionHd title="Tables" badge={`${tables.length} total`} />
+      {loading ? (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
+      ) : (
+        <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+          {/* Header */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: '64px 1fr 80px 60px 80px 1fr 220px',
+            padding: '0 24px', height: 36, alignItems: 'center',
+            borderBottom: `1px solid ${T.line}`, background: T.surface2, flexShrink: 0,
+          }}>
+            {['Table','Section','Seats','Status','Open','Check','Actions'].map(h => (
+              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>
+                {h}
+              </span>
+            ))}
+          </div>
+
+          {merged.map((t, i) => {
+            const sc = statusColor[t.status] ?? T.textDim
+            const isWorking = working === t.id
+            return (
+              <div key={t.id} style={{
+                display: 'grid', gridTemplateColumns: '64px 1fr 80px 60px 80px 1fr 220px',
+                padding: '0 24px', height: 48, alignItems: 'center',
+                borderBottom: `1px solid ${T.line}`,
+                background: i % 2 === 0 ? 'transparent' : T.surface,
+                opacity: isWorking ? 0.5 : 1,
+              }}>
+                <span style={{ fontFamily: T.mono, fontSize: 14, fontWeight: 700, color: T.text }}>{t.label}</span>
+                <span style={{ fontSize: 12, color: T.textDim }}>{t.section}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textDim }}>{t.capacity}</span>
+                <span style={{
+                  fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+                  color: sc,
+                }}>
+                  {t.status}
+                </span>
+                <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute, fontVariantNumeric: 'tabular-nums' }}>
+                  {(t as any).openMin > 0 ? `${(t as any).openMin}m` : '—'}
+                </span>
+                <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textDim, fontVariantNumeric: 'tabular-nums' }}>
+                  {(t as any).checkTotal > 0 ? fmtPeso((t as any).checkTotal) : '—'}
+                </span>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {t.status === 'reserved' ? (
+                    <button onClick={() => setReserved(t.id, false)} disabled={isWorking} style={{
+                      padding: '4px 10px', fontSize: 11, fontFamily: 'inherit',
+                      background: `${T.info}18`, border: `1px solid ${T.info}44`,
+                      color: T.info, borderRadius: T.radius, cursor: 'pointer',
+                    }}>
+                      Clear Reserve
+                    </button>
+                  ) : t.status === 'available' ? (
+                    <button onClick={() => setReserved(t.id, true)} disabled={isWorking} style={{
+                      padding: '4px 10px', fontSize: 11, fontFamily: 'inherit',
+                      background: T.chip, border: `1px solid ${T.line2}`,
+                      color: T.textDim, borderRadius: T.radius, cursor: 'pointer',
+                    }}>
+                      Reserve
+                    </button>
+                  ) : null}
+
+                  {['occupied','aging','attention'].includes(t.status) && (
+                    <button onClick={() => forceClose(t.id)} disabled={isWorking} style={{
+                      padding: '4px 10px', fontSize: 11, fontFamily: 'inherit',
+                      background: `${T.bad}18`, border: `1px solid ${T.bad}44`,
+                      color: T.bad, borderRadius: T.radius, cursor: 'pointer',
+                    }}>
+                      Force Close
+                    </button>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── MENU TAB ──────────────────────────────────────────────────────────────────
+
+function MenuTab() {
+  const [items,   setItems]   = useState<MenuRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [editId,  setEditId]  = useState<string | null>(null)
+  const [editPrice, setEditPrice] = useState('')
+  const [filterCat, setFilterCat] = useState<string>('all')
+  const [saving, setSaving]   = useState<string | null>(null)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = getClient() as any
+
+  const fetchItems = useCallback(async () => {
+    const { data } = await sb.from('menu_items').select('id, name, category, category2, category3, price, cost, is_available, sort_order').order('sort_order')
+    setItems((data ?? []).map((r: any) => ({
+      id: r.id, name: r.name, category: r.category, category2: r.category2, category3: r.category3,
+      price: r.price, cost: r.cost, isAvailable: r.is_available, sortOrder: r.sort_order,
+    })))
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { fetchItems() }, [fetchItems])
+
+  async function toggleAvail(item: MenuRow) {
+    setSaving(item.id)
+    await sb.from('menu_items').update({ is_available: !item.isAvailable }).eq('id', item.id)
+    setItems(prev => prev.map(i => i.id === item.id ? { ...i, isAvailable: !i.isAvailable } : i))
+    setSaving(null)
+  }
+
+  async function savePrice(item: MenuRow) {
+    const p = parseFloat(editPrice)
+    if (isNaN(p) || p < 0) { setEditId(null); return }
+    setSaving(item.id)
+    await sb.from('menu_items').update({ price: p }).eq('id', item.id)
+    setItems(prev => prev.map(i => i.id === item.id ? { ...i, price: p } : i))
+    setEditId(null); setSaving(null)
+  }
+
+  const cats = ['all', ...Array.from(new Set(items.map(i => i.category)))]
+  const filtered = filterCat === 'all' ? items : items.filter(i => i.category === filterCat)
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <SectionHd
+        title="Menu"
+        badge={`${items.filter(i => i.isAvailable).length}/${items.length} available`}
+        action={
+          <div className="bp-no-scrollbar" style={{ display: 'flex', gap: 4, overflowX: 'auto', maxWidth: 480 }}>
+            {cats.slice(0, 8).map(c => (
+              <Pill key={c} label={c === 'all' ? 'All' : c} active={filterCat === c} onClick={() => setFilterCat(c)} />
+            ))}
+          </div>
+        }
+      />
+      {loading ? (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
+      ) : (
+        <>
+          {/* Column header */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px 120px',
+            padding: '0 24px', height: 36, alignItems: 'center',
+            borderBottom: `1px solid ${T.line}`, background: T.surface2, flexShrink: 0,
+          }}>
+            {['Name','Category','Price','Cost','Available'].map(h => (
+              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>
+                {h}
+              </span>
+            ))}
+          </div>
+
+          <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+            {filtered.map((item, i) => {
+              const isEditing = editId === item.id
+              const isSaving  = saving === item.id
+              return (
+                <div key={item.id} style={{
+                  display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px 120px',
+                  padding: '0 24px', height: 44, alignItems: 'center',
+                  borderBottom: `1px solid ${T.line}`,
+                  background: i % 2 === 0 ? 'transparent' : T.surface,
+                  opacity: isSaving ? 0.5 : item.isAvailable ? 1 : 0.45,
+                }}>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: item.isAvailable ? T.text : T.textMute }}>
+                    {item.name}
+                  </span>
+                  <span style={{ fontSize: 11, color: T.textMute }}>{item.category}</span>
+
+                  {/* Price — click to edit */}
+                  {isEditing ? (
+                    <input
+                      autoFocus
+                      value={editPrice}
+                      onChange={e => setEditPrice(e.target.value)}
+                      onBlur={() => savePrice(item)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') savePrice(item)
+                        if (e.key === 'Escape') setEditId(null)
+                      }}
+                      style={{
+                        width: 70, fontFamily: T.mono, fontSize: 13, fontWeight: 600,
+                        background: T.surface, border: `1px solid ${T.accent}88`,
+                        color: T.text, borderRadius: T.radius, padding: '2px 6px', outline: 'none',
+                      }}
+                    />
+                  ) : (
+                    <span
+                      onClick={() => { setEditId(item.id); setEditPrice(item.price.toFixed(0)) }}
+                      title="Click to edit price"
+                      style={{
+                        fontFamily: T.mono, fontSize: 13, fontWeight: 600, color: T.accent,
+                        fontVariantNumeric: 'tabular-nums', cursor: 'pointer',
+                        borderBottom: `1px dashed ${T.accent}44`,
+                      }}
+                    >
+                      ₱{item.price.toFixed(0)}
+                    </span>
+                  )}
+
+                  <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute }}>
+                    {item.cost != null ? `₱${item.cost.toFixed(0)}` : '—'}
+                  </span>
+
+                  {/* Toggle */}
+                  <div>
+                    <button
+                      onClick={() => toggleAvail(item)}
+                      disabled={isSaving}
+                      style={{
+                        padding: '3px 12px', fontSize: 11, fontFamily: 'inherit', fontWeight: 600,
+                        background: item.isAvailable ? `${T.ok}22` : `${T.bad}18`,
+                        border: `1px solid ${item.isAvailable ? T.ok : T.bad}44`,
+                        color: item.isAvailable ? T.ok : T.bad,
+                        borderRadius: T.radius, cursor: 'pointer',
+                      }}
+                    >
+                      {item.isAvailable ? 'Available' : 'Unavailable'}
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+// ── INVENTORY TAB ─────────────────────────────────────────────────────────────
+
+function InventoryTab() {
+  const [rows,    setRows]    = useState<InvRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving,  setSaving]  = useState<number | null>(null)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = getClient() as any
+
+  const fetchRows = useCallback(async () => {
+    const { data } = await sb
+      .from('inventory')
+      .select('id, menu_item_id, quantity, unit, low_stock_threshold, updated_at, menu_items(name, category)')
+      .order('id')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setRows((data ?? []).map((r: any) => {
+      const mi = Array.isArray(r.menu_items) ? r.menu_items[0] : r.menu_items
+      return {
+        id: r.id, menuItemId: r.menu_item_id,
+        name: mi?.name ?? '—', category: mi?.category ?? '—',
+        quantity: r.quantity, unit: r.unit,
+        lowStockThresh: r.low_stock_threshold, updatedAt: r.updated_at,
+      }
+    }))
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { fetchRows() }, [fetchRows])
+
+  async function adjust(row: InvRow, delta: number) {
+    const newQty = Math.max(0, row.quantity + delta)
+    setSaving(row.id)
+    await sb.from('inventory').update({ quantity: newQty, updated_at: new Date().toISOString() }).eq('id', row.id)
+    setRows(prev => prev.map(r => r.id === row.id ? { ...r, quantity: newQty } : r))
+    setSaving(null)
+  }
+
+  const lowCount = rows.filter(r => r.quantity <= r.lowStockThresh).length
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <SectionHd
+        title="Inventory"
+        badge={lowCount > 0 ? `${lowCount} low stock` : `${rows.length} items`}
+      />
+      {loading ? (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
+      ) : (
+        <>
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1fr 120px 80px 80px 120px 160px',
+            padding: '0 24px', height: 36, alignItems: 'center',
+            borderBottom: `1px solid ${T.line}`, background: T.surface2, flexShrink: 0,
+          }}>
+            {['Item','Category','Qty','Unit','Threshold','Adjust'].map(h => (
+              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>
+                {h}
+              </span>
+            ))}
+          </div>
+
+          <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+            {rows.map((row, i) => {
+              const isLow = row.quantity <= row.lowStockThresh
+              const isCritical = row.quantity === 0
+              return (
+                <div key={row.id} style={{
+                  display: 'grid', gridTemplateColumns: '1fr 120px 80px 80px 120px 160px',
+                  padding: '0 24px', height: 44, alignItems: 'center',
+                  borderBottom: `1px solid ${T.line}`,
+                  background: i % 2 === 0 ? 'transparent' : T.surface,
+                  opacity: saving === row.id ? 0.5 : 1,
+                }}>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: T.text }}>{row.name}</span>
+                  <span style={{ fontSize: 11, color: T.textMute }}>{row.category}</span>
+                  <span style={{
+                    fontFamily: T.mono, fontSize: 14, fontWeight: 700,
+                    color: isCritical ? T.bad : isLow ? T.warn : T.ok,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}>
+                    {row.quantity}
+                  </span>
+                  <span style={{ fontSize: 12, color: T.textMute }}>{row.unit}</span>
+                  <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute }}>
+                    {row.lowStockThresh}
+                    {isLow && (
+                      <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', color: isCritical ? T.bad : T.warn }}>
+                        {isCritical ? 'OUT' : 'LOW'}
+                      </span>
+                    )}
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <button onClick={() => adjust(row, -1)} disabled={saving === row.id} style={{
+                      width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: T.chip, border: `1px solid ${T.line2}`, color: T.textDim,
+                      borderRadius: T.radius, cursor: 'pointer', fontSize: 16, fontFamily: 'inherit',
+                    }}>−</button>
+                    <button onClick={() => adjust(row, 1)} disabled={saving === row.id} style={{
+                      width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: T.chip, border: `1px solid ${T.line2}`, color: T.textDim,
+                      borderRadius: T.radius, cursor: 'pointer', fontSize: 16, fontFamily: 'inherit',
+                    }}>+</button>
+                    <button onClick={() => adjust(row, 10)} disabled={saving === row.id} style={{
+                      padding: '3px 10px', fontSize: 11, fontFamily: 'inherit',
+                      background: T.chip, border: `1px solid ${T.line2}`, color: T.textDim,
+                      borderRadius: T.radius, cursor: 'pointer',
+                    }}>+10</button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+// ── EXPENSES TAB ──────────────────────────────────────────────────────────────
+
+const EXPENSE_CATS = ['Petty Cash', 'Supplies', 'Utilities', 'Wages', 'Marketing', 'Other'] as const
+
+function ExpensesTab() {
+  const [rows,    setRows]    = useState<ExpenseRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [saving, setSaving]    = useState(false)
+
+  // Form state
+  const [fCat,       setFCat]       = useState<string>('Petty Cash')
+  const [fDesc,      setFDesc]      = useState('')
+  const [fQty,       setFQty]       = useState('1')
+  const [fUnitPrice, setFUnitPrice] = useState('')
+  const [fAmt,       setFAmt]       = useState('')
+  const [fTo,        setFTo]        = useState('')
+  const [fRef,       setFRef]       = useState('')
+
+  const today = new Date().toISOString().slice(0, 10)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = getClient() as any
+
+  const fetchRows = useCallback(async () => {
+    const { data } = await sb
+      .from('daily_expenses')
+      .select('*')
+      .eq('expense_date', today)
+      .order('created_at', { ascending: false })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setRows((data ?? []).map((r: any) => ({
+      id: r.id, expenseDate: r.expense_date, category: r.category,
+      description: r.description, amount: r.amount,
+      qty: r.qty ?? 1, unitPrice: r.unit_price ?? null,
+      paidTo: r.paid_to, receiptRef: r.receipt_ref,
+      addedBy: r.added_by, createdAt: r.created_at,
+    })))
+    setLoading(false)
+  }, [today])
+
+  useEffect(() => { fetchRows() }, [fetchRows])
+
+  async function addExpense() {
+    const qty  = parseFloat(fQty) || 1
+    const up   = fUnitPrice !== '' ? parseFloat(fUnitPrice) : null
+    const amt  = up != null ? qty * up : parseFloat(fAmt)
+    if (!fDesc.trim() || isNaN(amt) || amt <= 0) return
+    setSaving(true)
+    await sb.from('daily_expenses').insert({
+      expense_date: today,
+      category:     fCat,
+      description:  fDesc.trim(),
+      amount:       amt,
+      qty,
+      unit_price:   up,
+      paid_to:      fTo.trim() || null,
+      receipt_ref:  fRef.trim() || null,
+    })
+    setFDesc(''); setFQty('1'); setFUnitPrice(''); setFAmt(''); setFTo(''); setFRef('')
+    setShowForm(false)
+    await fetchRows()
+    setSaving(false)
+  }
+
+  async function deleteExpense(id: number) {
+    await sb.from('daily_expenses').delete().eq('id', id)
+    setRows(prev => prev.filter(r => r.id !== id))
+  }
+
+  const totalToday = rows.reduce((s, r) => s + r.amount, 0)
+
+  const catColor: Record<string, string> = {
+    'Petty Cash': T.warn, 'Supplies': T.info, 'Utilities': T.textDim,
+    'Wages': T.ok, 'Marketing': T.accent, 'Other': T.textMute,
+  }
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <SectionHd
+        title="Daily Expenses"
+        badge={fmtPeso(totalToday)}
+        action={
+          <button onClick={() => setShowForm(v => !v)} style={{
+            padding: '5px 14px', fontSize: 12, fontFamily: 'inherit', fontWeight: 600,
+            background: showForm ? T.chip : T.accent,
+            color: showForm ? T.textDim : T.accentInk,
+            border: `1px solid ${showForm ? T.line2 : T.accent}`,
+            borderRadius: T.radius, cursor: 'pointer',
+          }}>
+            {showForm ? 'Cancel' : '+ Add Expense'}
+          </button>
+        }
+      />
+
+      {/* Add form */}
+      {showForm && (() => {
+        const qty  = parseFloat(fQty) || 1
+        const up   = fUnitPrice !== '' ? parseFloat(fUnitPrice) : null
+        const autoAmt = up != null ? (qty * up).toFixed(2) : fAmt
+        const canSave = fDesc.trim() && (up != null ? up > 0 : (parseFloat(fAmt) > 0))
+        return (
+          <div style={{
+            padding: '16px 24px',
+            background: T.surface2, borderBottom: `1px solid ${T.line}`,
+            display: 'grid', gridTemplateColumns: '140px 1fr 70px 100px 110px 130px 110px auto',
+            gap: 8, alignItems: 'end', flexShrink: 0,
+          }}>
+            {/* Category */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Category</div>
+              <select value={fCat} onChange={e => setFCat(e.target.value)} style={{
+                width: '100%', fontFamily: 'inherit', fontSize: 12,
+                background: T.surface, border: `1px solid ${T.line2}`,
+                color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none',
+              }}>
+                {EXPENSE_CATS.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            {/* Description */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Description *</div>
+              <input value={fDesc} onChange={e => setFDesc(e.target.value)} placeholder="What was this for?" style={{
+                width: '100%', fontFamily: 'inherit', fontSize: 12,
+                background: T.surface, border: `1px solid ${T.line2}`,
+                color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box',
+              }} />
+            </div>
+            {/* Qty */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Qty</div>
+              <input value={fQty} onChange={e => setFQty(e.target.value)} placeholder="1" type="number" min="0.001" step="any" style={{
+                width: '100%', fontFamily: T.mono, fontSize: 13,
+                background: T.surface, border: `1px solid ${T.line2}`,
+                color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box',
+              }} />
+            </div>
+            {/* Unit Price */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Unit ₱</div>
+              <input value={fUnitPrice} onChange={e => { setFUnitPrice(e.target.value); setFAmt('') }} placeholder="0.00" type="number" min="0" style={{
+                width: '100%', fontFamily: T.mono, fontSize: 13,
+                background: T.surface, border: `1px solid ${T.line2}`,
+                color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box',
+              }} />
+            </div>
+            {/* Amount — auto-calculated or manual */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>
+                Total ₱ {up != null ? <span style={{ color: T.accent }}>auto</span> : '*'}
+              </div>
+              <input
+                value={up != null ? autoAmt : fAmt}
+                onChange={e => { if (up == null) setFAmt(e.target.value) }}
+                readOnly={up != null}
+                placeholder="0.00" type="number" min="0"
+                style={{
+                  width: '100%', fontFamily: T.mono, fontSize: 13,
+                  background: up != null ? T.chip : T.surface,
+                  border: `1px solid ${T.line2}`,
+                  color: up != null ? T.accent : T.text,
+                  borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box',
+                }}
+              />
+            </div>
+            {/* Paid to */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Paid To</div>
+              <input value={fTo} onChange={e => setFTo(e.target.value)} placeholder="Supplier / person" style={{
+                width: '100%', fontFamily: 'inherit', fontSize: 12,
+                background: T.surface, border: `1px solid ${T.line2}`,
+                color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box',
+              }} />
+            </div>
+            {/* Receipt */}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Receipt #</div>
+              <input value={fRef} onChange={e => setFRef(e.target.value)} placeholder="OR-001" style={{
+                width: '100%', fontFamily: T.mono, fontSize: 12,
+                background: T.surface, border: `1px solid ${T.line2}`,
+                color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box',
+              }} />
+            </div>
+            <button onClick={addExpense} disabled={saving || !canSave} style={{
+              padding: '7px 16px', fontSize: 12, fontFamily: 'inherit', fontWeight: 700,
+              background: T.accent, color: T.accentInk,
+              border: 'none', borderRadius: T.radius, cursor: 'pointer',
+              opacity: !canSave ? 0.4 : 1,
+            }}>
+              Save
+            </button>
+          </div>
+        )
+      })()}
+
+      {/* List header */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: '90px 100px 1fr 120px 100px 100px 80px 36px',
+        padding: '0 24px', height: 36, alignItems: 'center',
+        borderBottom: `1px solid ${T.line}`, background: T.surface2, flexShrink: 0,
+      }}>
+        {['Time','Category','Description','Qty × Unit','Paid To','Receipt','Amount',''].map(h => (
+          <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>
+            {h}
+          </span>
+        ))}
+      </div>
+
+      <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+        {loading ? (
+          <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
+        ) : rows.length === 0 ? (
+          <div style={{ padding: '32px 24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>
+            No expenses logged today
+          </div>
+        ) : rows.map((row, i) => {
+          const dt = new Date(row.createdAt)
+          const time = `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`
+          const qtyUnit = row.unitPrice != null
+            ? `${row.qty % 1 === 0 ? row.qty : row.qty.toFixed(3)} × ₱${row.unitPrice.toFixed(2)}`
+            : '—'
+          return (
+            <div key={row.id} style={{
+              display: 'grid', gridTemplateColumns: '90px 100px 1fr 120px 100px 100px 80px 36px',
+              padding: '0 24px', height: 44, alignItems: 'center',
+              borderBottom: `1px solid ${T.line}`,
+              background: i % 2 === 0 ? 'transparent' : T.surface,
+            }}>
+              <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute, fontVariantNumeric: 'tabular-nums' }}>{time}</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: catColor[row.category] ?? T.textDim }}>
+                {row.category}
+              </span>
+              <span style={{ fontSize: 13, color: T.text }}>{row.description}</span>
+              <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute }}>{qtyUnit}</span>
+              <span style={{ fontSize: 12, color: T.textDim }}>{row.paidTo ?? '—'}</span>
+              <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute }}>{row.receiptRef ?? '—'}</span>
+              <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: T.bad, fontVariantNumeric: 'tabular-nums' }}>
+                ₱{row.amount.toFixed(2)}
+              </span>
+              <button onClick={() => deleteExpense(row.id)} style={{
+                width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'transparent', border: `1px solid ${T.bad}33`,
+                color: T.bad, borderRadius: T.radius, cursor: 'pointer', fontSize: 14,
+              }}>
+                ×
+              </button>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Total footer */}
+      {rows.length > 0 && (
+        <div style={{
+          padding: '12px 24px', borderTop: `1px solid ${T.line}`,
+          display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10,
+          flexShrink: 0,
+        }}>
+          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute }}>
+            Total Expenses Today
+          </span>
+          <span style={{ fontFamily: T.mono, fontSize: 18, fontWeight: 700, color: T.bad, fontVariantNumeric: 'tabular-nums' }}>
+            {fmtPeso(totalToday)}
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── BUDGET TAB ────────────────────────────────────────────────────────────────
+
+const BUDGET_CATS: { id: string; label: string }[] = [
+  { id: 'opex',        label: 'OPEX'           },
+  { id: 'food',        label: 'Food'           },
+  { id: 'beer',        label: 'Beer'           },
+  { id: 'cocktails',   label: 'Cocktails/Hard' },
+  { id: 'non_alcohol', label: 'Non-Alcohol'    },
+  { id: 'cigarettes',  label: 'Cigarettes'     },
+]
+
+interface BudgetEntry { id: number | null; category: string; incoming: number; expenses: number }
+
+// ── Ledger row: one per day ────────────────────────────────────────────────────
+interface LedgerRow {
+  date: string
+  starting: Record<string, number>
+  expenses: Record<string, number>
+  incoming: Record<string, number>
+  ending:   Record<string, number>
+  startTotal: number
+  expTotal:   number
+  incTotal:   number
+  endTotal:   number
+}
+
+function buildLedger(allRows: { entry_date: string; category: string; incoming: number; expenses: number }[]): LedgerRow[] {
+  // Group by date, sort ascending
+  const dateMap = new Map<string, Record<string, { incoming: number; expenses: number }>>()
+  for (const r of allRows) {
+    if (!dateMap.has(r.entry_date)) dateMap.set(r.entry_date, {})
+    dateMap.get(r.entry_date)![r.category] = { incoming: r.incoming, expenses: r.expenses }
+  }
+  const dates = Array.from(dateMap.keys()).sort()
+
+  const ledger: LedgerRow[] = []
+  const running: Record<string, number> = {}
+  for (const c of BUDGET_CATS) running[c.id] = 0
+
+  for (const date of dates) {
+    const dayMap = dateMap.get(date)!
+    const starting: Record<string, number> = { ...running }
+    const expenses: Record<string, number> = {}
+    const incoming: Record<string, number> = {}
+    const ending:   Record<string, number> = {}
+
+    for (const c of BUDGET_CATS) {
+      expenses[c.id] = dayMap[c.id]?.expenses ?? 0
+      incoming[c.id] = dayMap[c.id]?.incoming ?? 0
+      ending[c.id]   = starting[c.id] + incoming[c.id] - expenses[c.id]
+      running[c.id]  = ending[c.id]
+    }
+
+    ledger.push({
+      date,
+      starting, expenses, incoming, ending,
+      startTotal: BUDGET_CATS.reduce((s, c) => s + starting[c.id], 0),
+      expTotal:   BUDGET_CATS.reduce((s, c) => s + expenses[c.id], 0),
+      incTotal:   BUDGET_CATS.reduce((s, c) => s + incoming[c.id], 0),
+      endTotal:   BUDGET_CATS.reduce((s, c) => s + ending[c.id],   0),
+    })
+  }
+  return ledger
+}
+
+function BudgetTab() {
+  const [budgetView, setBudgetView] = useState<'day' | 'ledger'>('day')
+  const [date,    setDate]    = useState(() => new Date().toISOString().slice(0, 10))
+  const [entries, setEntries] = useState<BudgetEntry[]>(BUDGET_CATS.map(c => ({ id: null, category: c.id, incoming: 0, expenses: 0 })))
+  const [history, setHistory] = useState<{ category: string; incoming: number; expenses: number }[]>([])
+  const [editCell, setEditCell] = useState<{ cat: string; field: 'incoming' | 'expenses' } | null>(null)
+  const [editVal,  setEditVal]  = useState('')
+  const [saving,   setSaving]   = useState(false)
+  const [loading,  setLoading]  = useState(true)
+  const [ledgerRows, setLedgerRows] = useState<LedgerRow[]>([])
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = getClient() as any
+
+  const fetchLedger = useCallback(async () => {
+    const { data } = await sb.from('budget_daily').select('entry_date, category, incoming, expenses').order('entry_date')
+    setLedgerRows(buildLedger(data ?? []))
+  }, [])
+
+  useEffect(() => { fetchLedger() }, [fetchLedger])
+
+  const fetchData = useCallback(async (d: string) => {
+    setLoading(true)
+    // All entries up to and including selected date
+    const { data: all } = await sb.from('budget_daily').select('*').lte('entry_date', d)
+    const rows: any[] = all ?? []
+
+    // Split into history (before date) and today's entries
+    const hist = rows.filter((r: any) => r.entry_date < d)
+    const todayRows = rows.filter((r: any) => r.entry_date === d)
+
+    const histMap: Record<string, { incoming: number; expenses: number }> = {}
+    for (const r of hist) {
+      if (!histMap[r.category]) histMap[r.category] = { incoming: 0, expenses: 0 }
+      histMap[r.category].incoming  += r.incoming
+      histMap[r.category].expenses  += r.expenses
+    }
+    setHistory(BUDGET_CATS.map(c => ({
+      category: c.id,
+      incoming: histMap[c.id]?.incoming ?? 0,
+      expenses: histMap[c.id]?.expenses ?? 0,
+    })))
+
+    const todayMap: Record<string, any> = {}
+    for (const r of todayRows) todayMap[r.category] = r
+    setEntries(BUDGET_CATS.map(c => ({
+      id:       todayMap[c.id]?.id   ?? null,
+      category: c.id,
+      incoming: todayMap[c.id]?.incoming  ?? 0,
+      expenses: todayMap[c.id]?.expenses  ?? 0,
+    })))
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { fetchData(date) }, [fetchData, date])
+
+  function shiftDate(days: number) {
+    const d = new Date(date); d.setDate(d.getDate() + days)
+    setDate(d.toISOString().slice(0, 10))
+  }
+
+  async function saveCell(cat: string, field: 'incoming' | 'expenses', raw: string) {
+    const val = parseFloat(raw)
+    if (isNaN(val) || val < 0) { setEditCell(null); return }
+    setSaving(true)
+    const entry = entries.find(e => e.category === cat)!
+    const patch = { [field]: val }
+
+    if (entry.id) {
+      await sb.from('budget_daily').update(patch).eq('id', entry.id)
+    } else {
+      const { data } = await sb.from('budget_daily').insert({
+        entry_date: date, category: cat,
+        incoming:  field === 'incoming'  ? val : 0,
+        expenses:  field === 'expenses'  ? val : 0,
+      }).select('id').single()
+      setEntries(prev => prev.map(e => e.category === cat ? { ...e, id: data?.id ?? null } : e))
+    }
+    setEntries(prev => prev.map(e => e.category === cat ? { ...e, [field]: val } : e))
+    setEditCell(null); setSaving(false)
+    fetchLedger()
+  }
+
+  const getStarting = (cat: string) => {
+    const h = history.find(h => h.category === cat)
+    return h ? h.incoming - h.expenses : 0
+  }
+
+  const totalStarting  = history.reduce((s, h) => s + h.incoming - h.expenses, 0)
+  const totalIncoming  = entries.reduce((s, e) => s + e.incoming, 0)
+  const totalExpenses  = entries.reduce((s, e) => s + e.expenses, 0)
+  const totalEnding    = totalStarting + totalIncoming - totalExpenses
+
+  function NumCell({ cat, field, value }: { cat: string; field: 'incoming' | 'expenses'; value: number }) {
+    const isEdit = editCell?.cat === cat && editCell.field === field
+    const color  = field === 'expenses' ? T.bad : T.ok
+    if (isEdit) {
+      return (
+        <input
+          autoFocus value={editVal}
+          onChange={e => setEditVal(e.target.value)}
+          onBlur={() => saveCell(cat, field, editVal)}
+          onKeyDown={e => {
+            if (e.key === 'Enter') saveCell(cat, field, editVal)
+            if (e.key === 'Escape') setEditCell(null)
+          }}
+          style={{
+            width: 100, fontFamily: T.mono, fontSize: 13, fontWeight: 600,
+            background: T.surface, border: `1px solid ${color}88`,
+            color: T.text, borderRadius: T.radius, padding: '2px 6px', outline: 'none',
+          }}
+        />
+      )
+    }
+    return (
+      <span
+        onClick={() => { setEditCell({ cat, field }); setEditVal(value > 0 ? value.toFixed(2) : '') }}
+        title="Click to edit"
+        style={{
+          fontFamily: T.mono, fontSize: 13, fontWeight: value > 0 ? 600 : 400,
+          color: value > 0 ? color : T.textMute,
+          fontVariantNumeric: 'tabular-nums', cursor: 'pointer',
+          borderBottom: `1px dashed ${value > 0 ? color + '44' : T.line2}`,
+        }}
+      >
+        {value > 0 ? fmtPeso(value) : '—'}
+      </span>
+    )
+  }
+
+  const fmtSign = (v: number) => v === 0 ? '—' : fmtPeso(v)
+
+  // ── Ledger column groups ───────────────────────────────────────────────────
+  const GROUPS_L = [
+    { key: 'starting', label: 'Starting', color: T.textDim },
+    { key: 'expenses', label: 'Expenses', color: T.bad     },
+    { key: 'incoming', label: 'Incoming', color: T.ok      },
+    { key: 'ending',   label: 'Ending',   color: T.accent  },
+  ] as const
+  const COL_W  = 110  // px per category sub-column
+  const TOT_W  = 130  // px for group total
+  const DATE_W = 96   // px for date column
+
+  const todayStr = new Date().toISOString().slice(0, 10)
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+
+      {/* ── Header: toggle + date nav ──────────────────────────────────────── */}
+      <SectionHd
+        title={budgetView === 'day' ? 'Daily Budget' : 'Running Ledger'}
+        badge={budgetView === 'day' ? `Ending ${fmtSign(totalEnding)}` : `${ledgerRows.length} days`}
+        action={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 2 }}>
+              {(['day', 'ledger'] as const).map(v => (
+                <button key={v} onClick={() => setBudgetView(v)} style={{
+                  padding: '4px 12px', fontSize: 11, fontFamily: 'inherit', fontWeight: budgetView === v ? 600 : 400,
+                  background: budgetView === v ? T.accent : T.chip,
+                  color:      budgetView === v ? T.accentInk : T.textDim,
+                  border: `1px solid ${budgetView === v ? T.accent : T.line2}`,
+                  borderRadius: T.radius, cursor: 'pointer', textTransform: 'capitalize',
+                }}>
+                  {v === 'day' ? 'Day' : 'Ledger'}
+                </button>
+              ))}
+            </div>
+            {budgetView === 'day' && (
+              <>
+                <button onClick={() => shiftDate(-1)} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: T.chip, border: `1px solid ${T.line2}`, color: T.textDim, borderRadius: T.radius, cursor: 'pointer', fontSize: 14 }}>‹</button>
+                <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ fontFamily: T.mono, fontSize: 12, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '4px 8px', outline: 'none', cursor: 'pointer' }} />
+                <button onClick={() => shiftDate(1)} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: T.chip, border: `1px solid ${T.line2}`, color: T.textDim, borderRadius: T.radius, cursor: 'pointer', fontSize: 14 }}>›</button>
+                {saving && <span style={{ fontSize: 11, color: T.textMute, fontFamily: T.mono }}>saving…</span>}
+              </>
+            )}
+          </div>
+        }
+      />
+
+      {/* ── DAY VIEW ─────────────────────────────────────────────────────────── */}
+      {budgetView === 'day' && (<>
+        <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr 1fr 1fr 1fr', padding: '0 24px', height: 36, alignItems: 'center', borderBottom: `1px solid ${T.line}`, background: T.surface2, flexShrink: 0 }}>
+          {['Category', 'Starting', 'Incoming', 'Expenses', 'Ending'].map(h => (
+            <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
+          ))}
+        </div>
+        {loading ? (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
+        ) : (
+          <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+            {BUDGET_CATS.map((cat, i) => {
+              const entry    = entries.find(e => e.category === cat.id)!
+              const starting = getStarting(cat.id)
+              const ending   = starting + entry.incoming - entry.expenses
+              return (
+                <div key={cat.id} style={{ display: 'grid', gridTemplateColumns: '180px 1fr 1fr 1fr 1fr', padding: '0 24px', height: 52, alignItems: 'center', borderBottom: `1px solid ${T.line}`, background: i % 2 === 0 ? 'transparent' : T.surface }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{cat.label}</span>
+                  <span style={{ fontFamily: T.mono, fontSize: 13, color: starting >= 0 ? T.ok : T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(starting)}</span>
+                  <NumCell cat={cat.id} field="incoming" value={entry.incoming} />
+                  <NumCell cat={cat.id} field="expenses" value={entry.expenses} />
+                  <span style={{ fontFamily: T.mono, fontSize: 14, fontWeight: 700, color: ending >= 0 ? T.ok : T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(ending)}</span>
+                </div>
+              )
+            })}
+            <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr 1fr 1fr 1fr', padding: '0 24px', height: 52, alignItems: 'center', borderBottom: `1px solid ${T.line}`, background: T.surface2 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: T.textMute }}>Total</span>
+              <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: totalStarting >= 0 ? T.ok : T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(totalStarting)}</span>
+              <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: T.ok, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(totalIncoming)}</span>
+              <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(totalExpenses)}</span>
+              <span style={{ fontFamily: T.mono, fontSize: 16, fontWeight: 700, color: totalEnding >= 0 ? T.ok : T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(totalEnding)}</span>
+            </div>
+          </div>
+        )}
+        <div style={{ padding: '10px 24px', borderTop: `1px solid ${T.line}`, flexShrink: 0, fontSize: 11, color: T.textMute }}>
+          Click any Incoming or Expenses value to edit · Starting balance carried from all prior days
+        </div>
+      </>)}
+
+      {/* ── LEDGER VIEW ──────────────────────────────────────────────────────── */}
+      {budgetView === 'ledger' && (
+        <div className="bp-no-scrollbar" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+          {ledgerRows.length === 0 ? (
+            <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 13 }}>No data yet</div>
+          ) : (() => {
+            const reversed = [...ledgerRows].reverse()
+            const totalW = DATE_W + GROUPS_L.length * (BUDGET_CATS.length * COL_W + TOT_W + 1)
+            return (
+              <div style={{ minWidth: totalW }}>
+                {/* ── Sticky double-header ── */}
+                <div style={{ position: 'sticky', top: 0, zIndex: 3, background: T.surface2 }}>
+                  {/* Row 1: group labels */}
+                  <div style={{ display: 'flex', borderBottom: `1px solid ${T.line}` }}>
+                    <div style={{ width: DATE_W, flexShrink: 0, position: 'sticky', left: 0, background: T.surface2, zIndex: 4 }} />
+                    {GROUPS_L.map(g => (
+                      <div key={g.key} style={{ display: 'flex', borderLeft: `1px solid ${T.line}` }}>
+                        <div style={{ width: BUDGET_CATS.length * COL_W + TOT_W, height: 30, display: 'flex', alignItems: 'center', paddingLeft: 14 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: g.color }}>{g.label}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Row 2: category sub-headers */}
+                  <div style={{ display: 'flex', borderBottom: `2px solid ${T.line}` }}>
+                    <div style={{ width: DATE_W, flexShrink: 0, height: 30, display: 'flex', alignItems: 'center', paddingLeft: 14, position: 'sticky', left: 0, background: T.surface2, zIndex: 4 }}>
+                      <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.textMute }}>Date</span>
+                    </div>
+                    {GROUPS_L.map(g => (
+                      <div key={g.key} style={{ display: 'flex', borderLeft: `1px solid ${T.line}` }}>
+                        {BUDGET_CATS.map(c => (
+                          <div key={c.id} style={{ width: COL_W, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 12 }}>
+                            <span style={{ fontSize: 10, fontWeight: 600, color: T.textMute, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.label}</span>
+                          </div>
+                        ))}
+                        <div style={{ width: TOT_W, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 14, borderLeft: `1px solid ${T.line2}` }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: g.color }}>Total</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ── Data rows ── */}
+                {reversed.map((row, ri) => {
+                  const isToday = row.date === todayStr
+                  const rowBg   = isToday ? `${T.accent}0d` : ri % 2 === 0 ? 'transparent' : T.surface
+                  return (
+                    <div key={row.date} style={{ display: 'flex', borderBottom: `1px solid ${T.line}`, background: rowBg }}>
+                      {/* Sticky date cell */}
+                      <div style={{ width: DATE_W, flexShrink: 0, height: 42, display: 'flex', alignItems: 'center', paddingLeft: 14, position: 'sticky', left: 0, background: rowBg, zIndex: 1, borderRight: `1px solid ${T.line2}` }}>
+                        <div>
+                          <div style={{ fontFamily: T.mono, fontSize: 12, color: isToday ? T.accent : T.textDim, fontWeight: isToday ? 700 : 400 }}>
+                            {`${row.date.slice(5)}/${row.date.slice(2, 4)}`}
+                          </div>
+                          {isToday && <div style={{ fontSize: 8, color: T.accent, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Today</div>}
+                        </div>
+                      </div>
+
+                      {GROUPS_L.map(g => {
+                        const groupData = row[g.key] as Record<string, number>
+                        const total = g.key === 'starting' ? row.startTotal
+                          : g.key === 'expenses' ? row.expTotal
+                          : g.key === 'incoming' ? row.incTotal
+                          : row.endTotal
+                        const totalColor = (g.key === 'ending' || g.key === 'starting')
+                          ? (total >= 0 ? T.ok : T.bad)
+                          : g.color
+
+                        return (
+                          <div key={g.key} style={{ display: 'flex', borderLeft: `1px solid ${T.line}` }}>
+                            {BUDGET_CATS.map(c => {
+                              const v = groupData[c.id] ?? 0
+                              const cellColor = (g.key === 'ending' || g.key === 'starting')
+                                ? (v >= 0 ? T.ok : T.bad)
+                                : v > 0 ? g.color : T.textMute
+                              return (
+                                <div key={c.id} style={{ width: COL_W, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 12 }}>
+                                  <span style={{ fontFamily: T.mono, fontSize: 12, color: cellColor, fontVariantNumeric: 'tabular-nums' }}>
+                                    {v !== 0 ? fmtPeso(v) : '—'}
+                                  </span>
+                                </div>
+                              )
+                            })}
+                            <div style={{ width: TOT_W, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 14, borderLeft: `1px solid ${T.line2}` }}>
+                              <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: totalColor, fontVariantNumeric: 'tabular-nums' }}>
+                                {total !== 0 ? fmtPeso(total) : '—'}
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })()}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── SAVINGS TAB ───────────────────────────────────────────────────────────────
+
+const PARTNERS = ['Albert', 'Arvin', 'Benok', 'Bimbo', 'Durriel', 'Ramon'] as const
+
+interface Remittance {
+  id:             number
+  date:           string
+  total:          number
+  notes:          string | null
+  splits:         RemittanceSplit[]
+}
+interface RemittanceSplit {
+  id:          number
+  partner:     string
+  dividends:   number
+  bonus:       number
+  licensing:   number
+  others:      number
+  paidOut:     number
+}
+
+function SavingsTab() {
+  const [rows,     setRows]     = useState<Remittance[]>([])
+  const [loading,  setLoading]  = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [saving,   setSaving]   = useState(false)
+  const [expanded, setExpanded] = useState<number | null>(null)
+
+  // Form state
+  const [fDate,   setFDate]   = useState(() => new Date().toISOString().slice(0, 10))
+  const [fTotal,  setFTotal]  = useState('')
+  const [fNotes,  setFNotes]  = useState('')
+  const [fPaidOut, setFPaidOut] = useState<Record<string, string>>({})
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sb = getClient() as any
+
+  const fetchRows = useCallback(async () => {
+    const { data: remits } = await sb.from('partner_remittances').select('*').order('remittance_date', { ascending: false })
+    const { data: splits } = await sb.from('partner_remittance_splits').select('*')
+    const splitMap: Record<number, RemittanceSplit[]> = {}
+    for (const s of (splits ?? [])) {
+      if (!splitMap[s.remittance_id]) splitMap[s.remittance_id] = []
+      splitMap[s.remittance_id].push({ id: s.id, partner: s.partner_name, dividends: s.dividends, bonus: s.bonus, licensing: s.licensing, others: s.others, paidOut: s.paid_out })
+    }
+    setRows((remits ?? []).map((r: any) => ({ id: r.id, date: r.remittance_date, total: r.total_amount, notes: r.notes, splits: splitMap[r.id] ?? [] })))
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { fetchRows() }, [fetchRows])
+
+  async function addRemittance() {
+    const total = parseFloat(fTotal)
+    if (isNaN(total) || total <= 0) return
+    setSaving(true)
+
+    const { data: rem } = await sb.from('partner_remittances').insert({ remittance_date: fDate, total_amount: total, notes: fNotes.trim() || null }).select('id').single()
+    const remId = rem.id
+
+    const perPartner = total / PARTNERS.length
+    const dividends  = parseFloat((total * 0.7 / PARTNERS.length).toFixed(2))
+    const bonus      = parseFloat((total * 0.1 / PARTNERS.length).toFixed(2))
+    const licensing  = parseFloat((total * 0.1 / PARTNERS.length).toFixed(2))
+    const others     = parseFloat((perPartner - dividends - bonus - licensing).toFixed(2))
+
+    await sb.from('partner_remittance_splits').insert(
+      PARTNERS.map(p => ({
+        remittance_id: remId,
+        partner_name:  p,
+        dividends,
+        bonus,
+        licensing,
+        others,
+        paid_out: parseFloat(fPaidOut[p] ?? '0') || 0,
+      }))
+    )
+
+    setFTotal(''); setFNotes(''); setFPaidOut({}); setShowForm(false)
+    await fetchRows()
+    setSaving(false)
+  }
+
+  async function deleteRemittance(id: number) {
+    await sb.from('partner_remittances').delete().eq('id', id)
+    setRows(prev => prev.filter(r => r.id !== id))
+  }
+
+  // Running balance per partner = sum(dividends+bonus+licensing+others) - sum(paidOut)
+  const balances: Record<string, number> = {}
+  for (const p of PARTNERS) balances[p] = 0
+  for (const r of rows) {
+    for (const s of r.splits) {
+      balances[s.partner] = (balances[s.partner] ?? 0) + s.dividends + s.bonus + s.licensing + s.others - s.paidOut
+    }
+  }
+
+  const previewTotal = parseFloat(fTotal) || 0
+  const previewPer   = previewTotal > 0 ? previewTotal / PARTNERS.length : 0
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <SectionHd
+        title="Partner Savings"
+        badge={`${rows.length} remittances`}
+        action={
+          <button onClick={() => setShowForm(v => !v)} style={{ padding: '5px 14px', fontSize: 12, fontFamily: 'inherit', fontWeight: 600, background: showForm ? T.chip : T.accent, color: showForm ? T.textDim : T.accentInk, border: `1px solid ${showForm ? T.line2 : T.accent}`, borderRadius: T.radius, cursor: 'pointer' }}>
+            {showForm ? 'Cancel' : '+ New Remittance'}
+          </button>
+        }
+      />
+
+      {/* Running balance per partner */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
+        {PARTNERS.map((p, i) => (
+          <div key={p} style={{ padding: '14px 20px', borderRight: i < 5 ? `1px solid ${T.line}` : 'none' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>{p}</div>
+            <div style={{ fontFamily: T.mono, fontSize: 18, fontWeight: 700, color: balances[p] >= 0 ? T.ok : T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(balances[p])}</div>
+            <div style={{ fontSize: 10, color: T.textMute, marginTop: 2 }}>running balance</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Add form */}
+      {showForm && (
+        <div style={{ padding: '20px 24px', background: T.surface2, borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '160px 160px 1fr auto', gap: 12, marginBottom: 16 }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Date</div>
+              <input type="date" value={fDate} onChange={e => setFDate(e.target.value)} style={{ width: '100%', fontFamily: T.mono, fontSize: 12, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Total Amount ₱ *</div>
+              <input value={fTotal} onChange={e => setFTotal(e.target.value)} placeholder="0.00" type="number" min="0" style={{ width: '100%', fontFamily: T.mono, fontSize: 13, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Notes</div>
+              <input value={fNotes} onChange={e => setFNotes(e.target.value)} placeholder="Optional note" style={{ width: '100%', fontFamily: 'inherit', fontSize: 12, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <button onClick={addRemittance} disabled={saving || !fTotal} style={{ padding: '7px 20px', fontSize: 13, fontFamily: 'inherit', fontWeight: 700, background: T.accent, color: T.accentInk, border: 'none', borderRadius: T.radius, cursor: 'pointer', opacity: !fTotal ? 0.4 : 1 }}>
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+
+          {/* Per-partner paid-out fields + preview */}
+          {previewTotal > 0 && (
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 8 }}>
+                Paid Out per Partner — each earns {fmtPeso(previewPer)} (auto-split equally)
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8 }}>
+                {PARTNERS.map(p => (
+                  <div key={p}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: T.textDim, marginBottom: 4 }}>{p}</div>
+                    <input value={fPaidOut[p] ?? ''} onChange={e => setFPaidOut(prev => ({ ...prev, [p]: e.target.value }))} placeholder={fmtPeso(previewPer)} type="number" min="0" style={{ width: '100%', fontFamily: T.mono, fontSize: 12, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '5px 8px', outline: 'none', boxSizing: 'border-box' }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Remittance list */}
+      <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+        {loading ? (
+          <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
+        ) : rows.length === 0 ? (
+          <div style={{ padding: '32px 24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No remittances recorded yet</div>
+        ) : rows.map((r, i) => {
+          const isOpen = expanded === r.id
+          return (
+            <div key={r.id} style={{ borderBottom: `1px solid ${T.line}` }}>
+              {/* Row header */}
+              <div
+                onClick={() => setExpanded(isOpen ? null : r.id)}
+                style={{ display: 'grid', gridTemplateColumns: '120px 160px 1fr 160px 36px', padding: '0 24px', height: 48, alignItems: 'center', background: i % 2 === 0 ? 'transparent' : T.surface, cursor: 'pointer' }}
+              >
+                <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute }}>{r.date}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 15, fontWeight: 700, color: T.accent, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(r.total)}</span>
+                <span style={{ fontSize: 12, color: T.textDim }}>{r.notes ?? `${PARTNERS.length} partners · ${fmtPeso(r.total / PARTNERS.length)} each`}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute }}>
+                  paid out: {fmtPeso(r.splits.reduce((s, sp) => s + sp.paidOut, 0))}
+                </span>
+                <span style={{ color: T.textMute, fontSize: 14 }}>{isOpen ? '▲' : '▼'}</span>
+              </div>
+
+              {/* Expanded detail */}
+              {isOpen && (
+                <div style={{ padding: '12px 24px 16px', background: T.surface2, borderTop: `1px solid ${T.line}` }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: `140px repeat(${PARTNERS.length}, 1fr)`, gap: 0, marginBottom: 8 }}>
+                    <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute }}></span>
+                    {PARTNERS.map(p => (
+                      <span key={p} style={{ fontSize: 11, fontWeight: 700, color: T.textDim, textAlign: 'right' }}>{p}</span>
+                    ))}
+                  </div>
+                  {(['dividends','bonus','licensing','others'] as const).map(field => (
+                    <div key={field} style={{ display: 'grid', gridTemplateColumns: `140px repeat(${PARTNERS.length}, 1fr)`, marginBottom: 4 }}>
+                      <span style={{ fontSize: 11, color: T.textMute, textTransform: 'capitalize' }}>{field}</span>
+                      {PARTNERS.map(p => {
+                        const sp = r.splits.find(s => s.partner === p)
+                        return <span key={p} style={{ fontFamily: T.mono, fontSize: 11, color: T.text, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{sp ? fmtPeso(sp[field]) : '—'}</span>
+                      })}
+                    </div>
+                  ))}
+                  <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: 6, marginTop: 6, display: 'grid', gridTemplateColumns: `140px repeat(${PARTNERS.length}, 1fr)` }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: T.textDim }}>Paid Out</span>
+                    {PARTNERS.map(p => {
+                      const sp = r.splits.find(s => s.partner === p)
+                      return <span key={p} style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 700, color: T.bad, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{sp ? fmtPeso(sp.paidOut) : '—'}</span>
+                    })}
+                  </div>
+                  <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
+                    <button onClick={() => deleteRemittance(r.id)} style={{ padding: '4px 12px', fontSize: 11, fontFamily: 'inherit', background: `${T.bad}18`, border: `1px solid ${T.bad}44`, color: T.bad, borderRadius: T.radius, cursor: 'pointer' }}>
+                      Delete remittance
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ── OwnerView ─────────────────────────────────────────────────────────────────
+
+type OwnerTab = 'reports' | 'tables' | 'menu' | 'inventory' | 'budget' | 'savings'
 
 const TABS: { id: OwnerTab; label: string }[] = [
   { id: 'reports',   label: 'Reports'   },
@@ -23,7 +2153,6 @@ const TABS: { id: OwnerTab; label: string }[] = [
   { id: 'tables',    label: 'Tables'    },
   { id: 'menu',      label: 'Menu'      },
   { id: 'inventory', label: 'Inventory' },
-  { id: 'expenses',  label: 'Expenses'  },
 ]
 
 interface OwnerViewProps {
@@ -37,11 +2166,13 @@ export default function OwnerView({ tables }: OwnerViewProps) {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: T.surface }}>
 
+      {/* ── Owner header ──────────────────────────────────────────────────── */}
       <div style={{
         height: 52, padding: '0 24px', flexShrink: 0,
         background: T.bg, borderBottom: `1px solid ${T.line}`,
         display: 'flex', alignItems: 'center', gap: 16,
       }}>
+        {/* Lock icon */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 6,
           fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
@@ -62,6 +2193,7 @@ export default function OwnerView({ tables }: OwnerViewProps) {
 
         <div style={{ flex: 1 }} />
 
+        {/* Tab strip */}
         <div style={{ display: 'flex', gap: 2 }}>
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} style={{
@@ -79,6 +2211,7 @@ export default function OwnerView({ tables }: OwnerViewProps) {
         </div>
       </div>
 
+      {/* ── Tab content ───────────────────────────────────────────────────── */}
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {tab === 'reports'   && <ReportsTab />}
         {tab === 'budget'    && <BudgetTab />}
@@ -86,7 +2219,6 @@ export default function OwnerView({ tables }: OwnerViewProps) {
         {tab === 'tables'    && <TablesTab liveTableStatuses={tables} />}
         {tab === 'menu'      && <MenuTab />}
         {tab === 'inventory' && <InventoryTab />}
-        {tab === 'expenses'  && <OwnerExpensesTab />}
       </div>
     </div>
   )

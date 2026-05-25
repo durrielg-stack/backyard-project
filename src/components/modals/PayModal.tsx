@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { THEME } from '@/lib/theme'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import ModalBase from './ModalBase'
@@ -201,48 +201,85 @@ function CardFlow({ total, onPaid }: { total: number; onPaid: () => void }) {
         </div>
       )}
 
-      {/* Manual advance buttons — no auto-advance */}
-      {step === 'insert' && (
-        <button onClick={() => setStep('processing')} style={{
-          padding: '12px 32px', fontFamily: 'inherit', fontSize: 14, fontWeight: 600,
-          background: T.accent, color: T.accentInk, border: 'none',
-          borderRadius: T.radius, cursor: 'pointer',
-        }}>
-          Card Inserted →
-        </button>
-      )}
-      {step === 'processing' && (
-        <button onClick={() => setStep('approved')} style={{
-          padding: '12px 32px', fontFamily: 'inherit', fontSize: 14, fontWeight: 600,
-          background: T.chip, color: T.text, border: `1px solid ${T.line2}`,
-          borderRadius: T.radius, cursor: 'pointer',
-        }}>
-          Confirm Approved →
-        </button>
-      )}
-      {step === 'approved' && (
-        <button onClick={onPaid} style={{
-          padding: '12px 32px', fontFamily: 'inherit', fontSize: 14, fontWeight: 700,
-          background: T.ok, color: '#fff', border: 'none',
-          borderRadius: T.radius, cursor: 'pointer',
-        }}>
-          Confirm Payment Received
-        </button>
-      )}
+      {/* Manual advance button */}
+      <button
+        onClick={() => {
+          if (step === 'insert')     setStep('processing')
+          else if (step === 'processing') setStep('approved')
+          else onPaid()
+        }}
+        style={{
+          padding: '12px 32px',
+          fontFamily: 'inherit', fontSize: 14, fontWeight: 700,
+          background: step === 'approved' ? T.ok : T.accent,
+          color: T.accentInk,
+          border: 'none', borderRadius: T.radius, cursor: 'pointer',
+          letterSpacing: '-0.01em',
+          transition: 'background 0.2s ease',
+        }}
+      >
+        {step === 'insert' ? 'Card Inserted →' : step === 'processing' ? 'Approved →' : 'Confirm Payment'}
+      </button>
     </div>
   )
 }
 
 // ── QR / GCash flow ────────────────────────────────────────────────────────
 type QRStep = 'waiting' | 'scanned' | 'received'
+type QRMethod = 'gcash' | 'maya'
 
-function QRFlow({ total, onPaid }: { total: number; onPaid: () => void }) {
-  const [step, setStep] = useState<QRStep>('waiting')
+function QRFlow({ total, onPaid }: { total: number; onPaid: (method: QRMethod) => void }) {
+  const [step, setStep]         = useState<QRStep>('waiting')
+  const [qrMethod, setQrMethod] = useState<QRMethod>('gcash')
+
+  useEffect(() => {
+    setStep('waiting')
+  }, [qrMethod])
+
+  useEffect(() => {
+    if (step === 'waiting') {
+      const t = setTimeout(() => setStep('scanned'),   3200)
+      return () => clearTimeout(t)
+    }
+    if (step === 'scanned') {
+      const t = setTimeout(() => setStep('received'),  1600)
+      return () => clearTimeout(t)
+    }
+    if (step === 'received') {
+      const t = setTimeout(() => onPaid(qrMethod), 1400)
+      return () => clearTimeout(t)
+    }
+  }, [step, onPaid, qrMethod])
+
+  const methodName = qrMethod === 'gcash' ? 'GCash' : 'Maya'
 
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, padding: '12px 0',
     }}>
+      {/* QR method toggle */}
+      <div style={{ display: 'flex', gap: 6 }}>
+        {(['gcash', 'maya'] as QRMethod[]).map(m => {
+          const active = qrMethod === m
+          return (
+            <button
+              key={m}
+              onClick={() => setQrMethod(m)}
+              style={{
+                padding: '6px 18px', fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+                background: active ? `${T.accent}18` : T.chip,
+                color:      active ? T.accent : T.textDim,
+                border:     `1px solid ${active ? T.accent : T.line2}`,
+                borderRadius: T.radius, cursor: 'pointer',
+                transition: 'background 0.12s ease, border-color 0.12s ease, color 0.12s ease',
+              }}
+            >
+              {m === 'gcash' ? 'GCash' : 'Maya'}
+            </button>
+          )
+        })}
+      </div>
+
       <QRCodeVisual size={156} />
 
       <div style={{
@@ -262,45 +299,16 @@ function QRFlow({ total, onPaid }: { total: number; onPaid: () => void }) {
               animation: 'bp-pulse 2s ease-out infinite',
               display: 'inline-block',
             }} />
-            Waiting for scan…
+            Waiting for {methodName} scan…
           </>
         )}
         {step === 'scanned'  && 'Scanned · confirming…'}
-        {step === 'received' && 'Payment received via Maya · ref MX-2814'}
+        {step === 'received' && `Payment received via ${methodName} · ref MX-2814`}
       </div>
 
       <div style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute, textAlign: 'center' }}>
-        Open GCash / Maya and scan
+        Display your venue QR code — staff confirms payment manually
       </div>
-
-      {/* Manual advance — staff confirms payment, no auto-advance */}
-      {step === 'waiting' && (
-        <button onClick={() => setStep('scanned')} style={{
-          padding: '10px 28px', fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
-          background: T.chip, color: T.text, border: `1px solid ${T.line2}`,
-          borderRadius: T.radius, cursor: 'pointer',
-        }}>
-          Mark Scanned →
-        </button>
-      )}
-      {step === 'scanned' && (
-        <button onClick={() => setStep('received')} style={{
-          padding: '10px 28px', fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
-          background: T.chip, color: T.text, border: `1px solid ${T.line2}`,
-          borderRadius: T.radius, cursor: 'pointer',
-        }}>
-          Confirm Received →
-        </button>
-      )}
-      {step === 'received' && (
-        <button onClick={onPaid} style={{
-          padding: '12px 32px', fontFamily: 'inherit', fontSize: 14, fontWeight: 700,
-          background: T.ok, color: '#fff', border: 'none',
-          borderRadius: T.radius, cursor: 'pointer',
-        }}>
-          Confirm Payment Received
-        </button>
-      )}
     </div>
   )
 }
@@ -329,6 +337,7 @@ export default function PayModal({ total, subtotal, tipAmt, onPaid, onClose }: P
 
   function handleDigit(d: string) {
     if (d === '⌫') { setInput(p => p.slice(0, -1)); return }
+    if (d === '.' && !input) { setInput('0.'); return }
     if (d === '.' && input.includes('.')) return
     const next = input + d
     const [, dec] = next.split('.')
@@ -337,7 +346,7 @@ export default function PayModal({ total, subtotal, tipAmt, onPaid, onClose }: P
   }
 
   const methodLabel: Record<Method, string> = {
-    cash: 'Cash', card: 'Card', qr: 'QR / GCash',
+    cash: 'Cash', card: 'Card', qr: 'QR Pay',
   }
 
   return (
@@ -488,7 +497,7 @@ export default function PayModal({ total, subtotal, tipAmt, onPaid, onClose }: P
           <QRFlow
             key="qr"
             total={total}
-            onPaid={() => onPaid('gcash', total)}
+            onPaid={(m) => onPaid(m, total)}
           />
         )}
       </div>

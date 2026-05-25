@@ -10,26 +10,32 @@ import OrderFooter from './OrderFooter'
 const T = THEME
 
 interface OrderPanelProps {
-  table:           TableWithStatus
-  orderId:         number | null
-  lines:           CartLine[]
-  subtotal:        number
-  tip:             number
-  setTip:          (amount: number) => void
-  discount:        number
-  setDiscount:     (amount: number) => void
-  total:           number
-  selectedLine:    string | null
-  setSelectedLine: (id: string | null) => void
-  selectedSeat:    number
-  setSelectedSeat: (seat: number) => void
-  onUpdateQty:     (lineId: string, delta: number) => Promise<void>
-  onVoid:          (lineId: string, reason: string) => Promise<void>
-  onSetNote:       (lineId: string, note: string) => Promise<void>
-  onBillItem:      (lineId: string) => void
-  onBack:          () => void
-  onSplit:         () => void
-  onCharge:        () => void
+  table:              TableWithStatus
+  orderId:            number | null
+  lines:              CartLine[]
+  subtotal:           number
+  tip:                number
+  setTip:             (amount: number) => void
+  discount:           number
+  setDiscount:        (amount: number) => void
+  total:              number
+  selectedLine:       string | null
+  setSelectedLine:    (id: string | null) => void
+  selectedSeat:       number
+  setSelectedSeat:    (seat: number) => void
+  onUpdateQty:        (lineId: string, delta: number) => Promise<void>
+  onVoid:             (lineId: string, reason: string) => Promise<void>
+  onSetNote:          (lineId: string, note: string) => Promise<void>
+  onBillItem:         (lineId: string) => void
+  onBack:             () => void
+  onSplit:            () => void
+  onCharge:           () => void
+  bulkMode:           boolean
+  bulkSelected:       Set<string>
+  onToggleBulkMode:   () => void
+  onToggleBulk:       (lineId: string) => void
+  onBulkVoid:         () => void
+  onMove?:            () => void
 }
 
 export default function OrderPanel({
@@ -38,6 +44,7 @@ export default function OrderPanel({
   selectedLine, setSelectedLine, selectedSeat, setSelectedSeat,
   onUpdateQty, onVoid, onSetNote, onBillItem,
   onBack, onSplit, onCharge,
+  bulkMode, bulkSelected, onToggleBulkMode, onToggleBulk, onBulkVoid, onMove,
 }: OrderPanelProps) {
   const listRef = useRef<HTMLDivElement>(null)
   const bp = useBreakpoint()
@@ -137,7 +144,52 @@ export default function OrderPanel({
         }}>
           {statusLabel(table.status)}
         </span>
+
+        {/* Move to Table */}
+        {onMove && (
+          <button onClick={onMove} style={{
+            padding: '4px 10px', fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
+            background: 'transparent', border: `1px solid ${T.line2}`,
+            color: T.textDim, borderRadius: T.radius, cursor: 'pointer', flexShrink: 0,
+            transition: 'border-color 0.12s ease, color 0.12s ease',
+          }}>
+            Move
+          </button>
+        )}
+
+        {/* Bulk select toggle */}
+        <button onClick={onToggleBulkMode} style={{
+          padding: '4px 10px', fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
+          background: bulkMode ? `${T.warn}18` : 'transparent',
+          border:     `1px solid ${bulkMode ? T.warn : T.line2}`,
+          color:      bulkMode ? T.warn : T.textDim,
+          borderRadius: T.radius, cursor: 'pointer', flexShrink: 0,
+          transition: 'background 0.12s ease, border-color 0.12s ease, color 0.12s ease',
+        }}>
+          {bulkMode ? 'Cancel' : 'Select'}
+        </button>
       </div>
+
+      {/* ── Bulk void bar (shown when items selected) ───────────────────── */}
+      {bulkMode && bulkSelected.size > 0 && (
+        <div style={{
+          padding: '6px 24px',
+          background: `${T.bad}14`, borderBottom: `1px solid ${T.bad}44`,
+          display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0,
+        }}>
+          <span style={{ fontSize: 12, color: T.bad, fontFamily: T.mono }}>
+            {bulkSelected.size} item{bulkSelected.size !== 1 ? 's' : ''} selected
+          </span>
+          <div style={{ flex: 1 }} />
+          <button onClick={onBulkVoid} style={{
+            padding: '4px 14px', fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
+            background: `${T.bad}18`, border: `1px solid ${T.bad}66`,
+            color: T.bad, borderRadius: T.radius, cursor: 'pointer',
+          }}>
+            Void {bulkSelected.size} item{bulkSelected.size !== 1 ? 's' : ''}
+          </button>
+        </div>
+      )}
 
       {/* ── Seat selector ───────────────────────────────────────────────── */}
       <div style={{
@@ -210,14 +262,17 @@ export default function OrderPanel({
               key={line.lineId}
               line={line}
               index={i + 1}
-              selected={selectedLine === line.lineId}
-              onSelect={() => setSelectedLine(
-                selectedLine === line.lineId ? null : line.lineId
-              )}
+              selected={!bulkMode && selectedLine === line.lineId}
+              onSelect={() => {
+                if (bulkMode) { onToggleBulk(line.lineId); return }
+                setSelectedLine(selectedLine === line.lineId ? null : line.lineId)
+              }}
               onUpdateQty={onUpdateQty}
               onVoid={onVoid}
               onSetNote={onSetNote}
               onBill={onBillItem}
+              bulkMode={bulkMode}
+              bulkChecked={bulkSelected.has(line.lineId)}
             />
           ))
         )}

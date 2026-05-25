@@ -8,9 +8,11 @@ import { THEME }          from '@/lib/theme'
 import type { CartLine, TableWithStatus, PayMethod } from '@/lib/types'
 import MenuPanel    from './MenuPanel'
 import OrderPanel   from './OrderPanel'
-import PayModal     from '@/components/modals/PayModal'
-import SplitModal   from '@/components/modals/SplitModal'
-import PaidOverlay  from '@/components/modals/PaidOverlay'
+import PayModal        from '@/components/modals/PayModal'
+import SplitModal      from '@/components/modals/SplitModal'
+import PaidOverlay     from '@/components/modals/PaidOverlay'
+import BulkVoidModal   from '@/components/modals/BulkVoidModal'
+import MoveItemsModal  from '@/components/modals/MoveItemsModal'
 import type { SplitResult } from '@/components/modals/SplitModal'
 
 const T = THEME
@@ -18,22 +20,25 @@ const T = THEME
 // ── Modal state discriminant ───────────────────────────────────────────────
 type ModalState =
   | { kind: 'none' }
-  | { kind: 'pay';   payAmount: number; splitLineIds: string[] | null; singleItem?: boolean; waysRemaining?: number }
+  | { kind: 'pay';   payAmount: number; splitLineIds: string[] | null; singleItem?: boolean }
   | { kind: 'split' }
   | { kind: 'paid';  total: number }
+  | { kind: 'bulkVoid' }
+  | { kind: 'move' }
 
 interface OrderViewProps {
   tableId:    string
   table:      TableWithStatus
+  tables:     TableWithStatus[]
   staff:      string
   onBack:     () => void
   onCartSync: (tableId: string, lines: CartLine[]) => void
 }
 
-export default function OrderView({ tableId, table, staff, onBack, onCartSync }: OrderViewProps) {
+export default function OrderView({ tableId, table, tables, staff, onBack, onCartSync }: OrderViewProps) {
   const {
-    orderId, lines, loading,
-    addItem, updateQty, voidItem, setNote, closeOrder, payPartial,
+    orderId, lines, loading, error, clearError,
+    addItem, updateQty, voidItem, setNote, closeOrder, payPartial, moveItems,
   } = useOrder(tableId, staff)
 
   const { byCategory, byId: menuById } = useMenuItems()
@@ -55,6 +60,32 @@ export default function OrderView({ tableId, table, staff, onBack, onCartSync }:
 
   // ── Modal state ───────────────────────────────────────────────────────────
   const [modal, setModal] = useState<ModalState>({ kind: 'none' })
+
+  // ── Bulk void state ───────────────────────────────────────────────────────
+  const [bulkMode,     setBulkMode]     = useState(false)
+  const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set())
+
+  function handleToggleBulk(lineId: string) {
+    setBulkSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(lineId)) next.delete(lineId)
+      else next.add(lineId)
+      return next
+    })
+  }
+
+  function handleBulkVoidOpen() {
+    if (bulkSelected.size > 0) setModal({ kind: 'bulkVoid' })
+  }
+
+  async function handleBulkVoidConfirm(reason: string) {
+    for (const lineId of bulkSelected) {
+      await voidItem(lineId, reason)
+    }
+    setBulkSelected(new Set())
+    setBulkMode(false)
+    setModal({ kind: 'none' })
+  }
 
   // ── Sync lines up to POSApp for auto-status derivation ────────────────────
   useEffect(() => {
@@ -87,22 +118,13 @@ export default function OrderView({ tableId, table, staff, onBack, onCartSync }:
     if (modal.kind !== 'pay') return
     const { payAmount, splitLineIds } = modal
 
-    if (splitLineIds !== null) {
-      const waysLeft   = modal.waysRemaining ?? 1
-      const isLastWay  = waysLeft <= 1
-      // For equally split: don't assign lines until last payment to avoid premature auto-close
-      const effectiveIds = modal.waysRemaining != null && !isLastWay ? [] : splitLineIds
-      const result = await payPartial(effectiveIds, method, payAmount, tendered, isLastWay && !modal.singleItem)
+    if (splitLineIds) {
+      const result = await payPartial(splitLineIds, method, payAmount, tendered, !modal.singleItem)
       if (result === 'closed') {
         setModal({ kind: 'paid', total: payAmount })
-      } else if (result === 'partial' || !isLastWay) {
-        if (modal.singleItem) {
-          setModal({ kind: 'none' })
-        } else if (modal.waysRemaining != null && waysLeft > 1) {
-          setModal({ ...modal, waysRemaining: waysLeft - 1 })
-        } else {
-          setModal({ kind: 'split' })
-        }
+      } else if (result === 'partial') {
+        // Single-item bill: just return to order; split flow: reopen split modal
+        setModal(modal.singleItem ? { kind: 'none' } : { kind: 'split' })
       }
     } else {
       const ok = await closeOrder(method, tendered, payAmount, tip, discount)
@@ -112,10 +134,10 @@ export default function OrderView({ tableId, table, staff, onBack, onCartSync }:
 
   function handleSplitConfirm(result: SplitResult) {
     if (result.mode === 'equally') {
+      // Equally: pay total/ways per transaction — assign all remaining lines
       const ways   = result.ways ?? 2
       const amount = parseFloat((total / ways).toFixed(2))
-      // waysRemaining tracks how many payments left; all lineIds assigned only on the last payment
-      setModal({ kind: 'pay', payAmount: amount, splitLineIds: lines.map(l => l.lineId), waysRemaining: ways })
+      setModal({ kind: 'pay', payAmount: amount, splitLineIds: lines.map(l => l.lineId) })
     } else if (result.mode === 'by-item' && result.items) {
       const amount = lines
         .filter(l => result.items!.includes(l.lineId))
@@ -205,6 +227,12 @@ export default function OrderView({ tableId, table, staff, onBack, onCartSync }:
             onBack={onBack}
             onSplit={handleSplit}
             onCharge={handleCharge}
+            bulkMode={bulkMode}
+            bulkSelected={bulkSelected}
+            onToggleBulkMode={() => { setBulkMode(p => !p); setBulkSelected(new Set()) }}
+            onToggleBulk={handleToggleBulk}
+            onBulkVoid={handleBulkVoidOpen}
+            onMove={lines.length > 0 ? () => setModal({ kind: 'move' }) : undefined}
           />
         </div>
       </div>
@@ -237,6 +265,23 @@ export default function OrderView({ tableId, table, staff, onBack, onCartSync }:
         </div>
       )}
 
+      {/* ── Error banner ────────────────────────────────────────────────────── */}
+      {error && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200,
+          background: T.bad, color: '#fff',
+          padding: '10px 24px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          fontFamily: T.mono, fontSize: 13,
+        }}>
+          <span>{error}</span>
+          <button onClick={clearError} style={{
+            background: 'none', border: 'none', color: '#fff',
+            cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '0 4px',
+          }}>×</button>
+        </div>
+      )}
+
       {/* ── Modals ──────────────────────────────────────────────────────────── */}
       {modal.kind === 'pay' && (
         <PayModal
@@ -264,6 +309,27 @@ export default function OrderView({ tableId, table, staff, onBack, onCartSync }:
           tableLabel={table.label}
           orderId={orderId}
           onDone={handlePaidOverlayDone}
+        />
+      )}
+
+      {modal.kind === 'bulkVoid' && (
+        <BulkVoidModal
+          count={bulkSelected.size}
+          onConfirm={handleBulkVoidConfirm}
+          onClose={() => setModal({ kind: 'none' })}
+        />
+      )}
+
+      {modal.kind === 'move' && (
+        <MoveItemsModal
+          lines={lines}
+          tables={tables}
+          currentTableId={tableId}
+          onConfirm={async (lineIds, targetTableId) => {
+            const ok = await moveItems(lineIds, targetTableId)
+            if (ok) setModal({ kind: 'none' })
+          }}
+          onClose={() => setModal({ kind: 'none' })}
         />
       )}
     </>

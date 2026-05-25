@@ -140,14 +140,17 @@ export default function MenuPanel({ byCategory, onAdd, onKeyboardShortcut }: Men
 
   // Items to show
   const groupItems = useCallback(() => {
+    if (query) {
+      const q   = query.toLowerCase()
+      const all = Object.values(byCategory).flat()
+      return all.filter(i =>
+        i.name.toLowerCase().includes(q) ||
+        (i.description ?? '').toLowerCase().includes(q) ||
+        i.category.toLowerCase().includes(q)
+      )
+    }
     const cats = activeCat ? [activeCat] : activeGroup.cats
-    const all  = cats.flatMap(c => byCategory[c] ?? [])
-    if (!query) return all
-    const q = query.toLowerCase()
-    return all.filter(i =>
-      i.name.toLowerCase().includes(q) ||
-      (i.description ?? '').toLowerCase().includes(q)
-    )
+    return cats.flatMap(c => byCategory[c] ?? [])
   }, [byCategory, activeGroup, activeCat, query])
 
   const items = groupItems()

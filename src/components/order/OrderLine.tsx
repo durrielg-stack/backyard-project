@@ -9,14 +9,16 @@ const T = THEME
 const VOID_REASONS = ['Wrong item', 'Changed mind', 'Unavailable', 'Duplicate'] as const
 
 interface OrderLineProps {
-  line:       CartLine
-  index:      number
-  selected:   boolean
-  onSelect:   () => void
-  onUpdateQty:(lineId: string, delta: number) => void
-  onVoid:     (lineId: string, reason: string) => void
-  onSetNote:  (lineId: string, note: string) => void
-  onBill:     (lineId: string) => void
+  line:        CartLine
+  index:       number
+  selected:    boolean
+  onSelect:    () => void
+  onUpdateQty: (lineId: string, delta: number) => void
+  onVoid:      (lineId: string, reason: string) => void
+  onSetNote:   (lineId: string, note: string) => void
+  onBill:      (lineId: string) => void
+  bulkMode?:   boolean
+  bulkChecked?: boolean
 }
 
 function TrashIcon() {
@@ -37,6 +39,7 @@ function NoteIcon() {
 export default function OrderLine({
   line, index, selected,
   onSelect, onUpdateQty, onVoid, onSetNote, onBill,
+  bulkMode = false, bulkChecked = false,
 }: OrderLineProps) {
   const [editNote, setEditNote]       = useState(false)
   const [noteVal, setNoteVal]         = useState(line.note)
@@ -46,20 +49,20 @@ export default function OrderLine({
 
   return (
     <div
-      onClick={() => !selected && onSelect()}
+      onClick={() => onSelect()}
       className="bp-cart-in"
       style={{
         borderBottom: `1px solid ${T.line}`,
-        borderLeft:   selected ? `2px solid ${T.accent}` : '2px solid transparent',
-        background:   selected ? T.surface2 : 'transparent',
-        cursor:       selected ? 'default' : 'pointer',
+        borderLeft:   bulkChecked ? `2px solid ${T.warn}` : selected ? `2px solid ${T.accent}` : '2px solid transparent',
+        background:   bulkChecked ? `${T.warn}0A` : selected ? T.surface2 : 'transparent',
+        cursor:       selected && !bulkMode ? 'default' : 'pointer',
         transition:   'background 0.12s ease, border-color 0.12s ease',
       }}
     >
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '28px 1fr auto',
-        padding: selected ? '12px 16px 8px 14px' : '10px 16px 10px 14px',
+        gridTemplateColumns: bulkMode ? '28px 28px 1fr auto' : '28px 1fr auto',
+        padding: selected && !bulkMode ? '12px 16px 8px 14px' : '10px 16px 10px 14px',
         gap: 10, alignItems: 'flex-start',
       }}>
         {/* Index */}
@@ -69,6 +72,25 @@ export default function OrderLine({
         }}>
           {String(index).padStart(2, '0')}
         </span>
+
+        {/* Bulk checkbox */}
+        {bulkMode && (
+          <div onClick={e => { e.stopPropagation(); onSelect() }} style={{
+            width: 18, height: 18, marginTop: 2,
+            border: `1.5px solid ${bulkChecked ? T.warn : T.line2}`,
+            borderRadius: 2,
+            background: bulkChecked ? T.warn : 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', flexShrink: 0,
+            transition: 'background 0.12s ease, border-color 0.12s ease',
+          }}>
+            {bulkChecked && (
+              <svg viewBox="0 0 10 10" width={10} height={10} fill="none" stroke="#fff" strokeWidth={1.5}>
+                <path d="M2 5l2.5 2.5L8 3" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+          </div>
+        )}
 
         {/* Name + note */}
         <div>
