@@ -47,6 +47,10 @@ export default function ReportsTab() {
     const sb  = getClient() as any
     const now = new Date()
 
+    // Use local date strings to avoid UTC rollback in UTC+8 timezone
+    const localDateStr = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+
     const todayStart = new Date(now); todayStart.setHours(0,0,0,0)
     const weekStart  = new Date(now); weekStart.setDate(weekStart.getDate() - 6);  weekStart.setHours(0,0,0,0)
     const monthStart = new Date(now); monthStart.setDate(monthStart.getDate() - 29); monthStart.setHours(0,0,0,0)
@@ -74,7 +78,7 @@ export default function ReportsTab() {
       const orderDateMap: Record<number, string> = {}
       const orderOpenedAtMap: Record<number, Date> = {}
       for (const o of (allOrders ?? [])) {
-        orderDateMap[o.id] = new Date(o.opened_at).toISOString().slice(0,10)
+        orderDateMap[o.id] = localDateStr(new Date(o.opened_at))
         orderOpenedAtMap[o.id] = new Date(o.opened_at)
       }
 
@@ -135,12 +139,12 @@ export default function ReportsTab() {
       })))
       setWeeklyGrouped(Array.from({ length: 7 }, (_, i) => {
         const d = new Date(weekStart); d.setDate(d.getDate() + i)
-        const dk = d.toISOString().slice(0,10)
+        const dk = localDateStr(d)
         return { label: DAY_ABBR[d.getDay()], gross: dayGross[dk] ?? 0, cost: dayCost[dk] ?? 0, expenses: 0 }
       }))
       setMonthlyGrouped(Array.from({ length: 30 }, (_, i) => {
         const d = new Date(monthStart); d.setDate(d.getDate() + i)
-        const dk = d.toISOString().slice(0,10)
+        const dk = localDateStr(d)
         return { label: `${d.getDate()}`, gross: dayGross[dk] ?? 0, cost: dayCost[dk] ?? 0, expenses: 0 }
       }))
 
@@ -154,12 +158,12 @@ export default function ReportsTab() {
 
     const { data: expData } = await sb
       .from('daily_expenses').select('expense_date, category, amount')
-      .gte('expense_date', monthStart.toISOString().slice(0,10))
+      .gte('expense_date', localDateStr(monthStart))
     const expDayBuckets: Record<string, number> = {}
     const expCatBuckets: Record<string, Record<string, number>> = { today: {}, week: {}, month: {} }
     let expTodayTotal = 0; let expWeekTotal = 0; let expMonthTotal = 0
-    const todayStr = todayStart.toISOString().slice(0,10)
-    const weekStr  = weekStart.toISOString().slice(0,10)
+    const todayStr = localDateStr(todayStart)
+    const weekStr  = localDateStr(weekStart)
     for (const r of (expData ?? [])) {
       expDayBuckets[r.expense_date] = (expDayBuckets[r.expense_date] ?? 0) + r.amount
       expMonthTotal += r.amount
@@ -183,11 +187,11 @@ export default function ReportsTab() {
       const idx = DAY_ABBR.indexOf(b.label)
       if (idx < 0) return b
       const d = new Date(); d.setDate(d.getDate() - (d.getDay() - idx + 7) % 7)
-      return { ...b, expenses: expDayBuckets[d.toISOString().slice(0,10)] ?? 0 }
+      return { ...b, expenses: expDayBuckets[localDateStr(d)] ?? 0 }
     }))
     setMonthlyGrouped(prev => prev.map(b => {
       const d = new Date(monthStart); d.setDate(monthStart.getDate() + parseInt(b.label) - monthStart.getDate())
-      return { ...b, expenses: expDayBuckets[d.toISOString().slice(0,10)] ?? 0 }
+      return { ...b, expenses: expDayBuckets[localDateStr(d)] ?? 0 }
     }))
 
     const { data: todayPmts } = await sb
