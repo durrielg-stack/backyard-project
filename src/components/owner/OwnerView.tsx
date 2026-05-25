@@ -320,11 +320,11 @@ function GroupedBarChart({ bars, height = 220, mode = 'bar' }: { bars: MultiBar[
             })}
           </div>
         ) : (
-          /* Line chart — SVG with viewBox so it scales perfectly */
+          /* Line chart — viewBox 0 0 100 100, both axes normalised to 0-100 */
           <svg
-            viewBox={`0 0 ${bars.length - 1} 1`}
+            viewBox="0 0 100 100"
             preserveAspectRatio="none"
-            style={{ position: 'absolute', inset: '0 0 0 0', width: '100%', height: '100%', overflow: 'visible' }}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
           >
             {SERIES.map((s, si) => {
               const vals = bars.map(b => {
@@ -332,9 +332,9 @@ function GroupedBarChart({ bars, height = 220, mode = 'bar' }: { bars: MultiBar[
                 return row[si]
               })
               const points = vals.map((v, i) => {
-                const x = bars.length > 1 ? i / (bars.length - 1) * (bars.length - 1) : 0
-                const y = 1 - (v / maxVal)
-                return `${x},${y}`
+                const x = bars.length > 1 ? (i / (bars.length - 1)) * 100 : 50
+                const y = 100 - (maxVal > 0 ? (v / maxVal) * 96 : 0)  // 96 = leave 2% padding top/bottom
+                return `${x.toFixed(2)},${y.toFixed(2)}`
               }).join(' ')
               return (
                 <g key={s.key}>
@@ -342,20 +342,20 @@ function GroupedBarChart({ bars, height = 220, mode = 'bar' }: { bars: MultiBar[
                     points={points}
                     fill="none"
                     stroke={s.color}
-                    strokeWidth={2}
+                    strokeWidth={1.5}
                     strokeLinejoin="round"
                     strokeLinecap="round"
                     opacity={0.9}
                     vectorEffect="non-scaling-stroke"
                   />
                   {bars.length <= 31 && vals.map((v, i) => {
-                    const x = bars.length > 1 ? i / (bars.length - 1) * (bars.length - 1) : 0
-                    const y = 1 - (v / maxVal)
+                    const x = bars.length > 1 ? (i / (bars.length - 1)) * 100 : 50
+                    const y = 100 - (maxVal > 0 ? (v / maxVal) * 96 : 0)
                     return (
                       <circle
                         key={i}
-                        cx={x} cy={y}
-                        r={3}
+                        cx={x.toFixed(2)} cy={y.toFixed(2)}
+                        r={1.2}
                         fill={s.color}
                         vectorEffect="non-scaling-stroke"
                       />

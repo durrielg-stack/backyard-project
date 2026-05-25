@@ -331,12 +331,13 @@ function KpiStrip({ tables, tickets }: { tables: TableWithStatus[]; tickets: Kds
       note: 'closed orders today', noteColor: T.textDim },
   ]
 
+  const kpiStyle: React.CSSProperties = isMobile
+    ? { display: 'flex', flexDirection: 'row', overflowX: 'auto', WebkitOverflowScrolling: 'touch', height: 'auto' }
+    : { display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', height: 'clamp(80px, 9.3vh, 120px)' }
+
   return (
     <div className="bp-no-scrollbar" style={{
-      display: isMobile ? 'flex' : 'grid',
-      gridTemplateColumns: isMobile ? undefined : 'repeat(6, 1fr)',
-      overflowX: isMobile ? 'auto' : undefined,
-      height: isMobile ? 'auto' : 'clamp(80px, 9.3vh, 120px)',
+      ...kpiStyle,
       borderBottom: `1px solid ${T.line}`, flexShrink: 0,
     }}>
       {kpis.map((k, i) => (
@@ -344,7 +345,8 @@ function KpiStrip({ tables, tickets }: { tables: TableWithStatus[]; tickets: Kds
           padding: isMobile ? '12px 16px' : '16px 24px',
           borderRight: `1px solid ${T.line}`,
           display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-          minWidth: isMobile ? 140 : undefined,
+          minWidth: isMobile ? 150 : undefined,
+          flexShrink: 0,
           gap: isMobile ? 4 : undefined,
         }}>
           <div style={{
