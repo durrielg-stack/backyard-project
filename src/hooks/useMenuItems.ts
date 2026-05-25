@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { getClient } from '@/lib/supabase'
 import type { MenuItem } from '@/lib/types'
 
@@ -31,19 +31,17 @@ export function useMenuItems() {
     load()
   }, [])
 
-  // Group by category for the menu panel tabs
-  const byCategory = items.reduce<Record<string, MenuItem[]>>((acc, item) => {
+  const byCategory = useMemo(() => items.reduce<Record<string, MenuItem[]>>((acc, item) => {
     const key = item.category
     if (!acc[key]) acc[key] = []
     acc[key].push(item)
     return acc
-  }, {})
+  }, {}), [items])
 
-  // Map by id for quick lookup in cart
-  const byId = items.reduce<Record<string, MenuItem>>((acc, item) => {
+  const byId = useMemo(() => items.reduce<Record<string, MenuItem>>((acc, item) => {
     acc[item.id] = item
     return acc
-  }, {})
+  }, {}), [items])
 
   return { items, byCategory, byId, loading, error }
 }

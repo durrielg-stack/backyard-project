@@ -69,12 +69,11 @@ interface TabProps {
   dashed?: boolean
   dimmed?: boolean
   onClose?: () => void
+  isMobile?: boolean
 }
 
-function NavTab({ active, onClick, label, sub, dot, dashed, dimmed, onClose }: TabProps) {
+function NavTab({ active, onClick, label, sub, dot, dashed, dimmed, onClose, isMobile: isMobileTab = false }: TabProps) {
   const borderColor = dashed ? T.line2 : 'transparent'
-  const bpInner = useBreakpoint()
-  const isMobileTab = bpInner === 'mobile'
   return (
     <div
       onClick={onClick}
@@ -203,6 +202,7 @@ export default function NavBar({
           onClick={onFloor}
           label="Sales"
           sub={`${openCount} open · ${attnTabs} attn`}
+          isMobile={isMobile}
         />
 
         {/* Expenses */}
@@ -211,6 +211,7 @@ export default function NavBar({
           onClick={onExpenses}
           label="Expenses"
           sub="Daily log"
+          isMobile={isMobile}
         />
 
         {/* Reports */}
@@ -219,6 +220,7 @@ export default function NavBar({
           onClick={onReports}
           label="Reports"
           sub="Sales · Expenses"
+          isMobile={isMobile}
         />
 
         {/* Owner */}
@@ -232,6 +234,7 @@ export default function NavBar({
             </span>
           }
           sub="Full access"
+          isMobile={isMobile}
         />
 
         {/* Per-table open tabs */}
@@ -252,6 +255,7 @@ export default function NavBar({
               sub={`$${total.toFixed(0)} · ${t.openMin}m`}
               dot={dot}
               onClose={() => onCloseTab(tableId)}
+              isMobile={isMobile}
             />
           )
         })}

@@ -58,12 +58,6 @@ export default function OrderFooter({
   const [tipVal,          setTipVal]          = useState('')
   const [discountVal,     setDiscountVal]     = useState('')
 
-  // keep backward-compat alias
-  const editing  = editingTip
-  const setEditing = setEditingTip
-  const inputVal   = tipVal
-  const setInputVal = setTipVal
-
   function applyTip() {
     const v = parseFloat(tipVal)
     setTip(!isNaN(v) && v >= 0 ? v : 0)
@@ -79,7 +73,7 @@ export default function OrderFooter({
   return (
     <div style={{
       borderTop: `1px solid ${T.line}`,
-      padding: isMobile ? '18px 16px 76px' : '18px 24px',
+      padding: isMobile ? 'calc(18px) 16px calc(56px + env(safe-area-inset-bottom, 0px))' : '18px 24px',
       flexShrink: 0, background: T.surface,
     }}>
       {/* ── Totals ──────────────────────────────────────────────────── */}
@@ -153,15 +147,15 @@ export default function OrderFooter({
           )}
         </span>
 
-        {editing ? (
+        {editingTip ? (
           <input
             autoFocus
-            value={inputVal}
-            onChange={e => setInputVal(e.target.value)}
+            value={tipVal}
+            onChange={e => setTipVal(e.target.value)}
             onBlur={applyTip}
             onKeyDown={e => {
               if (e.key === 'Enter')  { applyTip(); e.stopPropagation() }
-              if (e.key === 'Escape') { setEditing(false); e.stopPropagation() }
+              if (e.key === 'Escape') { setEditingTip(false); e.stopPropagation() }
               e.stopPropagation()
             }}
             placeholder="0.00"
@@ -173,7 +167,7 @@ export default function OrderFooter({
           />
         ) : (
           <button
-            onClick={() => { setInputVal(tip > 0 ? tip.toFixed(2) : ''); setEditing(true) }}
+            onClick={() => { setTipVal(tip > 0 ? tip.toFixed(2) : ''); setEditingTip(true) }}
             style={{
               padding: '4px 12px', fontSize: 12, fontFamily: 'inherit',
               background: tip > 0 ? `${T.accent}24` : 'transparent',

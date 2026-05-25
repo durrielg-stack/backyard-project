@@ -4,18 +4,21 @@ import { useEffect, useState } from 'react'
 
 export type Breakpoint = 'mobile' | 'tablet' | 'desktop'
 
+function measure(): Breakpoint {
+  const w = window.innerWidth
+  return w < 768 ? 'mobile' : w < 1200 ? 'tablet' : 'desktop'
+}
+
 export function useBreakpoint(): Breakpoint {
-  const [bp, setBp] = useState<Breakpoint>('desktop')
+  // null on server/first render to avoid SSR hydration mismatch
+  const [bp, setBp] = useState<Breakpoint | null>(null)
 
   useEffect(() => {
-    function update() {
-      const w = window.innerWidth
-      setBp(w < 768 ? 'mobile' : w < 1200 ? 'tablet' : 'desktop')
-    }
-    update()
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
+    setBp(measure())
+    function onResize() { setBp(measure()) }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  return bp
+  return bp ?? 'desktop'
 }
