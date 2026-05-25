@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTheme } from '@/lib/ThemeContext'
 import { getClient } from '@/lib/supabase'
 import type { TableWithStatus } from '@/lib/types'
-import SalesTab from './SalesTab'
 
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -2156,11 +2155,10 @@ function SavingsTab() {
 
 // ── OwnerView ─────────────────────────────────────────────────────────────────
 
-type OwnerTab = 'reports' | 'sales' | 'tables' | 'menu' | 'inventory' | 'budget' | 'savings'
+type OwnerTab = 'reports' | 'tables' | 'menu' | 'inventory' | 'budget' | 'savings'
 
 const TABS: { id: OwnerTab; label: string }[] = [
   { id: 'reports',   label: 'Reports'   },
-  { id: 'sales',     label: 'Sales'     },
   { id: 'budget',    label: 'Budget'    },
   { id: 'savings',   label: 'Savings'   },
   { id: 'tables',    label: 'Tables'    },
@@ -2228,7 +2226,7 @@ export default function OwnerView({ tables }: OwnerViewProps) {
       {/* ── Tab content ───────────────────────────────────────────────────── */}
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {tab === 'reports'   && <ReportsTab />}
-        {tab === 'sales'     && <SalesTab />}
+
         {tab === 'budget'    && <BudgetTab />}
         {tab === 'savings'   && <SavingsTab />}
         {tab === 'tables'    && <TablesTab liveTableStatuses={tables} />}

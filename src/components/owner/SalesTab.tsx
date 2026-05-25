@@ -105,21 +105,25 @@ export default function SalesTab() {
 
   useEffect(() => { fetchSales(date) }, [date, fetchSales])
 
-  // ── Category summary ───────────────────────────────────────────────────────
+  // ── Category summary — fixed order ────────────────────────────────────────
+  const SUMMARY_CATS = ['Food', 'Beer', 'Cocktails/Hard', 'Non-Alcohol', 'Cigarettes']
 
   const catMap = new Map<string, CategorySummary>()
+  for (const cat of SUMMARY_CATS) {
+    catMap.set(cat, { category: cat, gross: 0, cost: 0, net: 0, margin: 0 })
+  }
   for (const l of lines) {
-    if (!catMap.has(l.category)) {
-      catMap.set(l.category, { category: l.category, gross: 0, cost: 0, net: 0, margin: 0 })
-    }
-    const c = catMap.get(l.category)!
+    const key = SUMMARY_CATS.includes(l.category) ? l.category : null
+    if (!key) continue
+    const c = catMap.get(key)!
     c.gross += l.gross
     c.cost  += l.cost
     c.net   += l.net
   }
-  const catSummaries: CategorySummary[] = Array.from(catMap.values())
-    .map(c => ({ ...c, margin: c.gross > 0 ? (c.net / c.gross) * 100 : 0 }))
-    .sort((a, b) => b.gross - a.gross)
+  const catSummaries: CategorySummary[] = SUMMARY_CATS.map(cat => {
+    const c = catMap.get(cat)!
+    return { ...c, margin: c.gross > 0 ? (c.net / c.gross) * 100 : 0 }
+  })
 
   const totalGross  = lines.reduce((s, l) => s + l.gross,  0)
   const totalCost   = lines.reduce((s, l) => s + l.cost,   0)

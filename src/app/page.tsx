@@ -14,6 +14,7 @@ import OrderView    from '@/components/order/OrderView'
 import ReportsView  from '@/components/reports/ReportsView'
 import OwnerView    from '@/components/owner/OwnerView'
 import ExpensesView from '@/components/expenses/ExpensesView'
+import SalesView    from '@/components/owner/SalesTab'
 import StaffPicker     from '@/components/StaffPicker'
 import MessengerBadge  from '@/components/floor/MessengerBadge'
 
@@ -22,6 +23,7 @@ type View =
   | 'floor'
   | 'expenses'
   | 'reports'
+  | 'sales'
   | 'owner'
   | { kind: 'order'; tableId: string }
 
@@ -154,6 +156,7 @@ export default function POSApp() {
   const goFloor    = useCallback(() => setView('floor'),    [])
   const goExpenses = useCallback(() => setView('expenses'), [])
   const goReports  = useCallback(() => setView('reports'),  [])
+  const goSales    = useCallback(() => setView('sales'),    [])
   const goOwner    = useCallback(() => setView('owner'),    [])
   const goOrder   = useCallback((tableId: string) => setView({ kind: 'order', tableId }), [])
 
@@ -185,6 +188,7 @@ export default function POSApp() {
         onFloor={goFloor}
         onExpenses={goExpenses}
         onReports={goReports}
+        onSales={goSales}
         onOwner={goOwner}
         onOrder={goOrder}
         onCloseTab={closeTab}
@@ -204,6 +208,8 @@ export default function POSApp() {
         {view === 'floor' && <MessengerBadge />}
 
         {view === 'expenses' && <ExpensesView />}
+
+        {view === 'sales' && <SalesView />}
 
         {view === 'reports' && (
           <ReportsView tables={tablesWithStatus} />
