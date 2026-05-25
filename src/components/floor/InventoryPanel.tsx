@@ -17,7 +17,8 @@ export default function StockAlertsStrip() {
       .lte('quantity', 5)
       .order('quantity')
       .limit(12)
-      .then(({ data }) => setRows(data ?? []))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .then(({ data }) => setRows((data ?? []) as any))
   }, [])
 
   if (rows.length === 0) return null

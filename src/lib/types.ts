@@ -29,7 +29,7 @@ export interface MenuItem {
   is_available: boolean
   sort_order: number
   created_at: string
-  updated_at?: string
+  updated_at?: string | null
 }
 
 export interface Order {
@@ -69,8 +69,6 @@ export interface OrderItem {
   completed_at: string | null
   voided_by: string | null
   void_reason: string | null
-  // Joined:
-  menu_items?: MenuItem
 }
 
 export interface InventoryRow {
@@ -80,8 +78,6 @@ export interface InventoryRow {
   unit: string
   low_stock_threshold: number
   updated_at: string
-  // Joined:
-  menu_items?: MenuItem
 }
 
 // ── App-level derived types ────────────────────────────────────────────────
@@ -130,42 +126,52 @@ export interface TableWithStatus {
 }
 
 // ── Supabase Database shape ────────────────────────────────────────────────
+// Rules: (1) flat Insert/Update (no Omit<T,K> intersections), (2) Row types
+// must not include optional join fields — both break Supabase's type inference.
 export interface Database {
   public: {
     Tables: {
       restaurant_tables: {
-        Row: RestaurantTable
-        Insert: Omit<RestaurantTable, 'created_at'> & { created_at?: string }
-        Update: Partial<Omit<RestaurantTable, 'id'>>
+        Row: { id: string; label: string; section: string; capacity: number; status: DbTableStatus; pos_x: number | null; pos_y: number | null; created_at: string }
+        Insert: { id: string; label: string; section: string; capacity: number; status: DbTableStatus; pos_x?: number | null; pos_y?: number | null; created_at?: string }
+        Update: { label?: string; section?: string; capacity?: number; status?: DbTableStatus; pos_x?: number | null; pos_y?: number | null }
+        Relationships: []
       }
       menu_items: {
-        Row: MenuItem
-        Insert: Omit<MenuItem, 'id' | 'created_at'> & { id?: string; created_at?: string }
-        Update: Partial<Omit<MenuItem, 'id'>>
+        Row: { id: string; name: string; category: string; category2: string; category3: string; price: number; cost: number | null; description: string | null; modifiers: string[]; is_available: boolean; sort_order: number; created_at: string; updated_at: string | null }
+        Insert: { id?: string; name: string; category: string; category2: string; category3: string; price: number; cost?: number | null; description?: string | null; modifiers?: string[]; is_available?: boolean; sort_order?: number; created_at?: string; updated_at?: string | null }
+        Update: { name?: string; category?: string; category2?: string; category3?: string; price?: number; cost?: number | null; description?: string | null; modifiers?: string[]; is_available?: boolean; sort_order?: number; updated_at?: string | null }
+        Relationships: []
       }
       orders: {
-        Row: Order
-        Insert: Omit<Order, 'id' | 'opened_at'> & { opened_at?: string }
-        Update: Partial<Omit<Order, 'id'>>
+        Row: { id: number; table_id: string; opened_by: string | null; opened_at: string; closed_at: string | null; status: OrderStatus; notes: string | null }
+        Insert: { table_id: string; opened_by?: string | null; opened_at?: string; closed_at?: string | null; status?: OrderStatus; notes?: string | null }
+        Update: { table_id?: string; opened_by?: string | null; opened_at?: string; closed_at?: string | null; status?: OrderStatus; notes?: string | null }
+        Relationships: []
       }
       payments: {
-        Row: Payment
-        Insert: Omit<Payment, 'id' | 'processed_at'> & { processed_at?: string }
-        Update: Partial<Omit<Payment, 'id'>>
+        Row: { id: number; order_id: number; method: PayMethod; amount: number; tendered: number | null; change_due: number | null; processed_by: string | null; processed_at: string; notes: string | null }
+        Insert: { order_id: number; method: PayMethod; amount: number; tendered?: number | null; change_due?: number | null; processed_by?: string | null; processed_at?: string; notes?: string | null }
+        Update: { order_id?: number; method?: PayMethod; amount?: number; tendered?: number | null; change_due?: number | null; processed_by?: string | null; processed_at?: string; notes?: string | null }
+        Relationships: []
       }
       order_items: {
-        Row: OrderItem
-        Insert: Omit<OrderItem, 'id'>
-        Update: Partial<Omit<OrderItem, 'id'>>
+        Row: { id: number; order_id: number; menu_item_id: string; qty: number; unit_price: number; modifiers: string[]; notes: string | null; status: ItemStatus; payment_id: number | null; seat: number | null; fired_at: string | null; completed_at: string | null; voided_by: string | null; void_reason: string | null }
+        Insert: { order_id: number; menu_item_id: string; qty: number; unit_price: number; modifiers?: string[]; notes?: string | null; status?: ItemStatus; payment_id?: number | null; seat?: number | null; fired_at?: string | null; completed_at?: string | null; voided_by?: string | null; void_reason?: string | null }
+        Update: { order_id?: number; menu_item_id?: string; qty?: number; unit_price?: number; modifiers?: string[]; notes?: string | null; status?: ItemStatus; payment_id?: number | null; seat?: number | null; fired_at?: string | null; completed_at?: string | null; voided_by?: string | null; void_reason?: string | null }
+        Relationships: []
       }
       inventory: {
-        Row: InventoryRow
-        Insert: Omit<InventoryRow, 'id' | 'updated_at'> & { updated_at?: string }
-        Update: Partial<Omit<InventoryRow, 'id'>>
+        Row: { id: number; menu_item_id: string; quantity: number; unit: string; low_stock_threshold: number; updated_at: string }
+        Insert: { menu_item_id: string; quantity: number; unit: string; low_stock_threshold?: number; updated_at?: string }
+        Update: { menu_item_id?: string; quantity?: number; unit?: string; low_stock_threshold?: number; updated_at?: string }
+        Relationships: []
       }
     }
-    Views: Record<string, never>
-    Functions: Record<string, never>
-    Enums: Record<string, never>
+    Views: Record<never, never>
+    Functions: {
+      deduct_inventory: { Args: { p_menu_item_id: string; p_qty: number }; Returns: void }
+    }
+    Enums: Record<never, never>
   }
 }

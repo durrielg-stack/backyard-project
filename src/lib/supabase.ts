@@ -1,10 +1,8 @@
 import { createBrowserClient } from '@supabase/ssr'
+import type { Database } from '@/lib/types'
 
-// Browser-side singleton.
-// Generic type param omitted until we run `supabase gen types typescript`.
-// All Supabase calls use explicit `.returns<T>()` or are cast at the call site.
 export function createClient() {
-  return createBrowserClient(
+  return createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
