@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { THEME } from '@/lib/theme'
 import { getClient } from '@/lib/supabase'
 
@@ -36,6 +37,61 @@ const catColor: Record<string, string> = {
 
 function fmtPeso(v: number) {
   return `₱${v.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+// Renders suggestion list in a portal so overflow containers don't clip it
+function SuggestionsPortal({ open, anchorRef, suggestions, activeIdx, onPick }: {
+  open:        boolean
+  anchorRef:   React.RefObject<HTMLInputElement | null>
+  suggestions: Preset[]
+  activeIdx:   number
+  onPick:      (p: Preset) => void
+}) {
+  const [rect, setRect] = useState<DOMRect | null>(null)
+
+  useEffect(() => {
+    if (!open || !anchorRef.current) { setRect(null); return }
+    setRect(anchorRef.current.getBoundingClientRect())
+  }, [open, anchorRef, suggestions])
+
+  if (!open || !rect) return null
+
+  return createPortal(
+    <div style={{
+      position: 'fixed',
+      top:  rect.bottom + 2,
+      left: rect.left,
+      width: rect.width,
+      zIndex: 9999,
+      background: T.surface2, border: `1px solid ${T.line2}`,
+      borderRadius: T.radius, boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+      maxHeight: 260, overflowY: 'auto',
+    }}>
+      {suggestions.map((s, i) => (
+        <div
+          key={s.name}
+          onMouseDown={() => onPick(s)}
+          style={{
+            padding: '8px 12px', cursor: 'pointer',
+            background: i === activeIdx ? T.surface : 'transparent',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            borderBottom: i < suggestions.length - 1 ? `1px solid ${T.line}` : 'none',
+          }}
+        >
+          <div>
+            <span style={{ fontSize: 12, color: T.text }}>{s.name}</span>
+            <span style={{ marginLeft: 8, fontSize: 10, color: catColor[s.category] ?? T.textMute }}>{s.category}</span>
+          </div>
+          {s.default_cost != null && (
+            <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textDim }}>
+              ₱{s.default_cost.toFixed(2)}
+            </span>
+          )}
+        </div>
+      ))}
+    </div>,
+    document.body,
+  )
 }
 
 export default function ExpensesView() {
@@ -205,11 +261,11 @@ export default function ExpensesView() {
         const autoAmt = up != null ? (qty * up).toFixed(2) : fAmt
         const canSave = fDesc.trim() && (up != null ? up > 0 : parseFloat(fAmt) > 0)
         return (
-          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', overflowY: 'visible', WebkitOverflowScrolling: 'touch', background: T.surface2, borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
+          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', background: T.surface2, borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
           <div style={{
             padding: '16px 24px',
             display: 'grid', gridTemplateColumns: '140px 1fr 70px 90px 110px 120px auto',
-            gap: 8, alignItems: 'end', minWidth: 680, overflow: 'visible',
+            gap: 8, alignItems: 'end', minWidth: 680,
           }}>
             {/* Category */}
             <div>
@@ -232,37 +288,13 @@ export default function ExpensesView() {
                 placeholder="Type to search presets…"
                 style={{ width: '100%', fontFamily: 'inherit', fontSize: 12, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box' }}
               />
-              {showSuggestions && suggestions.length > 0 && (
-                <div style={{
-                  position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200,
-                  background: T.surface2, border: `1px solid ${T.line2}`,
-                  borderRadius: T.radius, boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
-                  maxHeight: 260, overflowY: 'auto',
-                }}>
-                  {suggestions.map((s, i) => (
-                    <div
-                      key={s.name}
-                      onMouseDown={() => applyPreset(s)}
-                      style={{
-                        padding: '8px 12px', cursor: 'pointer',
-                        background: i === suggestionIdx ? T.surface : 'transparent',
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        borderBottom: i < suggestions.length - 1 ? `1px solid ${T.line}` : 'none',
-                      }}
-                    >
-                      <div>
-                        <span style={{ fontSize: 12, color: T.text }}>{s.name}</span>
-                        <span style={{ marginLeft: 8, fontSize: 10, color: catColor[s.category] ?? T.textMute }}>{s.category}</span>
-                      </div>
-                      {s.default_cost != null && (
-                        <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textDim }}>
-                          ₱{s.default_cost.toFixed(2)}
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
+              <SuggestionsPortal
+                open={showSuggestions && suggestions.length > 0}
+                anchorRef={descRef}
+                suggestions={suggestions}
+                activeIdx={suggestionIdx}
+                onPick={applyPreset}
+              />
             </div>
 
             {/* Qty */}
