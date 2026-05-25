@@ -534,7 +534,7 @@ export default function PayModal({ total, subtotal, tipAmt, onPaid, onClose }: P
               transition: 'background 0.12s ease, color 0.12s ease',
             }}
           >
-            {canCharge ? `Charge · ₱${total.toFixed(2)}` : 'Enter amount'}
+            {canCharge ? `Bill Out · ₱${total.toFixed(2)}` : 'Enter amount'}
           </button>
         </div>
       )}

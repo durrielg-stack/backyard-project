@@ -200,7 +200,7 @@ export default function NavBar({
         <NavTab
           active={view === 'floor'}
           onClick={onFloor}
-          label="Sales"
+          label="On-Going"
           sub={`${openCount} open · ${attnTabs} attn`}
           isMobile={isMobile}
         />

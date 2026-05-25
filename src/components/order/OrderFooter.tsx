@@ -214,7 +214,7 @@ export default function OrderFooter({
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           gap: 2, transition: 'background 0.12s ease',
         }}>
-          <span>Charge · ₱{total.toFixed(2)}</span>
+          <span>Bill Out · ₱{total.toFixed(2)}</span>
           <span style={{
             fontSize: 10, fontFamily: T.mono, color: disabled ? T.textMute : `${T.accentInk}88`,
             fontWeight: 400, letterSpacing: '0.04em',

@@ -255,7 +255,7 @@ function ByItemTab({ lines, total, onConfirm }: {
             transition: 'background 0.12s ease',
           }}
         >
-          Charge These
+          Bill Out
         </button>
       </div>
     </div>
