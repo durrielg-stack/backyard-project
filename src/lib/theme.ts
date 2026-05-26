@@ -87,30 +87,29 @@ export const LIGHT_THEME: Theme = {
   shadowModal: '0 30px 90px rgba(0,0,0,0.25)',
 }
 
-export const OCEAN_THEME: Theme = {
-  // Palette: #345DA7 · #3B8AC4 · #4BB4DE · #EFDBCB
-  bg:        '#1C3154',   // deep navy
-  surface:   '#243D6B',   // raised panels
-  surface2:  '#2D4D80',   // higher elevation
-  surface3:  '#345DA7',   // palette deep blue
+export const SLATE_THEME: Theme = {
+  bg:        '#111827',   // Deep Slate
+  surface:   '#1F2937',   // Soft Charcoal
+  surface2:  '#374151',   // Muted Slate / Card
+  surface3:  '#4B5563',
 
-  line:      '#3A5590',
-  line2:     '#4A6598',
+  line:      '#2D3748',
+  line2:     '#374151',
 
-  text:      '#EFDBCB',   // warm cream
-  textDim:   '#D4BFA6',
-  textMute:  '#9A8470',
+  text:      '#F3F4F6',   // Soft White
+  textDim:   '#9CA3AF',   // Cool Gray
+  textMute:  '#6B7280',
 
-  accent:    '#4BB4DE',   // palette light blue
-  accentInk: '#1C3154',
+  accent:    '#3B82F6',   // Electric Blue
+  accentInk: '#F3F4F6',
 
-  ok:        '#56C4A0',   // teal
-  warn:      '#E8A87C',   // warm amber (cream family)
-  bad:       '#E06060',   // coral red
-  info:      '#3B8AC4',   // palette medium blue
+  ok:        '#10B981',   // Mint Green
+  warn:      '#F59E0B',   // Amber
+  bad:       '#EF4444',   // Soft Red
+  info:      '#22D3EE',   // Cyan Glow
 
-  chip:      'rgba(75,180,222,0.10)',
-  chipBd:    'rgba(75,180,222,0.16)',
+  chip:      'rgba(59,130,246,0.10)',
+  chipBd:    'rgba(59,130,246,0.16)',
 
   sansHead: '"Inter", "Helvetica Neue", system-ui, sans-serif',
   sansBody: '"Inter", "Helvetica Neue", system-ui, sans-serif',
@@ -119,7 +118,7 @@ export const OCEAN_THEME: Theme = {
   radius:   '2px',
   radiusLg: '4px',
 
-  shadow:      '0 1px 0 rgba(75,180,222,0.06) inset, 0 8px 24px rgba(0,0,0,0.4)',
+  shadow:      '0 1px 0 rgba(59,130,246,0.06) inset, 0 8px 24px rgba(0,0,0,0.4)',
   shadowModal: '0 30px 90px rgba(0,0,0,0.55)',
 }
 
