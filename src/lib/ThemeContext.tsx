@@ -1,16 +1,15 @@
 'use client'
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { THEME, LIGHT_THEME, SLATE_THEME, type ThemeTokens } from './theme'
+import { THEME, LIGHT_THEME, type ThemeTokens } from './theme'
 
-type ThemeMode = 'dark' | 'light' | 'slate'
+type ThemeMode = 'dark' | 'light'
 
 const THEMES: Record<ThemeMode, ThemeTokens> = {
   dark:  THEME,
   light: LIGHT_THEME,
-  slate: SLATE_THEME,
 }
 
-const CYCLE: ThemeMode[] = ['dark', 'light', 'slate']
+const CYCLE: ThemeMode[] = ['dark', 'light']
 
 interface ThemeContextValue {
   T:      ThemeTokens
@@ -20,7 +19,7 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
-  T: THEME, mode: 'dark' as ThemeMode, isDark: true, toggle: () => {},
+  T: THEME, mode: 'dark', isDark: true, toggle: () => {},
 })
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -28,7 +27,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const saved = localStorage.getItem('bp-theme') as ThemeMode | null
-    if ((saved as string) === 'ocean') { setMode('slate'); return }
     if (saved && (CYCLE as string[]).includes(saved)) setMode(saved as ThemeMode)
   }, [])
 

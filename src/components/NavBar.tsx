@@ -283,7 +283,7 @@ export default function NavBar({
         {/* Theme toggle — cycles dark → light → ocean */}
         <button
           onClick={toggle}
-          title={mode === 'dark' ? 'Switch to light' : mode === 'light' ? 'Switch to slate' : 'Switch to dark'}
+          title={mode === 'dark' ? 'Switch to light' : 'Switch to dark'}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
             color: T.textDim, fontSize: 14, lineHeight: 1,
@@ -291,7 +291,7 @@ export default function NavBar({
             display: 'flex', alignItems: 'center',
           }}
         >
-          {mode === 'dark' ? '☀' : mode === 'light' ? '◈' : '🌙'}
+          {mode === 'dark' ? '☀' : '🌙'}
         </button>
 
         {!isMobile && <div style={{ width: 1, height: 20, background: T.line }} />}
