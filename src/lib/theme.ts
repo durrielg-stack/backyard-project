@@ -17,47 +17,38 @@ export interface Theme {
 export type ThemeTokens = Theme
 
 export const THEME: Theme = {
-  // Backgrounds
-  bg:        '#0B0B0D',   // near-black with cool tint — page background
-  surface:   '#131316',   // raised panels
-  surface2:  '#1A1A1F',   // higher elevation — hovered card, active tab
-  surface3:  '#222228',   // highest elevation
+  bg:        '#0F1115',
+  surface:   '#1A1D24',
+  surface2:  '#262B36',
+  surface3:  '#343A46',
 
-  // Borders
-  line:      '#23232A',   // hairline, 1px
-  line2:     '#2E2E36',   // stronger — chip outlines, inputs
+  line:      '#343A46',
+  line2:     '#3E4554',
 
-  // Text
-  text:      '#F4F4F2',   // primary
-  textDim:   '#9B9BA3',   // secondary
-  textMute:  '#6B6B72',   // tertiary / labels / mono metadata
+  text:      '#E5E7EB',
+  textDim:   '#9CA3AF',
+  textMute:  '#6B7280',
 
-  // Brand accent — neon green. WCAG AA verified on bg/surface/surface2.
-  accent:    '#39FF8B',
-  accentInk: '#0B0B0D',   // foreground on accent fills — always near-black
+  accent:    '#5EEAD4',
+  accentInk: '#0F1115',
 
-  // Semantic
-  ok:        '#5BE49B',   // open / firing / healthy KDS
-  warn:      '#FFC857',   // aging (>6:00), low stock pre-critical
-  bad:       '#FF6B6B',   // attention (>10:00), critical stock, void
-  info:      '#6EA8FE',   // reserved table status
+  ok:        '#34D399',
+  warn:      '#FBBF24',
+  bad:       '#F87171',
+  info:      '#38BDF8',
 
-  // Surface chips
-  chip:      'rgba(255,255,255,0.06)',
-  chipBd:    'rgba(255,255,255,0.08)',
+  chip:      'rgba(94,234,212,0.08)',
+  chipBd:    'rgba(94,234,212,0.14)',
 
-  // Typography
   sansHead: '"Inter", "Helvetica Neue", system-ui, sans-serif',
   sansBody: '"Inter", "Helvetica Neue", system-ui, sans-serif',
   mono:     '"JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace',
 
-  // Shape
-  radius:   '2px',   // almost square — do not increase
+  radius:   '2px',
   radiusLg: '4px',
 
-  // Shadows — avoid on panels; only for modals
-  shadow:      '0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 24px rgba(0,0,0,0.4)',
-  shadowModal: '0 30px 90px rgba(0,0,0,0.55)',
+  shadow:      '0 1px 0 rgba(94,234,212,0.04) inset, 0 8px 24px rgba(0,0,0,0.5)',
+  shadowModal: '0 30px 90px rgba(0,0,0,0.6)',
 }
 
 export const LIGHT_THEME: Theme = {
