@@ -52,30 +52,38 @@ export const THEME: Theme = {
 }
 
 export const LIGHT_THEME: Theme = {
-  bg:        '#F5F5F2',
+  bg:        '#F5F5F7',
   surface:   '#FFFFFF',
-  surface2:  '#F0F0EC',
-  surface3:  '#E8E8E4',
-  line:      '#DDDDD8',
-  line2:     '#CCCCCA',
-  text:      '#18181A',
-  textDim:   '#48484E',
-  textMute:  '#888892',
-  accent:    '#2C6E49',
+  surface2:  '#E5E7EB',
+  surface3:  '#D1D5DB',
+
+  line:      '#D1D5DB',
+  line2:     '#C0C4CC',
+
+  text:      '#111827',
+  textDim:   '#6B7280',
+  textMute:  '#9CA3AF',
+
+  accent:    '#0A84FF',
   accentInk: '#FFFFFF',
-  ok:        '#2C6E49',
-  warn:      '#C07A00',
-  bad:       '#C0392B',
-  info:      '#2563EB',
-  chip:      '#EBEBEA',
-  chipBd:    'rgba(0,0,0,0.10)',
+
+  ok:        '#30D158',
+  warn:      '#FF9F0A',
+  bad:       '#FF453A',
+  info:      '#38BDF8',
+
+  chip:      'rgba(10,132,255,0.08)',
+  chipBd:    'rgba(10,132,255,0.16)',
+
   sansHead: '"Inter", "Helvetica Neue", system-ui, sans-serif',
   sansBody: '"Inter", "Helvetica Neue", system-ui, sans-serif',
   mono:     '"JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace',
+
   radius:   '2px',
   radiusLg: '4px',
-  shadow:      '0 1px 0 rgba(0,0,0,0.04) inset, 0 8px 24px rgba(0,0,0,0.12)',
-  shadowModal: '0 30px 90px rgba(0,0,0,0.25)',
+
+  shadow:      '0 1px 0 rgba(0,0,0,0.04) inset, 0 8px 24px rgba(0,0,0,0.10)',
+  shadowModal: '0 30px 90px rgba(0,0,0,0.20)',
 }
 
 export const SLATE_THEME: Theme = {
