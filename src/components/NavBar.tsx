@@ -138,7 +138,7 @@ export default function NavBar({
   view, openTabs, tables, carts,
   attnCount, now, staff, onFloor, onExpenses, onReports, onSales, onOwner, onOrder, onCloseTab, onSignOut,
 }: NavBarProps) {
-  const { T, isDark, toggle } = useTheme()
+  const { T, mode, toggle } = useTheme()
   const bp = useBreakpoint()
   const isMobile = bp === 'mobile'
   const time    = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
@@ -280,10 +280,10 @@ export default function NavBar({
         padding: isMobile ? '0 10px' : '0 24px', flexShrink: 0,
         fontSize: 13, color: T.textDim,
       }}>
-        {/* Theme toggle */}
+        {/* Theme toggle — cycles dark → light → ocean */}
         <button
           onClick={toggle}
-          title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={mode === 'dark' ? 'Switch to light' : mode === 'light' ? 'Switch to ocean' : 'Switch to dark'}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
             color: T.textDim, fontSize: 14, lineHeight: 1,
@@ -291,7 +291,7 @@ export default function NavBar({
             display: 'flex', alignItems: 'center',
           }}
         >
-          {isDark ? '☀' : '🌙'}
+          {mode === 'dark' ? '☀' : mode === 'light' ? '🌊' : '🌙'}
         </button>
 
         {!isMobile && <div style={{ width: 1, height: 20, background: T.line }} />}
