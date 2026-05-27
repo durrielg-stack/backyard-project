@@ -6,7 +6,7 @@ import { getClient } from '@/lib/supabase'
 import { SectionHd, Pill, GroupedBarChart, HBarChart, fmtPeso, DAY_ABBR, MONTH_ABBR } from './ownerShared'
 import type { MultiBar, CategoryBreakdown } from './ownerShared'
 import DateRangeNav, { useDateNav } from '@/components/shared/DateRangeNav'
-import { dayBounds, weekBounds, monthBounds, localDateStr, ViewMode } from '@/lib/dateNav'
+import { dayBounds, weekBounds, monthBounds, localDateStr, ViewMode, shiftHoursUpToNow } from '@/lib/dateNav'
 
 // ── Types local to ReportsTab ─────────────────────────────────────────────────
 
@@ -107,10 +107,8 @@ export default function ReportsTab() {
 
       let newBars: MultiBar[]
       if (mode === 'today') {
-        const now = new Date()
-        const maxHour = now.getHours()
-        newBars = Array.from({ length: maxHour + 1 }, (_, h) => ({
-          label: `${String(h).padStart(2,'00')}:00`,
+        newBars = shiftHoursUpToNow().map(h => ({
+          label: `${String(h).padStart(2, '0')}:00`,
           gross: hourGross[h] ?? 0, cost: hourCost[h] ?? 0, expenses: 0,
         }))
       } else if (mode === 'week') {

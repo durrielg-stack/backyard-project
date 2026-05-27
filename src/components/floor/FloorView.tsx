@@ -5,6 +5,7 @@ import { statusColor, statusLabel } from '@/lib/theme'
 import { useTheme } from '@/lib/ThemeContext'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { getClient } from '@/lib/supabase'
+import { dayBounds, currentShiftDate } from '@/lib/dateNav'
 import type { TableWithStatus, KdsTicket } from '@/lib/types'
 import KdsPanel from './KdsPanel'
 
@@ -260,13 +261,14 @@ function KpiStrip({ tables, tickets }: { tables: TableWithStatus[]; tickets: Kds
     const sb = getClient() as any
 
     async function refresh() {
-      const todayStart = new Date(); todayStart.setHours(0,0,0,0)
+      const { start: shiftStart, end: shiftEnd } = dayBounds(currentShiftDate())
 
       // Revenue = only closed orders (paid). Unbilled covers open ones.
       const { data: closedToday } = await sb
         .from('orders').select('id')
         .eq('status', 'closed')
-        .gte('opened_at', todayStart.toISOString())
+        .gte('opened_at', shiftStart)
+        .lte('opened_at', shiftEnd)
       const closedOIds = (closedToday ?? []).map((o: any) => o.id)
       let gross = 0
       let txN = closedOIds.length
@@ -283,7 +285,8 @@ function KpiStrip({ tables, tickets }: { tables: TableWithStatus[]; tickets: Kds
       const { data: orders } = await sb
         .from('orders').select('opened_at, closed_at')
         .eq('status', 'closed')
-        .gte('opened_at', todayStart.toISOString())
+        .gte('opened_at', shiftStart)
+        .lte('opened_at', shiftEnd)
         .not('closed_at', 'is', null)
       const os = orders ?? []
       if (os.length > 0) {

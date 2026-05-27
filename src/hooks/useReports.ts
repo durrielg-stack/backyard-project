@@ -3,7 +3,7 @@
 import { useEffect, useReducer, useCallback } from 'react'
 import { getClient } from '@/lib/supabase'
 import type { ViewMode } from '@/lib/dateNav'
-import { localDateStr, parseLocalDate } from '@/lib/dateNav'
+import { localDateStr, parseLocalDate, shiftHoursUpToNow } from '@/lib/dateNav'
 
 // ── Output shapes ────────────────────────────────────────────────────────────
 export interface RevenueBar {
@@ -187,9 +187,7 @@ export function useReports({ start, end, mode }: { start: string; end: string; m
     // Build bars based on mode
     let bars: RevenueBar[]
     if (mode === 'today') {
-      const now = new Date()
-      const maxHour = now.getHours()
-      bars = makePeak(Array.from({ length: maxHour + 1 }, (_, h) => ({ label: fmtHour(h), value: hourBuckets[h] ?? 0 })))
+      bars = makePeak(shiftHoursUpToNow().map(h => ({ label: fmtHour(h), value: hourBuckets[h] ?? 0 })))
     } else if (mode === 'week') {
       // Wed–Mon: 6 days starting from start date
       const startDate = new Date(start)

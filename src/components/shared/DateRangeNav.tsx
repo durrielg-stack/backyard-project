@@ -3,7 +3,7 @@
 import { useTheme } from '@/lib/ThemeContext'
 import {
   ViewMode, localDateStr, weekBounds, navigateDay, navigateWeek, navigateMonth,
-  todayLabel, MONTH_NAMES, parseLocalDate,
+  todayLabel, MONTH_NAMES, parseLocalDate, currentShiftDate,
 } from '@/lib/dateNav'
 
 interface DateRangeNavProps {
@@ -179,7 +179,7 @@ export default function DateRangeNav({
 export function useDateNav() {
   const now = new Date()
   const [mode,    setMode]    = useState<ViewMode>('today')
-  const [date,    setDate]    = useState(localDateStr(now))
+  const [date,    setDate]    = useState(currentShiftDate())
   const [weekRef, setWeekRef] = useState<Date>(now)
   const [month,   setMonth]   = useState(now.getMonth())
   const [year,    setYear]    = useState(now.getFullYear())

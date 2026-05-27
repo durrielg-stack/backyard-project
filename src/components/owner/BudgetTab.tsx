@@ -4,7 +4,7 @@ import { useTheme } from '@/lib/ThemeContext'
 import { useState, useCallback, useEffect } from 'react'
 import { getClient } from '@/lib/supabase'
 import { SectionHd, fmtPeso } from './ownerShared'
-import { localDateStr, parseLocalDate, dayBounds } from '@/lib/dateNav'
+import { localDateStr, parseLocalDate, dayBounds, currentShiftDate } from '@/lib/dateNav'
 
 // ── Category config ───────────────────────────────────────────────────────────
 
@@ -108,7 +108,7 @@ export default function BudgetTab() {
   ] as const
 
   const [budgetView, setBudgetView] = useState<'day' | 'ledger'>('day')
-  const [date,       setDate]       = useState(() => localDateStr(new Date()))
+  const [date,       setDate]       = useState(() => currentShiftDate())
   const [dayData,    setDayData]    = useState<DayData>({ incoming: emptyBycat(), expenses: emptyBycat() })
   const [prevData,   setPrevData]   = useState<DayData>({ incoming: emptyBycat(), expenses: emptyBycat() })  // cumulative prior days
   const [ledgerRows, setLedgerRows] = useState<LedgerRow[]>([])
@@ -119,38 +119,34 @@ export default function BudgetTab() {
 
   // ── Fetch all-time data for ledger ───────────────────────────────────────
   const fetchLedger = useCallback(async () => {
-    // Sales: order_items grouped by opened_at date and category
-    const { data: orders } = await sb.from('orders').select('id, opened_at')
-    const orderMap: Record<number, string> = {}
-    for (const o of (orders ?? [])) orderMap[o.id] = localDateStr(new Date(o.opened_at))
+    // Sales: fetch order_items with order date via join
+    const { data: items, error: itemsErr } = await sb
+      .from('order_items')
+      .select('qty, unit_price, orders!inner(opened_at), menu_items(category)')
+      .neq('status', 'voided')
 
-    const orderIds = Object.keys(orderMap).map(Number)
+    if (itemsErr) console.error('[BudgetTab/ledger] items fetch error', itemsErr)
+
     const allIncoming: Record<string, Record<string, number>> = {}
-
-    if (orderIds.length > 0) {
-      const { data: items } = await sb
-        .from('order_items')
-        .select('order_id, qty, unit_price, menu_items(category)')
-        .in('order_id', orderIds)
-        .neq('status', 'voided')
-
-      for (const row of (items ?? [])) {
-        const dk  = orderMap[row.order_id]
-        if (!dk) continue
-        const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
-        const cat = SALES_CAT_MAP[mi?.category ?? '']
-        if (!cat) continue
-        const val = (row.qty as number) * (row.unit_price as number)
-        if (!allIncoming[dk]) allIncoming[dk] = emptyBycat()
-        allIncoming[dk][cat] = (allIncoming[dk][cat] ?? 0) + val
-      }
+    for (const row of (items ?? [])) {
+      const orderData = Array.isArray(row.orders) ? row.orders[0] : row.orders
+      if (!orderData?.opened_at) continue
+      const dk  = localDateStr(new Date(orderData.opened_at))
+      const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
+      const cat = SALES_CAT_MAP[mi?.category ?? '']
+      if (!cat) continue
+      const val = (row.qty as number) * (row.unit_price as number)
+      if (!allIncoming[dk]) allIncoming[dk] = emptyBycat()
+      allIncoming[dk][cat] = (allIncoming[dk][cat] ?? 0) + val
     }
 
     // Expenses
-    const { data: expRows } = await sb
+    const { data: expRows, error: expErr } = await sb
       .from('daily_expenses')
       .select('expense_date, category, amount')
       .order('expense_date')
+
+    if (expErr) console.error('[BudgetTab/ledger] expenses fetch error', expErr)
 
     const allExpenses: Record<string, Record<string, number>> = {}
     for (const r of (expRows ?? [])) {
@@ -168,28 +164,27 @@ export default function BudgetTab() {
     setLoading(true)
     const { start, end } = dayBounds(d)
 
-    // Sales for this day
-    const { data: dayOrders } = await sb.from('orders').select('id').gte('opened_at', start).lte('opened_at', end)
-    const dayOrderIds = (dayOrders ?? []).map((o: any) => o.id as number)
+    // Sales for this day — join filter on orders.opened_at (same approach as SalesTab)
+    const { data: items, error: itemsErr } = await sb
+      .from('order_items')
+      .select('qty, unit_price, orders!inner(opened_at), menu_items(category)')
+      .gte('orders.opened_at', start)
+      .lte('orders.opened_at', end)
+      .neq('status', 'voided')
+
+    if (itemsErr) console.error('[BudgetTab] items fetch error', itemsErr)
+
     const todayIncoming = emptyBycat()
-
-    if (dayOrderIds.length > 0) {
-      const { data: items } = await sb
-        .from('order_items')
-        .select('order_id, qty, unit_price, menu_items(category)')
-        .in('order_id', dayOrderIds)
-        .neq('status', 'voided')
-
-      for (const row of (items ?? [])) {
-        const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
-        const cat = SALES_CAT_MAP[mi?.category ?? '']
-        if (!cat) continue
-        todayIncoming[cat] = (todayIncoming[cat] ?? 0) + (row.qty as number) * (row.unit_price as number)
-      }
+    for (const row of (items ?? [])) {
+      const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
+      const cat = SALES_CAT_MAP[mi?.category ?? '']
+      if (!cat) continue
+      todayIncoming[cat] = (todayIncoming[cat] ?? 0) + (row.qty as number) * (row.unit_price as number)
     }
 
     // Expenses for this day
-    const { data: expRows } = await sb.from('daily_expenses').select('category, amount').eq('expense_date', d)
+    const { data: expRows, error: expErr } = await sb.from('daily_expenses').select('category, amount').eq('expense_date', d)
+    if (expErr) console.error('[BudgetTab] expenses fetch error', expErr)
     const todayExpenses = emptyBycat()
     for (const r of (expRows ?? [])) {
       const cat = EXP_CAT_MAP[r.category]
@@ -198,28 +193,23 @@ export default function BudgetTab() {
     }
 
     // Cumulative from all prior days
-    const { data: priorOrders } = await sb.from('orders').select('id, opened_at').lt('opened_at', start)
-    const priorOrderMap: Record<number, boolean> = {}
-    for (const o of (priorOrders ?? [])) priorOrderMap[o.id] = true
+    const { data: priorItems, error: priorErr } = await sb
+      .from('order_items')
+      .select('qty, unit_price, orders!inner(opened_at), menu_items(category)')
+      .lt('orders.opened_at', start)
+      .neq('status', 'voided')
+
+    if (priorErr) console.error('[BudgetTab] prior items fetch error', priorErr)
     const priorIncoming = emptyBycat()
-
-    const priorIds = Object.keys(priorOrderMap).map(Number)
-    if (priorIds.length > 0) {
-      const { data: priorItems } = await sb
-        .from('order_items')
-        .select('order_id, qty, unit_price, menu_items(category)')
-        .in('order_id', priorIds)
-        .neq('status', 'voided')
-
-      for (const row of (priorItems ?? [])) {
-        const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
-        const cat = SALES_CAT_MAP[mi?.category ?? '']
-        if (!cat) continue
-        priorIncoming[cat] = (priorIncoming[cat] ?? 0) + (row.qty as number) * (row.unit_price as number)
-      }
+    for (const row of (priorItems ?? [])) {
+      const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
+      const cat = SALES_CAT_MAP[mi?.category ?? '']
+      if (!cat) continue
+      priorIncoming[cat] = (priorIncoming[cat] ?? 0) + (row.qty as number) * (row.unit_price as number)
     }
 
-    const { data: priorExp } = await sb.from('daily_expenses').select('category, amount').lt('expense_date', d)
+    const { data: priorExp, error: priorExpErr } = await sb.from('daily_expenses').select('category, amount').lt('expense_date', d)
+    if (priorExpErr) console.error('[BudgetTab] prior expenses fetch error', priorExpErr)
     const priorExpenses = emptyBycat()
     for (const r of (priorExp ?? [])) {
       const cat = EXP_CAT_MAP[r.category]

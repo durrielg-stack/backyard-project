@@ -12,12 +12,35 @@ export function parseLocalDate(s: string): Date {
   return new Date(y, m - 1, day)
 }
 
-// ISO boundaries for a local-date string (full day in local time)
+// Shift hours in order: 2pm open → 3am close (next calendar day)
+export const SHIFT_HOURS = [14,15,16,17,18,19,20,21,22,23,0,1,2,3]
+
+// Returns the shift hours to display up to the current moment.
+// Outside the shift window (4am–1pm) returns all 14 hours.
+export function shiftHoursUpToNow(): number[] {
+  const h = new Date().getHours()
+  const idx = SHIFT_HOURS.indexOf(h)
+  return idx !== -1 ? SHIFT_HOURS.slice(0, idx + 1) : SHIFT_HOURS
+}
+
+// Returns the calendar date the current shift started on.
+// If it's before 4am, the shift started yesterday at 2pm.
+export function currentShiftDate(): string {
+  const now = new Date()
+  if (now.getHours() < 4) {
+    const d = new Date(now)
+    d.setDate(d.getDate() - 1)
+    return localDateStr(d)
+  }
+  return localDateStr(now)
+}
+
+// ISO boundaries for a shift-day: 2pm on dateStr → 3am the following calendar day
 export function dayBounds(dateStr: string): { start: string; end: string } {
   const [y, m, day] = dateStr.split('-').map(Number)
   return {
-    start: new Date(y, m - 1, day, 0, 0, 0, 0).toISOString(),
-    end:   new Date(y, m - 1, day, 23, 59, 59, 999).toISOString(),
+    start: new Date(y, m - 1, day, 14, 0, 0, 0).toISOString(),
+    end:   new Date(y, m - 1, day + 1, 3, 0, 0, 0).toISOString(),
   }
 }
 
