@@ -2,6 +2,8 @@
 
 import { useEffect, useReducer, useCallback } from 'react'
 import { getClient } from '@/lib/supabase'
+import type { ViewMode } from '@/lib/dateNav'
+import { localDateStr, parseLocalDate } from '@/lib/dateNav'
 
 // ── Output shapes ────────────────────────────────────────────────────────────
 export interface RevenueBar {
@@ -36,31 +38,22 @@ export interface ExpenseRow {
 
 export interface CatBreakdown {
   category: string
-  today:    number
-  week:     number
+  amount:   number
 }
 
 export interface ReportsData {
-  todayRevenue:     number
-  weekRevenue:      number
-  todayCost:        number
-  todayExpenses:    number
-  weekExpenses:     number
-  avgOrder:         number
-  weekAvgOrder:     number
-  txCount:          number
-  weekTxCount:      number
-  avgTurnMin:       number | null
-  weekAvgTurnMin:   number | null
-  hourlyBars:       RevenueBar[]
-  weeklyBars:       RevenueBar[]
-  expenseDayBars:   RevenueBar[]
-  transactions:     TransactionRow[]
-  weekTransactions: TransactionRow[]
-  expenseRows:      ExpenseRow[]
-  weekExpenseRows:  ExpenseRow[]
-  expCatBreakdown:  CatBreakdown[]
-  loading:          boolean
+  revenue:         number
+  cost:            number
+  expenses:        number
+  avgOrder:        number
+  txCount:         number
+  avgTurnMin:      number | null
+  bars:            RevenueBar[]
+  expenseDayBars:  RevenueBar[]
+  transactions:    TransactionRow[]
+  expenseRows:     ExpenseRow[]
+  expCatBreakdown: CatBreakdown[]
+  loading:         boolean
 }
 
 // ── Reducer ───────────────────────────────────────────────────────────────────
@@ -69,14 +62,10 @@ type Action =
   | { type: 'data'; payload: Omit<ReportsData, 'loading'> }
 
 const EMPTY: ReportsData = {
-  todayRevenue: 0, weekRevenue: 0, todayCost: 0,
-  todayExpenses: 0, weekExpenses: 0,
-  avgOrder: 0, weekAvgOrder: 0,
-  txCount: 0, weekTxCount: 0,
-  avgTurnMin: null, weekAvgTurnMin: null,
-  hourlyBars: [], weeklyBars: [], expenseDayBars: [],
-  transactions: [], weekTransactions: [],
-  expenseRows: [], weekExpenseRows: [],
+  revenue: 0, cost: 0, expenses: 0,
+  avgOrder: 0, txCount: 0, avgTurnMin: null,
+  bars: [], expenseDayBars: [],
+  transactions: [], expenseRows: [],
   expCatBreakdown: [],
   loading: true,
 }
@@ -102,34 +91,55 @@ function makePeak(bars: Omit<RevenueBar, 'isPeak'>[]): RevenueBar[] {
 
 const EXP_CATS = ['OPEX','Food','Beer','Cocktails/Hard','Non-Alcohol','Cigarettes']
 
+// Build daily bars for a range of days (start inclusive, count = days)
+function buildDailyBars(
+  startDate: Date,
+  count: number,
+  dayBuckets: Record<string, number>,
+): Omit<RevenueBar, 'isPeak'>[] {
+  return Array.from({ length: count }, (_, i) => {
+    const d = new Date(startDate)
+    d.setDate(d.getDate() + i)
+    const dk = localDateStr(d)
+    return { label: DAY_LABELS[d.getDay()], value: dayBuckets[dk] ?? 0 }
+  })
+}
+
+// Build month daily bars for all days in year/month
+function buildMonthBars(
+  year: number,
+  month: number,
+  dayBuckets: Record<string, number>,
+): Omit<RevenueBar, 'isPeak'>[] {
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  return Array.from({ length: daysInMonth }, (_, i) => {
+    const d = new Date(year, month, i + 1)
+    const dk = localDateStr(d)
+    return { label: String(i + 1), value: dayBuckets[dk] ?? 0 }
+  })
+}
+
 // ── useReports ────────────────────────────────────────────────────────────────
-export function useReports(): ReportsData {
+export function useReports({ start, end, mode }: { start: string; end: string; mode: ViewMode }): ReportsData {
   const [state, dispatch] = useReducer(reducer, EMPTY)
 
   const fetchAll = useCallback(async () => {
     dispatch({ type: 'loading' })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sb  = getClient() as any
-    const now = new Date()
-
-    const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0)
-    const weekStart  = new Date(now); weekStart.setDate(weekStart.getDate() - 6); weekStart.setHours(0, 0, 0, 0)
-    const todayStr   = todayStart.toISOString().slice(0, 10)
-    const weekStr    = weekStart.toISOString().slice(0, 10)
+    const sb = getClient() as any
 
     // ── Sales: order-items via orders.opened_at ────────────────────────────
     const { data: allOrders } = await sb
       .from('orders').select('id, opened_at')
-      .gte('opened_at', weekStart.toISOString())
+      .gte('opened_at', start)
+      .lte('opened_at', end)
     const allOrderIds = (allOrders ?? []).map((o: any) => o.id as number)
     const orderOpenedMap: Record<number, Date> = {}
     for (const o of (allOrders ?? [])) orderOpenedMap[o.id] = new Date(o.opened_at)
 
-    let todayGross = 0; let weekGross = 0; let costToday = 0
+    let gross = 0; let cost = 0
     const hourBuckets: Record<number, number> = {}
     const dayBuckets:  Record<string, number> = {}
-    const todayOrderIds: number[] = []
-    const todayStartMs = todayStart.getTime()
 
     if (allOrderIds.length > 0) {
       const { data: lines } = await sb
@@ -141,88 +151,93 @@ export function useReports(): ReportsData {
       for (const row of (lines ?? [])) {
         const openedAt = orderOpenedMap[row.order_id as number]
         if (!openedAt) continue
-        const ts  = openedAt.getTime()
         const val = (row.qty as number) * (row.unit_price as number)
         const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
-        const dk  = openedAt.toISOString().slice(0, 10)
+        const dk  = localDateStr(openedAt)
 
-        weekGross += val
+        gross += val
+        cost  += (row.qty as number) * ((mi as any)?.cost ?? 0)
         dayBuckets[dk] = (dayBuckets[dk] ?? 0) + val
 
-        if (ts >= todayStartMs) {
-          todayGross += val
-          costToday  += (row.qty as number) * ((mi as any)?.cost ?? 0)
+        if (mode === 'today') {
           const h = openedAt.getHours()
           hourBuckets[h] = (hourBuckets[h] ?? 0) + val
         }
       }
-
-      for (const o of (allOrders ?? [])) {
-        if (new Date(o.opened_at).getTime() >= todayStartMs) todayOrderIds.push(o.id)
-      }
     }
 
-    const txTodayN = todayOrderIds.length
-    const txWeekN  = allOrderIds.length
+    const txCount = allOrderIds.length
 
     // Avg turn time
     const { data: closedOrders } = await sb
       .from('orders').select('opened_at, closed_at')
       .eq('status', 'closed')
-      .gte('opened_at', weekStart.toISOString())
+      .gte('opened_at', start)
+      .lte('opened_at', end)
       .not('closed_at', 'is', null)
     const allClosed: any[] = closedOrders ?? []
-    const todayClosed = allClosed.filter(o => new Date(o.opened_at).getTime() >= todayStartMs)
 
     let avgTurnMin: number | null = null
-    let weekAvgTurnMin: number | null = null
-    if (todayClosed.length > 0) {
-      const totalMin = todayClosed.reduce((s: number, o: any) =>
-        s + (new Date(o.closed_at).getTime() - new Date(o.opened_at).getTime()) / 60000, 0)
-      avgTurnMin = Math.round(totalMin / todayClosed.length)
-    }
     if (allClosed.length > 0) {
       const totalMin = allClosed.reduce((s: number, o: any) =>
         s + (new Date(o.closed_at).getTime() - new Date(o.opened_at).getTime()) / 60000, 0)
-      weekAvgTurnMin = Math.round(totalMin / allClosed.length)
+      avgTurnMin = Math.round(totalMin / allClosed.length)
     }
 
-    const maxHour = now.getHours()
-    const hourlyBars = makePeak(Array.from({ length: maxHour + 1 }, (_, h) => ({ label: fmtHour(h), value: hourBuckets[h] ?? 0 })))
-    const weeklyBars = makePeak(Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(weekStart); d.setDate(d.getDate() + i)
-      return { label: DAY_LABELS[d.getDay()], value: dayBuckets[d.toISOString().slice(0, 10)] ?? 0 }
-    }))
+    // Build bars based on mode
+    let bars: RevenueBar[]
+    if (mode === 'today') {
+      const now = new Date()
+      const maxHour = now.getHours()
+      bars = makePeak(Array.from({ length: maxHour + 1 }, (_, h) => ({ label: fmtHour(h), value: hourBuckets[h] ?? 0 })))
+    } else if (mode === 'week') {
+      // Wed–Mon: 6 days starting from start date
+      const startDate = new Date(start)
+      bars = makePeak(buildDailyBars(startDate, 6, dayBuckets))
+    } else {
+      // month: all days in the month derived from start
+      const startDate = new Date(start)
+      const year = startDate.getFullYear()
+      const month = startDate.getMonth()
+      bars = makePeak(buildMonthBars(year, month, dayBuckets))
+    }
 
     // ── Expenses ───────────────────────────────────────────────────────────
+    // expense_date is a date string, derive date range from bounds
+    const startDateObj = new Date(start)
+    const endDateObj   = new Date(end)
+    const startDateStr = localDateStr(startDateObj)
+    const endDateStr   = localDateStr(endDateObj)
+
     const { data: allExp } = await sb
       .from('daily_expenses')
       .select('id, expense_date, category, description, qty, unit, unit_price, amount, paid_to, created_at')
-      .gte('expense_date', weekStr)
+      .gte('expense_date', startDateStr)
+      .lte('expense_date', endDateStr)
       .order('created_at', { ascending: false })
 
     const expAll: any[] = allExp ?? []
-    const expToday = expAll.filter((r: any) => r.expense_date === todayStr)
-
-    const todayExpenses = expToday.reduce((s: number, r: any) => s + r.amount, 0)
-    const weekExpenses  = expAll.reduce((s: number, r: any) => s + r.amount, 0)
+    const expenses = expAll.reduce((s: number, r: any) => s + r.amount, 0)
 
     const expDayBuckets: Record<string, number> = {}
     for (const r of expAll) expDayBuckets[r.expense_date] = (expDayBuckets[r.expense_date] ?? 0) + r.amount
-    const expenseDayBars = makePeak(Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(weekStart); d.setDate(d.getDate() + i)
-      const dk = d.toISOString().slice(0, 10)
-      return { label: DAY_LABELS[d.getDay()], value: expDayBuckets[dk] ?? 0 }
-    }))
 
-    const catToday: Record<string, number> = {}
-    const catWeek:  Record<string, number> = {}
-    for (const r of expAll)   catWeek[r.category]  = (catWeek[r.category]  ?? 0) + r.amount
-    for (const r of expToday) catToday[r.category] = (catToday[r.category] ?? 0) + r.amount
+    let expenseDayBars: RevenueBar[]
+    if (mode === 'today') {
+      expenseDayBars = makePeak([{ label: 'Today', value: expenses }])
+    } else if (mode === 'week') {
+      expenseDayBars = makePeak(buildDailyBars(startDateObj, 6, expDayBuckets))
+    } else {
+      const year = startDateObj.getFullYear()
+      const month = startDateObj.getMonth()
+      expenseDayBars = makePeak(buildMonthBars(year, month, expDayBuckets))
+    }
+
+    const catMap: Record<string, number> = {}
+    for (const r of expAll) catMap[r.category] = (catMap[r.category] ?? 0) + r.amount
     const expCatBreakdown: CatBreakdown[] = EXP_CATS.map(cat => ({
       category: cat,
-      today:    catToday[cat] ?? 0,
-      week:     catWeek[cat]  ?? 0,
+      amount:   catMap[cat] ?? 0,
     }))
 
     function mapExpRow(r: any): ExpenseRow {
@@ -241,11 +256,12 @@ export function useReports(): ReportsData {
       }
     }
 
-    // ── Transactions (week, last 500) ──────────────────────────────────────
+    // ── Transactions ──────────────────────────────────────────────────────
     const { data: recentPmts } = await sb
       .from('payments')
       .select(`id, order_id, amount, method, processed_at, notes, orders!inner(table_id, opened_by, opened_at)`)
-      .gte('processed_at', weekStart.toISOString())
+      .gte('processed_at', start)
+      .lte('processed_at', end)
       .order('processed_at', { ascending: false })
       .limit(500)
 
@@ -278,37 +294,23 @@ export function useReports(): ReportsData {
       }
     }
 
-    const allTx = rp.map(mapTxRow)
-    const todayTx = allTx.filter((_p, i) => {
-      const dt = new Date(rp[i].processed_at as string)
-      return dt.getTime() >= todayStartMs
-    })
-
     dispatch({
       type: 'data',
       payload: {
-        todayRevenue:  todayGross,
-        weekRevenue:   weekGross,
-        todayCost:     costToday,
-        todayExpenses,
-        weekExpenses,
-        avgOrder:      txTodayN > 0 ? todayGross / txTodayN : 0,
-        weekAvgOrder:  txWeekN  > 0 ? weekGross  / txWeekN  : 0,
-        txCount:       txTodayN,
-        weekTxCount:   txWeekN,
+        revenue:  gross,
+        cost,
+        expenses,
+        avgOrder:  txCount > 0 ? gross / txCount : 0,
+        txCount,
         avgTurnMin,
-        weekAvgTurnMin,
-        hourlyBars,
-        weeklyBars,
+        bars,
         expenseDayBars,
-        transactions:     todayTx,
-        weekTransactions: allTx,
-        expenseRows:      expToday.map(mapExpRow),
-        weekExpenseRows:  expAll.map(mapExpRow),
+        transactions: rp.map(mapTxRow),
+        expenseRows:  expAll.map(mapExpRow),
         expCatBreakdown,
       },
     })
-  }, [])
+  }, [start, end, mode])
 
   useEffect(() => {
     fetchAll()

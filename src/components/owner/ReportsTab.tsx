@@ -5,6 +5,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { getClient } from '@/lib/supabase'
 import { SectionHd, Pill, GroupedBarChart, HBarChart, fmtPeso, DAY_ABBR, MONTH_ABBR } from './ownerShared'
 import type { MultiBar, CategoryBreakdown } from './ownerShared'
+import DateRangeNav, { useDateNav } from '@/components/shared/DateRangeNav'
+import { dayBounds, weekBounds, monthBounds, localDateStr, ViewMode } from '@/lib/dateNav'
 
 // ── Types local to ReportsTab ─────────────────────────────────────────────────
 
@@ -14,59 +16,42 @@ interface TopItem { name: string; qty: number; rev: number; cost: number }
 
 export default function ReportsTab() {
   const { T } = useTheme()
+  const nav = useDateNav()
 
-  const [range, setRange]         = useState<'today' | 'week' | 'month'>('today')
   const [chartMode, setChartMode] = useState<'bar' | 'line'>('bar')
 
-  const [todayGross,  setTodayGross]  = useState(0)
-  const [weekGross,   setWeekGross]   = useState(0)
-  const [monthGross,  setMonthGross]  = useState(0)
-  const [todayCost,   setTodayCost]   = useState(0)
-  const [weekCost,    setWeekCost]    = useState(0)
-  const [monthCost,   setMonthCost]   = useState(0)
-  const [todayExp,    setTodayExp]    = useState(0)
-  const [weekExp,     setWeekExp]     = useState(0)
-  const [monthExp,    setMonthExp]    = useState(0)
-  const [txToday,     setTxToday]     = useState(0)
-  const [txWeek,      setTxWeek]      = useState(0)
-  const [txMonth,     setTxMonth]     = useState(0)
-  const [hourlyGrouped,  setHourlyGrouped]  = useState<MultiBar[]>([])
-  const [weeklyGrouped,  setWeeklyGrouped]  = useState<MultiBar[]>([])
-  const [monthlyGrouped, setMonthlyGrouped] = useState<MultiBar[]>([])
-  const [methodMap,      setMethodMap]      = useState<Record<string, number>>({})
-  const [topItemsAll,    setTopItemsAll]    = useState<Record<string, TopItem[]>>({ today: [], week: [], month: [] })
-  const [catBreakdownAll,setCatBreakdownAll]= useState<Record<string, CategoryBreakdown[]>>({ today: [], week: [], month: [] })
-  const [expCatAll,      setExpCatAll]      = useState<Record<string, { category: string; amount: number }[]>>({ today: [], week: [], month: [] })
-  const [voidedCount,    setVoidedCount]    = useState(0)
-  const [voidedAmount,   setVoidedAmount]   = useState(0)
-  const [avgTurnMin,     setAvgTurnMin]     = useState<number | null>(null)
+  const [gross,      setGross]      = useState(0)
+  const [cost,       setCost]       = useState(0)
+  const [expenses,   setExpenses]   = useState(0)
+  const [txCount,    setTxCount]    = useState(0)
+  const [bars,       setBars]       = useState<MultiBar[]>([])
+  const [methodMap,  setMethodMap]  = useState<Record<string, number>>({})
+  const [topItems,   setTopItems]   = useState<TopItem[]>([])
+  const [catBreakdown, setCatBreakdown] = useState<CategoryBreakdown[]>([])
+  const [expCat,     setExpCat]     = useState<{ category: string; amount: number }[]>([])
+  const [voidedCount,  setVoidedCount]  = useState(0)
+  const [voidedAmount, setVoidedAmount] = useState(0)
+  const [avgTurnMin,   setAvgTurnMin]   = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchAll = useCallback(async () => {
+  const fetchAll = useCallback(async (startISO: string, endISO: string, mode: ViewMode) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb  = getClient() as any
-    const now = new Date()
 
-    // Use local date strings to avoid UTC rollback in UTC+8 timezone
-    const localDateStr = (d: Date) =>
-      `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
-
-    const todayStart = new Date(now); todayStart.setHours(0,0,0,0)
-    const weekStart  = new Date(now); weekStart.setDate(weekStart.getDate() - 6);  weekStart.setHours(0,0,0,0)
-    const monthStart = new Date(now); monthStart.setDate(monthStart.getDate() - 29); monthStart.setHours(0,0,0,0)
+    const startDateObj = new Date(startISO)
+    const startDateStr = localDateStr(startDateObj)
+    const endDateStr   = localDateStr(new Date(endISO))
 
     const { data: allOrders } = await sb
       .from('orders').select('id, opened_at, status')
-      .gte('opened_at', monthStart.toISOString())
+      .gte('opened_at', startISO)
+      .lte('opened_at', endISO)
     const allOrderIds = (allOrders ?? []).map((o: any) => o.id)
 
-    const todayStartMs = todayStart.getTime()
-    const weekStartMs  = weekStart.getTime()
-
     if (allOrderIds.length === 0) {
-      setTodayGross(0); setTodayCost(0); setWeekGross(0); setWeekCost(0); setMonthGross(0); setMonthCost(0)
-      setTxToday(0); setTxWeek(0); setTxMonth(0)
-      setHourlyGrouped([]); setWeeklyGrouped([]); setMonthlyGrouped([])
+      setGross(0); setCost(0); setTxCount(0)
+      setBars([])
+      setTopItems([]); setCatBreakdown([])
     } else {
       const { data: allLines } = await sb
         .from('order_items')
@@ -84,135 +69,128 @@ export default function ReportsTab() {
 
       const hourGross: Record<number, number> = {}; const hourCost: Record<number, number> = {}
       const dayGross:  Record<string, number> = {}; const dayCost:  Record<string, number> = {}
-      let gToday = 0; let cToday = 0; let gWeek = 0; let cWeek = 0; let gMonth = 0; let cMonth = 0
-      let txTodayN = 0; let txWeekN = 0; let txMonthN = 0
+      let gTotal = 0; let cTotal = 0; let txN = 0
       const countedOrders = new Set<number>()
 
-      const itemAgg: Record<string, Record<string, { qty: number; rev: number; cost: number }>> = { today: {}, week: {}, month: {} }
-      const catAgg:  Record<string, Record<string, { gross: number; cost: number }>>             = { today: {}, week: {}, month: {} }
+      const itemAgg: Record<string, { qty: number; rev: number; cost: number }> = {}
+      const catAgg:  Record<string, { gross: number; cost: number }> = {}
 
       for (const row of lines) {
         const openedAt = orderOpenedAtMap[row.order_id]
         if (!openedAt) continue
-        const ts  = openedAt.getTime()
         const val = row.qty * row.unit_price
         const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
         const rc  = row.qty * (mi?.cost ?? 0)
         const dk  = orderDateMap[row.order_id]
         const name = mi?.name ?? '—'; const cat = mi?.category ?? 'Other'
 
-        gMonth += val; cMonth += rc
+        gTotal += val; cTotal += rc
         dayGross[dk] = (dayGross[dk] ?? 0) + val; dayCost[dk] = (dayCost[dk] ?? 0) + rc
 
-        if (ts >= weekStartMs)  { gWeek  += val; cWeek  += rc }
-        if (ts >= todayStartMs) {
-          gToday += val; cToday += rc
+        if (mode === 'today') {
           const h = openedAt.getHours()
           hourGross[h] = (hourGross[h] ?? 0) + val; hourCost[h] = (hourCost[h] ?? 0) + rc
         }
 
         if (!countedOrders.has(row.order_id)) {
           countedOrders.add(row.order_id)
-          if (ts >= todayStartMs) txTodayN++
-          if (ts >= weekStartMs)  txWeekN++
-          txMonthN++
+          txN++
         }
 
-        for (const [rng, ms] of [['today', todayStartMs], ['week', weekStartMs], ['month', -Infinity]] as const) {
-          if (ts >= ms) {
-            if (!itemAgg[rng][name]) itemAgg[rng][name] = { qty: 0, rev: 0, cost: 0 }
-            itemAgg[rng][name].qty += row.qty; itemAgg[rng][name].rev += val; itemAgg[rng][name].cost += rc
-            if (!catAgg[rng][cat]) catAgg[rng][cat] = { gross: 0, cost: 0 }
-            catAgg[rng][cat].gross += val; catAgg[rng][cat].cost += rc
-          }
-        }
+        if (!itemAgg[name]) itemAgg[name] = { qty: 0, rev: 0, cost: 0 }
+        itemAgg[name].qty += row.qty; itemAgg[name].rev += val; itemAgg[name].cost += rc
+        if (!catAgg[cat]) catAgg[cat] = { gross: 0, cost: 0 }
+        catAgg[cat].gross += val; catAgg[cat].cost += rc
       }
 
-      setTodayGross(gToday); setTodayCost(cToday); setTxToday(txTodayN)
-      setWeekGross(gWeek);   setWeekCost(cWeek);   setTxWeek(txWeekN)
-      setMonthGross(gMonth); setMonthCost(cMonth);  setTxMonth(txMonthN)
+      setGross(gTotal); setCost(cTotal); setTxCount(txN)
 
-      const maxHour = now.getHours()
-      setHourlyGrouped(Array.from({ length: maxHour + 1 }, (_, h) => ({
-        label: `${String(h).padStart(2,'0')}:00`,
-        gross: hourGross[h] ?? 0, cost: hourCost[h] ?? 0, expenses: 0,
-      })))
-      setWeeklyGrouped(Array.from({ length: 7 }, (_, i) => {
-        const d = new Date(weekStart); d.setDate(d.getDate() + i)
-        const dk = localDateStr(d)
-        return { label: DAY_ABBR[d.getDay()], gross: dayGross[dk] ?? 0, cost: dayCost[dk] ?? 0, expenses: 0 }
-      }))
-      setMonthlyGrouped(Array.from({ length: 30 }, (_, i) => {
-        const d = new Date(monthStart); d.setDate(d.getDate() + i)
-        const dk = localDateStr(d)
-        return { label: `${d.getDate()}`, gross: dayGross[dk] ?? 0, cost: dayCost[dk] ?? 0, expenses: 0 }
-      }))
+      let newBars: MultiBar[]
+      if (mode === 'today') {
+        const now = new Date()
+        const maxHour = now.getHours()
+        newBars = Array.from({ length: maxHour + 1 }, (_, h) => ({
+          label: `${String(h).padStart(2,'00')}:00`,
+          gross: hourGross[h] ?? 0, cost: hourCost[h] ?? 0, expenses: 0,
+        }))
+      } else if (mode === 'week') {
+        // 6 days Wed–Mon
+        newBars = Array.from({ length: 6 }, (_, i) => {
+          const d = new Date(startDateObj); d.setDate(d.getDate() + i)
+          const dk = localDateStr(d)
+          return { label: DAY_ABBR[d.getDay()], gross: dayGross[dk] ?? 0, cost: dayCost[dk] ?? 0, expenses: 0 }
+        })
+      } else {
+        // month: all days in the month
+        const year = startDateObj.getFullYear()
+        const month = startDateObj.getMonth()
+        const daysInMonth = new Date(year, month + 1, 0).getDate()
+        newBars = Array.from({ length: daysInMonth }, (_, i) => {
+          const d = new Date(year, month, i + 1)
+          const dk = localDateStr(d)
+          return { label: `${i + 1}`, gross: dayGross[dk] ?? 0, cost: dayCost[dk] ?? 0, expenses: 0 }
+        })
+      }
+      setBars(newBars)
 
-      const buildTop = (rng: string) =>
-        Object.entries(itemAgg[rng]).map(([name, v]) => ({ name, ...v })).sort((a,b) => b.rev - a.rev).slice(0, 10)
-      const buildCat = (rng: string) =>
-        Object.entries(catAgg[rng]).map(([category, v]) => ({ category, gross: v.gross, cost: v.cost, net: v.gross - v.cost })).sort((a,b) => b.gross - a.gross)
-      setTopItemsAll({ today: buildTop('today'), week: buildTop('week'), month: buildTop('month') })
-      setCatBreakdownAll({ today: buildCat('today'), week: buildCat('week'), month: buildCat('month') })
+      setTopItems(
+        Object.entries(itemAgg).map(([name, v]) => ({ name, ...v })).sort((a,b) => b.rev - a.rev).slice(0, 10)
+      )
+      setCatBreakdown(
+        Object.entries(catAgg).map(([category, v]) => ({ category, gross: v.gross, cost: v.cost, net: v.gross - v.cost })).sort((a,b) => b.gross - a.gross)
+      )
     }
 
     const { data: expData } = await sb
       .from('daily_expenses').select('expense_date, category, amount')
-      .gte('expense_date', localDateStr(monthStart))
+      .gte('expense_date', startDateStr)
+      .lte('expense_date', endDateStr)
     const expDayBuckets: Record<string, number> = {}
-    const expCatBuckets: Record<string, Record<string, number>> = { today: {}, week: {}, month: {} }
-    let expTodayTotal = 0; let expWeekTotal = 0; let expMonthTotal = 0
-    const todayStr = localDateStr(todayStart)
-    const weekStr  = localDateStr(weekStart)
+    const expCatBuckets: Record<string, number> = {}
+    let expTotal = 0
     for (const r of (expData ?? [])) {
       expDayBuckets[r.expense_date] = (expDayBuckets[r.expense_date] ?? 0) + r.amount
-      expMonthTotal += r.amount
-      expCatBuckets.month[r.category] = (expCatBuckets.month[r.category] ?? 0) + r.amount
-      if (r.expense_date >= weekStr) {
-        expWeekTotal += r.amount
-        expCatBuckets.week[r.category] = (expCatBuckets.week[r.category] ?? 0) + r.amount
-      }
-      if (r.expense_date === todayStr) {
-        expTodayTotal += r.amount
-        expCatBuckets.today[r.category] = (expCatBuckets.today[r.category] ?? 0) + r.amount
-      }
+      expCatBuckets[r.category] = (expCatBuckets[r.category] ?? 0) + r.amount
+      expTotal += r.amount
     }
-    setTodayExp(expTodayTotal); setWeekExp(expWeekTotal); setMonthExp(expMonthTotal)
-    const buildExpCat = (rng: string) =>
-      Object.entries(expCatBuckets[rng]).map(([category, amount]) => ({ category, amount })).sort((a, b) => b.amount - a.amount)
-    setExpCatAll({ today: buildExpCat('today'), week: buildExpCat('week'), month: buildExpCat('month') })
+    setExpenses(expTotal)
+    setExpCat(
+      Object.entries(expCatBuckets).map(([category, amount]) => ({ category, amount })).sort((a, b) => b.amount - a.amount)
+    )
 
-    setHourlyGrouped(prev => prev.map(b => ({ ...b, expenses: expDayBuckets[todayStr] ?? 0 })))
-    setWeeklyGrouped(prev => prev.map(b => {
-      const idx = DAY_ABBR.indexOf(b.label)
-      if (idx < 0) return b
-      const d = new Date(); d.setDate(d.getDate() - (d.getDay() - idx + 7) % 7)
-      return { ...b, expenses: expDayBuckets[localDateStr(d)] ?? 0 }
-    }))
-    setMonthlyGrouped(prev => prev.map(b => {
-      const d = new Date(monthStart); d.setDate(monthStart.getDate() + parseInt(b.label) - monthStart.getDate())
-      return { ...b, expenses: expDayBuckets[localDateStr(d)] ?? 0 }
+    // Patch expenses into bars
+    setBars(prev => prev.map((b, i) => {
+      if (mode === 'today') {
+        return { ...b, expenses: expDayBuckets[startDateStr] ?? 0 }
+      } else if (mode === 'week') {
+        const d = new Date(startDateObj); d.setDate(d.getDate() + i)
+        return { ...b, expenses: expDayBuckets[localDateStr(d)] ?? 0 }
+      } else {
+        const year = startDateObj.getFullYear()
+        const month = startDateObj.getMonth()
+        const d = new Date(year, month, i + 1)
+        return { ...b, expenses: expDayBuckets[localDateStr(d)] ?? 0 }
+      }
     }))
 
-    const { data: todayPmts } = await sb
+    const { data: pmts } = await sb
       .from('payments').select('amount, method')
-      .gte('processed_at', todayStart.toISOString())
+      .gte('processed_at', startISO)
+      .lte('processed_at', endISO)
     const mm: Record<string,number> = {}
-    for (const p of (todayPmts ?? [])) { mm[p.method] = (mm[p.method]??0) + p.amount }
+    for (const p of (pmts ?? [])) { mm[p.method] = (mm[p.method]??0) + p.amount }
     setMethodMap(mm)
 
-    const { data: todayOrdersV } = await sb.from('orders').select('id').gte('opened_at', todayStart.toISOString())
-    const todayOrderIds = (todayOrdersV ?? []).map((o: any) => o.id)
     const vi: any[] = []
-    if (todayOrderIds.length > 0) {
-      const { data: voidedItems } = await sb.from('order_items').select('qty, unit_price').eq('status', 'voided').in('order_id', todayOrderIds)
+    if (allOrderIds.length > 0) {
+      const { data: voidedItems } = await sb.from('order_items').select('qty, unit_price').eq('status', 'voided').in('order_id', allOrderIds)
       vi.push(...(voidedItems ?? []))
     }
     setVoidedCount(vi.length)
     setVoidedAmount(vi.reduce((s: number, r: any) => s + r.qty * r.unit_price, 0))
 
-    const { data: closedToday } = await sb.from('orders').select('opened_at, closed_at').eq('status', 'closed').gte('opened_at', todayStart.toISOString()).not('closed_at', 'is', null)
-    const ct: any[] = closedToday ?? []
+    const { data: closedOrders } = await sb.from('orders').select('opened_at, closed_at').eq('status', 'closed').gte('opened_at', startISO).lte('opened_at', endISO).not('closed_at', 'is', null)
+    const ct: any[] = closedOrders ?? []
     if (ct.length > 0) {
       const totalMin = ct.reduce((s: number, o: any) => s + (new Date(o.closed_at).getTime() - new Date(o.opened_at).getTime()) / 60000, 0)
       setAvgTurnMin(Math.round(totalMin / ct.length))
@@ -224,29 +202,44 @@ export default function ReportsTab() {
   }, [])
 
   useEffect(() => {
-    fetchAll()
+    const { start, end } = nav.mode === 'today'
+      ? dayBounds(nav.date)
+      : nav.mode === 'week'
+      ? weekBounds(nav.weekRef)
+      : monthBounds(nav.year, nav.month)
+    fetchAll(start, end, nav.mode)
+  }, [nav.mode, nav.date, nav.weekRef, nav.month, nav.year, fetchAll])
+
+  useEffect(() => {
     const sb = getClient()
     const channel = sb
       .channel('owner-sales-rt')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' },      fetchAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' },           fetchAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' },         fetchAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_expenses' },   fetchAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'restaurant_tables' }, fetchAll)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' },      () => {
+        const { start, end } = nav.mode === 'today' ? dayBounds(nav.date) : nav.mode === 'week' ? weekBounds(nav.weekRef) : monthBounds(nav.year, nav.month)
+        fetchAll(start, end, nav.mode)
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' },           () => {
+        const { start, end } = nav.mode === 'today' ? dayBounds(nav.date) : nav.mode === 'week' ? weekBounds(nav.weekRef) : monthBounds(nav.year, nav.month)
+        fetchAll(start, end, nav.mode)
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' },         () => {
+        const { start, end } = nav.mode === 'today' ? dayBounds(nav.date) : nav.mode === 'week' ? weekBounds(nav.weekRef) : monthBounds(nav.year, nav.month)
+        fetchAll(start, end, nav.mode)
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_expenses' },   () => {
+        const { start, end } = nav.mode === 'today' ? dayBounds(nav.date) : nav.mode === 'week' ? weekBounds(nav.weekRef) : monthBounds(nav.year, nav.month)
+        fetchAll(start, end, nav.mode)
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'restaurant_tables' }, () => {
+        const { start, end } = nav.mode === 'today' ? dayBounds(nav.date) : nav.mode === 'week' ? weekBounds(nav.weekRef) : monthBounds(nav.year, nav.month)
+        fetchAll(start, end, nav.mode)
+      })
       .subscribe()
     return () => { sb.removeChannel(channel) }
-  }, [fetchAll])
+  }, [nav.mode, nav.date, nav.weekRef, nav.month, nav.year, fetchAll])
 
-  const gross    = range === 'today' ? todayGross : range === 'week' ? weekGross  : monthGross
-  const cost     = range === 'today' ? todayCost  : range === 'week' ? weekCost   : monthCost
-  const expenses = range === 'today' ? todayExp   : range === 'week' ? weekExp    : monthExp
   const net      = gross - cost
-  const txc      = range === 'today' ? txToday    : range === 'week' ? txWeek     : txMonth
-  const bars     = range === 'today' ? hourlyGrouped : range === 'week' ? weeklyGrouped : monthlyGrouped
-  const topItems     = topItemsAll[range] ?? []
-  const catBreakdown = catBreakdownAll[range] ?? []
-  const expCat       = expCatAll[range] ?? []
-  const suffix       = range === 'today' ? 'Today' : range === 'week' ? 'Week' : 'Month'
+  const suffix   = nav.mode === 'today' ? 'Today' : nav.mode === 'week' ? 'Week' : 'Month'
 
   const methodColors: Record<string, string> = {
     cash: T.ok, card: T.info, gcash: T.accent, maya: T.warn, comp: T.textDim,
@@ -256,21 +249,28 @@ export default function ReportsTab() {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
 
       <div style={{ height: 46, padding: '0 24px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
-        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, marginRight: 4 }}>View</span>
-        {(['today','week','month'] as const).map(r => (
-          <Pill key={r} label={r === 'today' ? 'Today' : r === 'week' ? 'Week' : 'Month'} active={range === r} onClick={() => setRange(r)} />
-        ))}
+        <DateRangeNav
+          mode={nav.mode}
+          date={nav.date}
+          weekRef={nav.weekRef}
+          month={nav.month}
+          year={nav.year}
+          onModeChange={nav.setMode}
+          onDateChange={nav.setDate}
+          onWeekChange={nav.setWeekRef}
+          onMonthChange={nav.setMonth}
+        />
       </div>
 
       {/* KPIs */}
       {(() => {
         const kpis = [
-          { label: `Gross · ${suffix}`,    value: fmtPeso(gross),    sub: `${txc} txn`,                                                   color: T.accent },
+          { label: `Gross · ${suffix}`,    value: fmtPeso(gross),    sub: `${txCount} txn`,                                                   color: T.accent },
           { label: `Cost · ${suffix}`,     value: fmtPeso(cost),     sub: gross > 0 ? `${((cost/gross)*100).toFixed(1)}% of gross` : '—', color: T.textDim },
           { label: `Net · ${suffix}`,      value: fmtPeso(net),      sub: gross > 0 ? `${((net/gross)*100).toFixed(1)}% margin` : '—',    color: net >= 0 ? T.ok : T.bad },
           { label: `Expenses · ${suffix}`, value: fmtPeso(expenses), sub: 'logged',                                                        color: T.bad },
-          { label: 'Voided Items',         value: String(voidedCount), sub: voidedCount > 0 ? fmtPeso(voidedAmount) : 'today',            color: voidedCount > 0 ? T.bad : T.textMute },
-          { label: 'Avg Turn Time',        value: avgTurnMin != null ? `${avgTurnMin}m` : '—', sub: 'open → close today',                color: T.info },
+          { label: 'Voided Items',         value: String(voidedCount), sub: voidedCount > 0 ? fmtPeso(voidedAmount) : 'none',            color: voidedCount > 0 ? T.bad : T.textMute },
+          { label: 'Avg Turn Time',        value: avgTurnMin != null ? `${avgTurnMin}m` : '—', sub: 'open → close',                color: T.info },
         ]
         return (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
@@ -332,11 +332,11 @@ export default function ReportsTab() {
           {/* Payment method breakdown */}
           <div style={{ padding: '12px 24px', borderTop: `1px solid ${T.line}`, flexShrink: 0 }}>
             <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, marginBottom: 8 }}>
-              Payment Methods · Today
+              Payment Methods · {suffix}
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {Object.entries(methodMap).length === 0 ? (
-                <span style={{ fontSize: 12, color: T.textMute, fontFamily: T.mono }}>No payments today</span>
+                <span style={{ fontSize: 12, color: T.textMute, fontFamily: T.mono }}>No payments</span>
               ) : Object.entries(methodMap).map(([m, v]) => (
                 <div key={m} style={{
                   display: 'flex', alignItems: 'center', gap: 5,
