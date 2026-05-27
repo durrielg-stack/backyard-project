@@ -149,7 +149,8 @@ export default function NavBar({
   const attnTabs  = tables.filter(t => t.status === 'attention').length
 
   const currentTableId = typeof view === 'object' ? view.tableId : null
-  const isOwner = staff.role === 'Owner'
+  const isOwner   = staff.role === 'Owner'
+  const isManager = staff.role === 'Manager'
 
   // Build table lookup for tabs
   const tableMap = new Map(tables.map(t => [t.id, t]))
@@ -209,43 +210,53 @@ export default function NavBar({
           isMobile={isMobile}
         />
 
-        {/* Owner-only tabs */}
+        {/* Sales — Owner + Manager */}
+        {(isOwner || isManager) && (
+          <NavTab
+            active={view === 'sales'}
+            onClick={onSales}
+            label="Sales"
+            sub="Items sold"
+            isMobile={isMobile}
+          />
+        )}
+
+        {/* Expenses — Owner + Manager */}
+        {(isOwner || isManager) && (
+          <NavTab
+            active={view === 'expenses'}
+            onClick={onExpenses}
+            label="Expenses"
+            sub="Daily log"
+            isMobile={isMobile}
+          />
+        )}
+
+        {/* Reports — Owner + Manager */}
+        {(isOwner || isManager) && (
+          <NavTab
+            active={view === 'reports'}
+            onClick={onReports}
+            label="Reports"
+            sub="Sales · Expenses"
+            isMobile={isMobile}
+          />
+        )}
+
+        {/* Owner — Owner only */}
         {isOwner && (
-          <>
-            <NavTab
-              active={view === 'expenses'}
-              onClick={onExpenses}
-              label="Expenses"
-              sub="Daily log"
-              isMobile={isMobile}
-            />
-            <NavTab
-              active={view === 'reports'}
-              onClick={onReports}
-              label="Reports"
-              sub="Sales · Expenses"
-              isMobile={isMobile}
-            />
-            <NavTab
-              active={view === 'sales'}
-              onClick={onSales}
-              label="Sales"
-              sub="Items sold"
-              isMobile={isMobile}
-            />
-            <NavTab
-              active={view === 'owner'}
-              onClick={onOwner}
-              label={
-                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <Icon name="lock" size={11} />
-                  Owner
-                </span>
-              }
-              sub="Full access"
-              isMobile={isMobile}
-            />
-          </>
+          <NavTab
+            active={view === 'owner'}
+            onClick={onOwner}
+            label={
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Icon name="lock" size={11} />
+                Owner
+              </span>
+            }
+            sub="Full access"
+            isMobile={isMobile}
+          />
         )}
 
         {/* Per-table open tabs */}
