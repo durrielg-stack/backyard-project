@@ -64,12 +64,17 @@ export default function DateRangeNav({
     if (mode === 'today') {
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{
-            fontSize: 12, fontFamily: T.mono, color: T.text, fontWeight: 500,
-            minWidth: 160, textAlign: 'center',
-          }}>
-            {todayLabel(date)}
-          </span>
+          <input
+            type="date"
+            value={date}
+            onChange={e => e.target.value && onDateChange(e.target.value)}
+            style={{
+              padding: '4px 8px', fontSize: 12, fontFamily: T.mono,
+              background: T.surface2, color: T.text,
+              border: `1px solid ${T.line2}`, borderRadius: T.radius,
+              outline: 'none', cursor: 'pointer',
+            }}
+          />
           {date !== localDateStr(new Date()) && (
             <button
               onClick={() => onDateChange(localDateStr(new Date()))}

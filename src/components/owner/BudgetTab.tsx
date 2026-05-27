@@ -4,6 +4,7 @@ import { useTheme } from '@/lib/ThemeContext'
 import { useState, useCallback, useEffect } from 'react'
 import { getClient } from '@/lib/supabase'
 import { SectionHd, fmtPeso } from './ownerShared'
+import { localDateStr, parseLocalDate } from '@/lib/dateNav'
 
 export const BUDGET_CATS: { id: string; label: string }[] = [
   { id: 'opex',        label: 'OPEX'           },
@@ -81,7 +82,7 @@ export default function BudgetTab() {
   ] as const
 
   const [budgetView, setBudgetView] = useState<'day' | 'ledger'>('day')
-  const [date,       setDate]       = useState(() => new Date().toISOString().slice(0, 10))
+  const [date,       setDate]       = useState(() => localDateStr(new Date()))
   const [entries,    setEntries]    = useState<BudgetEntry[]>(BUDGET_CATS.map(c => ({ id: null, category: c.id, incoming: 0, expenses: 0 })))
   const [history,    setHistory]    = useState<{ category: string; incoming: number; expenses: number }[]>([])
   const [editCell,   setEditCell]   = useState<{ cat: string; field: 'incoming' | 'expenses' } | null>(null)
@@ -134,8 +135,8 @@ export default function BudgetTab() {
   useEffect(() => { fetchData(date) }, [fetchData, date])
 
   function shiftDate(days: number) {
-    const d = new Date(date); d.setDate(d.getDate() + days)
-    setDate(d.toISOString().slice(0, 10))
+    const d = parseLocalDate(date); d.setDate(d.getDate() + days)
+    setDate(localDateStr(d))
   }
 
   async function saveCell(cat: string, field: 'incoming' | 'expenses', raw: string) {
@@ -204,7 +205,7 @@ export default function BudgetTab() {
   }
 
   const fmtSign = (v: number) => v === 0 ? '—' : fmtPeso(v)
-  const todayStr = new Date().toISOString().slice(0, 10)
+  const todayStr = localDateStr(new Date())
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
