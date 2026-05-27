@@ -6,7 +6,7 @@ import { getClient } from '@/lib/supabase'
 import { SectionHd, Pill, GroupedBarChart, HBarChart, fmtPeso, DAY_ABBR, MONTH_ABBR } from './ownerShared'
 import type { MultiBar, CategoryBreakdown } from './ownerShared'
 import DateRangeNav, { useDateNav } from '@/components/shared/DateRangeNav'
-import { dayBounds, weekBounds, monthBounds, localDateStr, ViewMode, shiftHoursUpToNow } from '@/lib/dateNav'
+import { dayBounds, weekBounds, monthBounds, localDateStr, parseLocalDate, ViewMode, shiftHoursUpToNow } from '@/lib/dateNav'
 
 // ── Types local to ReportsTab ─────────────────────────────────────────────────
 
@@ -35,110 +35,63 @@ export default function ReportsTab() {
   const [loading, setLoading] = useState(true)
 
   const fetchAll = useCallback(async (startISO: string, endISO: string, mode: ViewMode) => {
+    setLoading(true)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb  = getClient() as any
 
-    const startDateObj = new Date(startISO)
-    const startDateStr = localDateStr(startDateObj)
+    // Use parseLocalDate to avoid UTC→local date shift when iterating bars
+    const startDateStr = localDateStr(new Date(startISO))
     const endDateStr   = localDateStr(new Date(endISO))
+    const startLocal   = parseLocalDate(startDateStr)   // guaranteed local midnight
 
-    const { data: allOrders } = await sb
-      .from('orders').select('id, opened_at, status')
-      .gte('opened_at', startISO)
-      .lte('opened_at', endISO)
-    const allOrderIds = (allOrders ?? []).map((o: any) => o.id)
+    // ── Sales via direct join ────────────────────────────────────────────────
+    const { data: allLines, error: linesErr } = await sb
+      .from('order_items')
+      .select('order_id, qty, unit_price, orders!inner(opened_at), menu_items(name, category, cost)')
+      .gte('orders.opened_at', startISO)
+      .lte('orders.opened_at', endISO)
+      .neq('status', 'voided')
+    if (linesErr) console.error('[ReportsTab] lines fetch error', linesErr)
+    const lines: any[] = allLines ?? []
 
-    if (allOrderIds.length === 0) {
-      setGross(0); setCost(0); setTxCount(0)
-      setBars([])
-      setTopItems([]); setCatBreakdown([])
-    } else {
-      const { data: allLines } = await sb
-        .from('order_items')
-        .select('order_id, qty, unit_price, menu_items(name, category, cost)')
-        .in('order_id', allOrderIds)
-        .neq('status', 'voided')
-      const lines: any[] = allLines ?? []
+    const hourGross: Record<number, number> = {}; const hourCost: Record<number, number> = {}
+    const dayGross:  Record<string, number> = {}; const dayCost:  Record<string, number> = {}
+    let gTotal = 0; let cTotal = 0; let txN = 0
+    const countedOrders = new Set<number>()
+    const itemAgg: Record<string, { qty: number; rev: number; cost: number }> = {}
+    const catAgg:  Record<string, { gross: number; cost: number }> = {}
 
-      const orderDateMap: Record<number, string> = {}
-      const orderOpenedAtMap: Record<number, Date> = {}
-      for (const o of (allOrders ?? [])) {
-        orderDateMap[o.id] = localDateStr(new Date(o.opened_at))
-        orderOpenedAtMap[o.id] = new Date(o.opened_at)
-      }
+    for (const row of lines) {
+      const orderData = Array.isArray(row.orders) ? row.orders[0] : row.orders
+      if (!orderData?.opened_at) continue
+      const openedAt = new Date(orderData.opened_at)
+      const val  = row.qty * row.unit_price
+      const mi   = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
+      const rc   = row.qty * (mi?.cost ?? 0)
+      const dk   = localDateStr(openedAt)
+      const name = mi?.name ?? '—'; const cat = mi?.category ?? 'Other'
 
-      const hourGross: Record<number, number> = {}; const hourCost: Record<number, number> = {}
-      const dayGross:  Record<string, number> = {}; const dayCost:  Record<string, number> = {}
-      let gTotal = 0; let cTotal = 0; let txN = 0
-      const countedOrders = new Set<number>()
+      gTotal += val; cTotal += rc
+      dayGross[dk] = (dayGross[dk] ?? 0) + val; dayCost[dk] = (dayCost[dk] ?? 0) + rc
 
-      const itemAgg: Record<string, { qty: number; rev: number; cost: number }> = {}
-      const catAgg:  Record<string, { gross: number; cost: number }> = {}
-
-      for (const row of lines) {
-        const openedAt = orderOpenedAtMap[row.order_id]
-        if (!openedAt) continue
-        const val = row.qty * row.unit_price
-        const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
-        const rc  = row.qty * (mi?.cost ?? 0)
-        const dk  = orderDateMap[row.order_id]
-        const name = mi?.name ?? '—'; const cat = mi?.category ?? 'Other'
-
-        gTotal += val; cTotal += rc
-        dayGross[dk] = (dayGross[dk] ?? 0) + val; dayCost[dk] = (dayCost[dk] ?? 0) + rc
-
-        if (mode === 'today') {
-          const h = openedAt.getHours()
-          hourGross[h] = (hourGross[h] ?? 0) + val; hourCost[h] = (hourCost[h] ?? 0) + rc
-        }
-
-        if (!countedOrders.has(row.order_id)) {
-          countedOrders.add(row.order_id)
-          txN++
-        }
-
-        if (!itemAgg[name]) itemAgg[name] = { qty: 0, rev: 0, cost: 0 }
-        itemAgg[name].qty += row.qty; itemAgg[name].rev += val; itemAgg[name].cost += rc
-        if (!catAgg[cat]) catAgg[cat] = { gross: 0, cost: 0 }
-        catAgg[cat].gross += val; catAgg[cat].cost += rc
-      }
-
-      setGross(gTotal); setCost(cTotal); setTxCount(txN)
-
-      let newBars: MultiBar[]
       if (mode === 'today') {
-        newBars = shiftHoursUpToNow().map(h => ({
-          label: `${String(h).padStart(2, '0')}:00`,
-          gross: hourGross[h] ?? 0, cost: hourCost[h] ?? 0, expenses: 0,
-        }))
-      } else if (mode === 'week') {
-        // 6 days Wed–Mon
-        newBars = Array.from({ length: 6 }, (_, i) => {
-          const d = new Date(startDateObj); d.setDate(d.getDate() + i)
-          const dk = localDateStr(d)
-          return { label: DAY_ABBR[d.getDay()], gross: dayGross[dk] ?? 0, cost: dayCost[dk] ?? 0, expenses: 0 }
-        })
-      } else {
-        // month: all days in the month
-        const year = startDateObj.getFullYear()
-        const month = startDateObj.getMonth()
-        const daysInMonth = new Date(year, month + 1, 0).getDate()
-        newBars = Array.from({ length: daysInMonth }, (_, i) => {
-          const d = new Date(year, month, i + 1)
-          const dk = localDateStr(d)
-          return { label: `${i + 1}`, gross: dayGross[dk] ?? 0, cost: dayCost[dk] ?? 0, expenses: 0 }
-        })
+        const h = openedAt.getHours()
+        hourGross[h] = (hourGross[h] ?? 0) + val; hourCost[h] = (hourCost[h] ?? 0) + rc
       }
-      setBars(newBars)
 
-      setTopItems(
-        Object.entries(itemAgg).map(([name, v]) => ({ name, ...v })).sort((a,b) => b.rev - a.rev).slice(0, 10)
-      )
-      setCatBreakdown(
-        Object.entries(catAgg).map(([category, v]) => ({ category, gross: v.gross, cost: v.cost, net: v.gross - v.cost })).sort((a,b) => b.gross - a.gross)
-      )
+      if (!countedOrders.has(row.order_id)) { countedOrders.add(row.order_id); txN++ }
+
+      if (!itemAgg[name]) itemAgg[name] = { qty: 0, rev: 0, cost: 0 }
+      itemAgg[name].qty += row.qty; itemAgg[name].rev += val; itemAgg[name].cost += rc
+      if (!catAgg[cat]) catAgg[cat] = { gross: 0, cost: 0 }
+      catAgg[cat].gross += val; catAgg[cat].cost += rc
     }
 
+    setGross(gTotal); setCost(cTotal); setTxCount(txN)
+    setTopItems(Object.entries(itemAgg).map(([name, v]) => ({ name, ...v })).sort((a,b) => b.rev - a.rev).slice(0, 10))
+    setCatBreakdown(Object.entries(catAgg).map(([category, v]) => ({ category, gross: v.gross, cost: v.cost, net: v.gross - v.cost })).sort((a,b) => b.gross - a.gross))
+
+    // ── Expenses ─────────────────────────────────────────────────────────────
     const { data: expData } = await sb
       .from('daily_expenses').select('expense_date, category, amount')
       .gte('expense_date', startDateStr)
@@ -152,24 +105,34 @@ export default function ReportsTab() {
       expTotal += r.amount
     }
     setExpenses(expTotal)
-    setExpCat(
-      Object.entries(expCatBuckets).map(([category, amount]) => ({ category, amount })).sort((a, b) => b.amount - a.amount)
-    )
+    setExpCat(Object.entries(expCatBuckets).map(([category, amount]) => ({ category, amount })).sort((a, b) => b.amount - a.amount))
 
-    // Patch expenses into bars
-    setBars(prev => prev.map((b, i) => {
-      if (mode === 'today') {
-        return { ...b, expenses: expDayBuckets[startDateStr] ?? 0 }
-      } else if (mode === 'week') {
-        const d = new Date(startDateObj); d.setDate(d.getDate() + i)
-        return { ...b, expenses: expDayBuckets[localDateStr(d)] ?? 0 }
-      } else {
-        const year = startDateObj.getFullYear()
-        const month = startDateObj.getMonth()
+    // ── Build bars — always generated regardless of whether orders exist ─────
+    let newBars: MultiBar[]
+    if (mode === 'today') {
+      newBars = shiftHoursUpToNow().map(h => ({
+        label: `${String(h).padStart(2, '0')}:00`,
+        gross: hourGross[h] ?? 0, cost: hourCost[h] ?? 0,
+        expenses: expDayBuckets[startDateStr] ?? 0,
+      }))
+    } else if (mode === 'week') {
+      // 6 days Wed–Mon; use startLocal (local midnight) to avoid UTC day-shift
+      newBars = Array.from({ length: 6 }, (_, i) => {
+        const d = new Date(startLocal); d.setDate(d.getDate() + i)
+        const dk = localDateStr(d)
+        return { label: DAY_ABBR[d.getDay()], gross: dayGross[dk] ?? 0, cost: dayCost[dk] ?? 0, expenses: expDayBuckets[dk] ?? 0 }
+      })
+    } else {
+      const year = startLocal.getFullYear()
+      const month = startLocal.getMonth()
+      const daysInMonth = new Date(year, month + 1, 0).getDate()
+      newBars = Array.from({ length: daysInMonth }, (_, i) => {
         const d = new Date(year, month, i + 1)
-        return { ...b, expenses: expDayBuckets[localDateStr(d)] ?? 0 }
-      }
-    }))
+        const dk = localDateStr(d)
+        return { label: `${i + 1}`, gross: dayGross[dk] ?? 0, cost: dayCost[dk] ?? 0, expenses: expDayBuckets[dk] ?? 0 }
+      })
+    }
+    setBars(newBars)
 
     const { data: pmts } = await sb
       .from('payments').select('amount, method')
@@ -179,11 +142,13 @@ export default function ReportsTab() {
     for (const p of (pmts ?? [])) { mm[p.method] = (mm[p.method]??0) + p.amount }
     setMethodMap(mm)
 
-    const vi: any[] = []
-    if (allOrderIds.length > 0) {
-      const { data: voidedItems } = await sb.from('order_items').select('qty, unit_price').eq('status', 'voided').in('order_id', allOrderIds)
-      vi.push(...(voidedItems ?? []))
-    }
+    const { data: voidedItems } = await sb
+      .from('order_items')
+      .select('qty, unit_price, orders!inner(opened_at)')
+      .eq('status', 'voided')
+      .gte('orders.opened_at', startISO)
+      .lte('orders.opened_at', endISO)
+    const vi: any[] = voidedItems ?? []
     setVoidedCount(vi.length)
     setVoidedAmount(vi.reduce((s: number, r: any) => s + r.qty * r.unit_price, 0))
 
