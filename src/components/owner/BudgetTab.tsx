@@ -4,18 +4,42 @@ import { useTheme } from '@/lib/ThemeContext'
 import { useState, useCallback, useEffect } from 'react'
 import { getClient } from '@/lib/supabase'
 import { SectionHd, fmtPeso } from './ownerShared'
-import { localDateStr, parseLocalDate } from '@/lib/dateNav'
+import { localDateStr, parseLocalDate, dayBounds } from '@/lib/dateNav'
+
+// ── Category config ───────────────────────────────────────────────────────────
 
 export const BUDGET_CATS: { id: string; label: string }[] = [
-  { id: 'opex',        label: 'OPEX'           },
   { id: 'food',        label: 'Food'           },
   { id: 'beer',        label: 'Beer'           },
   { id: 'cocktails',   label: 'Cocktails/Hard' },
   { id: 'non_alcohol', label: 'Non-Alcohol'    },
   { id: 'cigarettes',  label: 'Cigarettes'     },
+  { id: 'opex',        label: 'OPEX'           },
 ]
 
-interface BudgetEntry { id: number | null; category: string; incoming: number; expenses: number }
+// Map menu_items.category → budget cat id
+const SALES_CAT_MAP: Record<string, string> = {
+  Chicken: 'food', Meals: 'food', Noodles: 'food', Pork: 'food',
+  Seafood: 'food', Starters: 'food', Extra: 'food',
+  Beer: 'beer',
+  Cocktails: 'cocktails', 'Hard Drinks': 'cocktails',
+  'Non-Alcohol': 'non_alcohol',
+  Cigarettes: 'cigarettes',
+}
+
+// Map daily_expenses.category → budget cat id
+const EXP_CAT_MAP: Record<string, string> = {
+  OPEX: 'opex', Food: 'food', Beer: 'beer',
+  'Cocktails/Hard': 'cocktails', 'Non-Alcohol': 'non_alcohol',
+  Cigarettes: 'cigarettes',
+}
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface DayData {
+  incoming: Record<string, number>
+  expenses: Record<string, number>
+}
 
 interface LedgerRow {
   date:       string
@@ -29,47 +53,49 @@ interface LedgerRow {
   endTotal:   number
 }
 
-function buildLedger(allRows: { entry_date: string; category: string; incoming: number; expenses: number }[]): LedgerRow[] {
-  const dateMap = new Map<string, Record<string, { incoming: number; expenses: number }>>()
-  for (const r of allRows) {
-    if (!dateMap.has(r.entry_date)) dateMap.set(r.entry_date, {})
-    dateMap.get(r.entry_date)![r.category] = { incoming: r.incoming, expenses: r.expenses }
-  }
-  const dates = Array.from(dateMap.keys()).sort()
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
+function emptyBycat(): Record<string, number> {
+  return Object.fromEntries(BUDGET_CATS.map(c => [c.id, 0]))
+}
+
+function buildLedger(
+  allIncoming: Record<string, Record<string, number>>,  // date → catId → amount
+  allExpenses: Record<string, Record<string, number>>,  // date → catId → amount
+): LedgerRow[] {
+  const dates = Array.from(new Set([...Object.keys(allIncoming), ...Object.keys(allExpenses)])).sort()
   const ledger: LedgerRow[] = []
-  const running: Record<string, number> = {}
-  for (const c of BUDGET_CATS) running[c.id] = 0
+  const running = emptyBycat()
 
   for (const date of dates) {
-    const dayMap   = dateMap.get(date)!
-    const starting: Record<string, number> = { ...running }
-    const expenses: Record<string, number> = {}
-    const incoming: Record<string, number> = {}
-    const ending:   Record<string, number> = {}
+    const starting = { ...running }
+    const incoming = allIncoming[date] ?? emptyBycat()
+    const expenses = allExpenses[date] ?? emptyBycat()
+    const ending   = emptyBycat()
 
     for (const c of BUDGET_CATS) {
-      expenses[c.id] = dayMap[c.id]?.expenses ?? 0
-      incoming[c.id] = dayMap[c.id]?.incoming ?? 0
-      ending[c.id]   = starting[c.id] + incoming[c.id] - expenses[c.id]
+      ending[c.id]   = starting[c.id] + (incoming[c.id] ?? 0) - (expenses[c.id] ?? 0)
       running[c.id]  = ending[c.id]
     }
 
     ledger.push({
-      date, starting, expenses, incoming, ending,
-      startTotal: BUDGET_CATS.reduce((s, c) => s + starting[c.id], 0),
-      expTotal:   BUDGET_CATS.reduce((s, c) => s + expenses[c.id], 0),
-      incTotal:   BUDGET_CATS.reduce((s, c) => s + incoming[c.id], 0),
-      endTotal:   BUDGET_CATS.reduce((s, c) => s + ending[c.id],   0),
+      date, starting, incoming, expenses, ending,
+      startTotal: BUDGET_CATS.reduce((s, c) => s + (starting[c.id] ?? 0), 0),
+      incTotal:   BUDGET_CATS.reduce((s, c) => s + (incoming[c.id] ?? 0), 0),
+      expTotal:   BUDGET_CATS.reduce((s, c) => s + (expenses[c.id] ?? 0), 0),
+      endTotal:   BUDGET_CATS.reduce((s, c) => s + ending[c.id], 0),
     })
   }
   return ledger
 }
 
+// ── Layout constants ──────────────────────────────────────────────────────────
 
 const COL_W  = 110
 const TOT_W  = 130
 const DATE_W = 96
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function BudgetTab() {
   const { T } = useTheme()
@@ -77,134 +103,150 @@ export default function BudgetTab() {
   const GROUPS_L = [
     { key: 'starting', label: 'Starting', color: T.textDim },
     { key: 'expenses', label: 'Expenses', color: T.bad     },
-    { key: 'incoming', label: 'Incoming', color: T.ok      },
+    { key: 'incoming', label: 'Sales',    color: T.ok      },
     { key: 'ending',   label: 'Ending',   color: T.accent  },
   ] as const
 
   const [budgetView, setBudgetView] = useState<'day' | 'ledger'>('day')
   const [date,       setDate]       = useState(() => localDateStr(new Date()))
-  const [entries,    setEntries]    = useState<BudgetEntry[]>(BUDGET_CATS.map(c => ({ id: null, category: c.id, incoming: 0, expenses: 0 })))
-  const [history,    setHistory]    = useState<{ category: string; incoming: number; expenses: number }[]>([])
-  const [editCell,   setEditCell]   = useState<{ cat: string; field: 'incoming' | 'expenses' } | null>(null)
-  const [editVal,    setEditVal]    = useState('')
-  const [saving,     setSaving]     = useState(false)
-  const [loading,    setLoading]    = useState(true)
+  const [dayData,    setDayData]    = useState<DayData>({ incoming: emptyBycat(), expenses: emptyBycat() })
+  const [prevData,   setPrevData]   = useState<DayData>({ incoming: emptyBycat(), expenses: emptyBycat() })  // cumulative prior days
   const [ledgerRows, setLedgerRows] = useState<LedgerRow[]>([])
+  const [loading,    setLoading]    = useState(true)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = getClient() as any
 
+  // ── Fetch all-time data for ledger ───────────────────────────────────────
   const fetchLedger = useCallback(async () => {
-    const { data } = await sb.from('budget_daily').select('entry_date, category, incoming, expenses').order('entry_date')
-    setLedgerRows(buildLedger(data ?? []))
-  }, [])
+    // Sales: order_items grouped by opened_at date and category
+    const { data: orders } = await sb.from('orders').select('id, opened_at')
+    const orderMap: Record<number, string> = {}
+    for (const o of (orders ?? [])) orderMap[o.id] = localDateStr(new Date(o.opened_at))
 
-  useEffect(() => { fetchLedger() }, [fetchLedger])
+    const orderIds = Object.keys(orderMap).map(Number)
+    const allIncoming: Record<string, Record<string, number>> = {}
 
-  const fetchData = useCallback(async (d: string) => {
-    setLoading(true)
-    const { data: all } = await sb.from('budget_daily').select('*').lte('entry_date', d)
-    const rows: any[] = all ?? []
+    if (orderIds.length > 0) {
+      const { data: items } = await sb
+        .from('order_items')
+        .select('order_id, qty, unit_price, menu_items(category)')
+        .in('order_id', orderIds)
+        .neq('status', 'voided')
 
-    const hist      = rows.filter((r: any) => r.entry_date < d)
-    const todayRows = rows.filter((r: any) => r.entry_date === d)
-
-    const histMap: Record<string, { incoming: number; expenses: number }> = {}
-    for (const r of hist) {
-      if (!histMap[r.category]) histMap[r.category] = { incoming: 0, expenses: 0 }
-      histMap[r.category].incoming += r.incoming
-      histMap[r.category].expenses += r.expenses
+      for (const row of (items ?? [])) {
+        const dk  = orderMap[row.order_id]
+        if (!dk) continue
+        const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
+        const cat = SALES_CAT_MAP[mi?.category ?? '']
+        if (!cat) continue
+        const val = (row.qty as number) * (row.unit_price as number)
+        if (!allIncoming[dk]) allIncoming[dk] = emptyBycat()
+        allIncoming[dk][cat] = (allIncoming[dk][cat] ?? 0) + val
+      }
     }
-    setHistory(BUDGET_CATS.map(c => ({
-      category: c.id,
-      incoming: histMap[c.id]?.incoming ?? 0,
-      expenses: histMap[c.id]?.expenses ?? 0,
-    })))
 
-    const todayMap: Record<string, any> = {}
-    for (const r of todayRows) todayMap[r.category] = r
-    setEntries(BUDGET_CATS.map(c => ({
-      id:       todayMap[c.id]?.id   ?? null,
-      category: c.id,
-      incoming: todayMap[c.id]?.incoming ?? 0,
-      expenses: todayMap[c.id]?.expenses ?? 0,
-    })))
+    // Expenses
+    const { data: expRows } = await sb
+      .from('daily_expenses')
+      .select('expense_date, category, amount')
+      .order('expense_date')
+
+    const allExpenses: Record<string, Record<string, number>> = {}
+    for (const r of (expRows ?? [])) {
+      const cat = EXP_CAT_MAP[r.category]
+      if (!cat) continue
+      if (!allExpenses[r.expense_date]) allExpenses[r.expense_date] = emptyBycat()
+      allExpenses[r.expense_date][cat] = (allExpenses[r.expense_date][cat] ?? 0) + r.amount
+    }
+
+    setLedgerRows(buildLedger(allIncoming, allExpenses))
+  }, [sb])
+
+  // ── Fetch data for a single day view ─────────────────────────────────────
+  const fetchDay = useCallback(async (d: string) => {
+    setLoading(true)
+    const { start, end } = dayBounds(d)
+
+    // Sales for this day
+    const { data: dayOrders } = await sb.from('orders').select('id').gte('opened_at', start).lte('opened_at', end)
+    const dayOrderIds = (dayOrders ?? []).map((o: any) => o.id as number)
+    const todayIncoming = emptyBycat()
+
+    if (dayOrderIds.length > 0) {
+      const { data: items } = await sb
+        .from('order_items')
+        .select('order_id, qty, unit_price, menu_items(category)')
+        .in('order_id', dayOrderIds)
+        .neq('status', 'voided')
+
+      for (const row of (items ?? [])) {
+        const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
+        const cat = SALES_CAT_MAP[mi?.category ?? '']
+        if (!cat) continue
+        todayIncoming[cat] = (todayIncoming[cat] ?? 0) + (row.qty as number) * (row.unit_price as number)
+      }
+    }
+
+    // Expenses for this day
+    const { data: expRows } = await sb.from('daily_expenses').select('category, amount').eq('expense_date', d)
+    const todayExpenses = emptyBycat()
+    for (const r of (expRows ?? [])) {
+      const cat = EXP_CAT_MAP[r.category]
+      if (!cat) continue
+      todayExpenses[cat] = (todayExpenses[cat] ?? 0) + r.amount
+    }
+
+    // Cumulative from all prior days
+    const { data: priorOrders } = await sb.from('orders').select('id, opened_at').lt('opened_at', start)
+    const priorOrderMap: Record<number, boolean> = {}
+    for (const o of (priorOrders ?? [])) priorOrderMap[o.id] = true
+    const priorIncoming = emptyBycat()
+
+    const priorIds = Object.keys(priorOrderMap).map(Number)
+    if (priorIds.length > 0) {
+      const { data: priorItems } = await sb
+        .from('order_items')
+        .select('order_id, qty, unit_price, menu_items(category)')
+        .in('order_id', priorIds)
+        .neq('status', 'voided')
+
+      for (const row of (priorItems ?? [])) {
+        const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
+        const cat = SALES_CAT_MAP[mi?.category ?? '']
+        if (!cat) continue
+        priorIncoming[cat] = (priorIncoming[cat] ?? 0) + (row.qty as number) * (row.unit_price as number)
+      }
+    }
+
+    const { data: priorExp } = await sb.from('daily_expenses').select('category, amount').lt('expense_date', d)
+    const priorExpenses = emptyBycat()
+    for (const r of (priorExp ?? [])) {
+      const cat = EXP_CAT_MAP[r.category]
+      if (!cat) continue
+      priorExpenses[cat] = (priorExpenses[cat] ?? 0) + r.amount
+    }
+
+    setDayData({ incoming: todayIncoming, expenses: todayExpenses })
+    setPrevData({ incoming: priorIncoming, expenses: priorExpenses })
     setLoading(false)
-  }, [])
+  }, [sb])
 
-  useEffect(() => { fetchData(date) }, [fetchData, date])
+  useEffect(() => { fetchDay(date) }, [fetchDay, date])
+  useEffect(() => { fetchLedger() }, [fetchLedger])
 
   function shiftDate(days: number) {
     const d = parseLocalDate(date); d.setDate(d.getDate() + days)
     setDate(localDateStr(d))
   }
 
-  async function saveCell(cat: string, field: 'incoming' | 'expenses', raw: string) {
-    const val = parseFloat(raw)
-    if (isNaN(val) || val < 0) { setEditCell(null); return }
-    setSaving(true)
-    const entry = entries.find(e => e.category === cat)!
-    const patch = { [field]: val }
+  const getStarting   = (catId: string) => (prevData.incoming[catId] ?? 0) - (prevData.expenses[catId] ?? 0)
+  const totalStarting = BUDGET_CATS.reduce((s, c) => s + getStarting(c.id), 0)
+  const totalIncoming = BUDGET_CATS.reduce((s, c) => s + (dayData.incoming[c.id] ?? 0), 0)
+  const totalExpenses = BUDGET_CATS.reduce((s, c) => s + (dayData.expenses[c.id] ?? 0), 0)
+  const totalEnding   = totalStarting + totalIncoming - totalExpenses
 
-    if (entry.id) {
-      await sb.from('budget_daily').update(patch).eq('id', entry.id)
-    } else {
-      const { data } = await sb.from('budget_daily').insert({
-        entry_date: date, category: cat,
-        incoming:  field === 'incoming'  ? val : 0,
-        expenses:  field === 'expenses'  ? val : 0,
-      }).select('id').single()
-      setEntries(prev => prev.map(e => e.category === cat ? { ...e, id: data?.id ?? null } : e))
-    }
-    setEntries(prev => prev.map(e => e.category === cat ? { ...e, [field]: val } : e))
-    setEditCell(null); setSaving(false)
-    fetchLedger()
-  }
-
-  const getStarting    = (cat: string) => { const h = history.find(h => h.category === cat); return h ? h.incoming - h.expenses : 0 }
-  const totalStarting  = history.reduce((s, h) => s + h.incoming - h.expenses, 0)
-  const totalIncoming  = entries.reduce((s, e) => s + e.incoming, 0)
-  const totalExpenses  = entries.reduce((s, e) => s + e.expenses, 0)
-  const totalEnding    = totalStarting + totalIncoming - totalExpenses
-
-  function NumCell({ cat, field, value }: { cat: string; field: 'incoming' | 'expenses'; value: number }) {
-    const isEdit = editCell?.cat === cat && editCell.field === field
-    const color  = field === 'expenses' ? T.bad : T.ok
-    if (isEdit) {
-      return (
-        <input
-          autoFocus value={editVal}
-          onChange={e => setEditVal(e.target.value)}
-          onBlur={() => saveCell(cat, field, editVal)}
-          onKeyDown={e => {
-            if (e.key === 'Enter') saveCell(cat, field, editVal)
-            if (e.key === 'Escape') setEditCell(null)
-          }}
-          style={{
-            width: 100, fontFamily: T.mono, fontSize: 13, fontWeight: 600,
-            background: T.surface, border: `1px solid ${color}88`,
-            color: T.text, borderRadius: T.radius, padding: '2px 6px', outline: 'none',
-          }}
-        />
-      )
-    }
-    return (
-      <span
-        onClick={() => { setEditCell({ cat, field }); setEditVal(value > 0 ? value.toFixed(2) : '') }}
-        title="Click to edit"
-        style={{
-          fontFamily: T.mono, fontSize: 13, fontWeight: value > 0 ? 600 : 400,
-          color: value > 0 ? color : T.textMute,
-          fontVariantNumeric: 'tabular-nums', cursor: 'pointer',
-          borderBottom: `1px dashed ${value > 0 ? color + '44' : T.line2}`,
-        }}
-      >
-        {value > 0 ? fmtPeso(value) : '—'}
-      </span>
-    )
-  }
-
-  const fmtSign = (v: number) => v === 0 ? '—' : fmtPeso(v)
+  const fmtSign  = (v: number) => v === 0 ? '—' : fmtPeso(v)
   const todayStr = localDateStr(new Date())
 
   return (
@@ -222,7 +264,7 @@ export default function BudgetTab() {
                   background: budgetView === v ? T.accent : T.chip,
                   color:      budgetView === v ? T.accentInk : T.textDim,
                   border: `1px solid ${budgetView === v ? T.accent : T.line2}`,
-                  borderRadius: T.radius, cursor: 'pointer', textTransform: 'capitalize',
+                  borderRadius: T.radius, cursor: 'pointer',
                 }}>
                   {v === 'day' ? 'Day' : 'Ledger'}
                 </button>
@@ -231,62 +273,68 @@ export default function BudgetTab() {
             {budgetView === 'day' && (
               <>
                 <button onClick={() => shiftDate(-1)} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: T.chip, border: `1px solid ${T.line2}`, color: T.textDim, borderRadius: T.radius, cursor: 'pointer', fontSize: 14 }}>‹</button>
-                <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ fontFamily: T.mono, fontSize: 12, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '4px 8px', outline: 'none', cursor: 'pointer' }} />
+                <input type="date" value={date} onChange={e => e.target.value && setDate(e.target.value)} style={{ fontFamily: T.mono, fontSize: 12, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '4px 8px', outline: 'none', cursor: 'pointer' }} />
                 <button onClick={() => shiftDate(1)} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: T.chip, border: `1px solid ${T.line2}`, color: T.textDim, borderRadius: T.radius, cursor: 'pointer', fontSize: 14 }}>›</button>
-                {saving && <span style={{ fontSize: 11, color: T.textMute, fontFamily: T.mono }}>saving…</span>}
+                {date !== todayStr && (
+                  <button onClick={() => setDate(todayStr)} style={{ padding: '3px 8px', fontSize: 11, fontFamily: 'inherit', background: T.chip, color: T.textDim, border: `1px solid ${T.line2}`, borderRadius: T.radius, cursor: 'pointer' }}>Today</button>
+                )}
               </>
             )}
           </div>
         }
       />
 
-      {/* DAY VIEW */}
-      {budgetView === 'day' && (<>
-        <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr 1fr 1fr 1fr', padding: '0 24px', height: 36, alignItems: 'center', borderBottom: `1px solid ${T.line}`, background: T.surface2, flexShrink: 0 }}>
-          {['Category', 'Starting', 'Incoming', 'Expenses', 'Ending'].map(h => (
-            <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
-          ))}
-        </div>
-        {loading ? (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
-        ) : (
-          <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
-            {BUDGET_CATS.map((cat, i) => {
-              const entry    = entries.find(e => e.category === cat.id)!
-              const starting = getStarting(cat.id)
-              const ending   = starting + entry.incoming - entry.expenses
-              return (
-                <div key={cat.id} style={{ display: 'grid', gridTemplateColumns: '180px 1fr 1fr 1fr 1fr', padding: '0 24px', height: 52, alignItems: 'center', borderBottom: `1px solid ${T.line}`, background: i % 2 === 0 ? 'transparent' : T.surface }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{cat.label}</span>
-                  <span style={{ fontFamily: T.mono, fontSize: 13, color: starting >= 0 ? T.ok : T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(starting)}</span>
-                  <NumCell cat={cat.id} field="incoming" value={entry.incoming} />
-                  <NumCell cat={cat.id} field="expenses" value={entry.expenses} />
-                  <span style={{ fontFamily: T.mono, fontSize: 14, fontWeight: 700, color: ending >= 0 ? T.ok : T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(ending)}</span>
-                </div>
-              )
-            })}
-            <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr 1fr 1fr 1fr', padding: '0 24px', height: 52, alignItems: 'center', borderBottom: `1px solid ${T.line}`, background: T.surface2 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: T.textMute }}>Total</span>
-              <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: totalStarting >= 0 ? T.ok : T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(totalStarting)}</span>
-              <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: T.ok, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(totalIncoming)}</span>
-              <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(totalExpenses)}</span>
-              <span style={{ fontFamily: T.mono, fontSize: 16, fontWeight: 700, color: totalEnding >= 0 ? T.ok : T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(totalEnding)}</span>
-            </div>
+      {/* ── DAY VIEW ──────────────────────────────────────────────────────── */}
+      {budgetView === 'day' && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr 1fr 1fr 1fr', padding: '0 24px', height: 36, alignItems: 'center', borderBottom: `1px solid ${T.line}`, background: T.surface2, flexShrink: 0 }}>
+            {['Category', 'Starting', 'Sales', 'Expenses', 'Ending'].map(h => (
+              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
+            ))}
           </div>
-        )}
-        <div style={{ padding: '10px 24px', borderTop: `1px solid ${T.line}`, flexShrink: 0, fontSize: 11, color: T.textMute }}>
-          Click any Incoming or Expenses value to edit · Starting balance carried from all prior days
-        </div>
-      </>)}
+          {loading ? (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
+          ) : (
+            <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+              {BUDGET_CATS.map((cat, i) => {
+                const starting = getStarting(cat.id)
+                const incoming = dayData.incoming[cat.id] ?? 0
+                const expenses = dayData.expenses[cat.id] ?? 0
+                const ending   = starting + incoming - expenses
+                return (
+                  <div key={cat.id} style={{ display: 'grid', gridTemplateColumns: '180px 1fr 1fr 1fr 1fr', padding: '0 24px', height: 52, alignItems: 'center', borderBottom: `1px solid ${T.line}`, background: i % 2 === 0 ? 'transparent' : T.surface }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: T.text }}>{cat.label}</span>
+                    <span style={{ fontFamily: T.mono, fontSize: 13, color: starting >= 0 ? T.ok : T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(starting)}</span>
+                    <span style={{ fontFamily: T.mono, fontSize: 13, color: incoming > 0 ? T.ok : T.textMute, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(incoming)}</span>
+                    <span style={{ fontFamily: T.mono, fontSize: 13, color: expenses > 0 ? T.bad : T.textMute, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(expenses)}</span>
+                    <span style={{ fontFamily: T.mono, fontSize: 14, fontWeight: 700, color: ending >= 0 ? T.ok : T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(ending)}</span>
+                  </div>
+                )
+              })}
+              {/* Totals row */}
+              <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr 1fr 1fr 1fr', padding: '0 24px', height: 52, alignItems: 'center', background: T.surface2 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: T.textMute }}>Total</span>
+                <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: totalStarting >= 0 ? T.ok : T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(totalStarting)}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: T.ok, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(totalIncoming)}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(totalExpenses)}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 16, fontWeight: 700, color: totalEnding >= 0 ? T.ok : T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(totalEnding)}</span>
+              </div>
+            </div>
+          )}
+          <div style={{ padding: '10px 24px', borderTop: `1px solid ${T.line}`, flexShrink: 0, fontSize: 11, color: T.textMute }}>
+            Sales and expenses pulled automatically from transactions · Starting balance carried from all prior days
+          </div>
+        </>
+      )}
 
-      {/* LEDGER VIEW */}
+      {/* ── LEDGER VIEW ───────────────────────────────────────────────────── */}
       {budgetView === 'ledger' && (
         <div className="bp-no-scrollbar" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
           {ledgerRows.length === 0 ? (
-            <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 13 }}>No data yet</div>
+            <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 13 }}>No data yet — bill out some orders to see data here.</div>
           ) : (() => {
             const reversed = [...ledgerRows].reverse()
-            const totalW = DATE_W + GROUPS_L.length * (BUDGET_CATS.length * COL_W + TOT_W + 1)
+            const totalW   = DATE_W + GROUPS_L.length * (BUDGET_CATS.length * COL_W + TOT_W + 1)
             return (
               <div style={{ minWidth: totalW }}>
                 {/* Sticky double-header */}
