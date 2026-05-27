@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useTheme } from '@/lib/ThemeContext'
 import { getClient } from '@/lib/supabase'
+import DateRangeNav, { useDateNav } from '@/components/shared/DateRangeNav'
+import { localDateStr, dayBounds, weekBounds, monthBounds } from '@/lib/dateNav'
 
 
 const EXPENSE_CATS = ['OPEX', 'Food', 'Beer', 'Cocktails/Hard', 'Non-Alcohol', 'Cigarettes'] as const
@@ -103,7 +105,7 @@ export default function ExpensesView() {
   const [loading,    setLoading]    = useState(true)
   const [showForm,   setShowForm]   = useState(false)
   const [saving,     setSaving]     = useState(false)
-  const [dateFilter, setDateFilter] = useState<'today' | 'week'>('today')
+  const nav = useDateNav()
 
   // Form state
   const [fCat,        setFCat]        = useState<string>('OPEX')
@@ -119,7 +121,7 @@ export default function ExpensesView() {
   const [suggestionIdx,   setSuggestionIdx]   = useState(-1)
   const descRef = useRef<HTMLInputElement>(null)
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = localDateStr(new Date())
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = getClient() as any
 
@@ -130,15 +132,9 @@ export default function ExpensesView() {
       .then(({ data }: { data: any[] | null }) => setPresets(data ?? []))
   }, [])
 
-  const fetchRows = useCallback(async () => {
-    const now = new Date()
+  const fetchRows = useCallback(async (start: string, end: string) => {
     let query = sb.from('daily_expenses').select('*').order('created_at', { ascending: false })
-    if (dateFilter === 'today') {
-      query = query.eq('expense_date', today)
-    } else {
-      const weekStart = new Date(now); weekStart.setDate(weekStart.getDate() - 6)
-      query = query.gte('expense_date', weekStart.toISOString().slice(0, 10))
-    }
+    query = query.gte('expense_date', start.slice(0, 10)).lte('expense_date', end.slice(0, 10))
     const { data } = await query
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     setRows((data ?? []).map((r: any) => ({
@@ -148,9 +144,19 @@ export default function ExpensesView() {
       paidTo: r.paid_to, createdAt: r.created_at,
     })))
     setLoading(false)
-  }, [dateFilter, today])
+  }, [sb])
 
-  useEffect(() => { fetchRows() }, [fetchRows])
+  useEffect(() => {
+    let start: string, end: string
+    if (nav.mode === 'today') {
+      ;({ start, end } = dayBounds(nav.date))
+    } else if (nav.mode === 'week') {
+      ;({ start, end } = weekBounds(nav.weekRef))
+    } else {
+      ;({ start, end } = monthBounds(nav.year, nav.month))
+    }
+    fetchRows(start, end)
+  }, [nav.mode, nav.date, nav.weekRef, nav.month, nav.year, fetchRows])
 
   // Update suggestions as user types
   function handleDescChange(val: string) {
@@ -197,7 +203,12 @@ export default function ExpensesView() {
     })
     setFDesc(''); setFQty('1'); setFUnit(''); setFUnitPrice(''); setFAmt('')
     setShowForm(false)
-    await fetchRows()
+    // re-fetch current range after adding
+    let start: string, end: string
+    if (nav.mode === 'today') { ;({ start, end } = dayBounds(nav.date)) }
+    else if (nav.mode === 'week') { ;({ start, end } = weekBounds(nav.weekRef)) }
+    else { ;({ start, end } = monthBounds(nav.year, nav.month)) }
+    await fetchRows(start, end)
     setSaving(false)
   }
 
@@ -231,20 +242,15 @@ export default function ExpensesView() {
 
         <div style={{ flex: 1 }} />
 
-        {/* Date filter */}
-        <div style={{ display: 'flex', gap: 2 }}>
-          {(['today', 'week'] as const).map(d => (
-            <button key={d} onClick={() => setDateFilter(d)} style={{
-              padding: '5px 14px', fontSize: 12, fontFamily: 'inherit',
-              background: dateFilter === d ? T.accent : T.chip,
-              color:      dateFilter === d ? T.accentInk : T.textDim,
-              border:     `1px solid ${dateFilter === d ? T.accent : T.line2}`,
-              borderRadius: T.radius, cursor: 'pointer', fontWeight: dateFilter === d ? 600 : 400,
-            }}>
-              {d === 'today' ? 'Today' : 'This Week'}
-            </button>
-          ))}
-        </div>
+        {/* Date nav */}
+        <DateRangeNav
+          mode={nav.mode} date={nav.date} weekRef={nav.weekRef}
+          month={nav.month} year={nav.year}
+          onModeChange={nav.setMode}
+          onDateChange={nav.setDate}
+          onWeekChange={nav.setWeekRef}
+          onMonthChange={nav.setMonth}
+        />
 
         <button onClick={() => setShowForm(v => !v)} style={{
           padding: '5px 14px', fontSize: 12, fontFamily: 'inherit', fontWeight: 600,
@@ -359,7 +365,7 @@ export default function ExpensesView() {
           <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
         ) : rows.length === 0 ? (
           <div style={{ padding: '32px 24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>
-            No expenses logged {dateFilter === 'today' ? 'today' : 'this week'}
+            No expenses logged for this period
           </div>
         ) : rows.map((row, i) => {
           const dt      = new Date(row.createdAt)
@@ -397,7 +403,7 @@ export default function ExpensesView() {
       {rows.length > 0 && (
         <div style={{ padding: '12px 24px', borderTop: `1px solid ${T.line}`, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, flexShrink: 0 }}>
           <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute }}>
-            Total {dateFilter === 'today' ? 'Today' : 'This Week'}
+            Total {nav.mode === 'today' ? 'Today' : nav.mode === 'week' ? 'This Week' : 'This Month'}
           </span>
           <span style={{ fontFamily: T.mono, fontSize: 18, fontWeight: 700, color: T.bad, fontVariantNumeric: 'tabular-nums' }}>
             {fmtPeso(totalShown)}

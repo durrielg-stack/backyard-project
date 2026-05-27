@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useTheme } from '@/lib/ThemeContext'
 import { getClient } from '@/lib/supabase'
 import { SectionHd, fmtPeso } from './ownerShared'
+import DateRangeNav, { useDateNav } from '@/components/shared/DateRangeNav'
+import { dayBounds, weekBounds, monthBounds } from '@/lib/dateNav'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -38,34 +40,19 @@ interface CategorySummary {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function localDateStr(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function dayBounds(dateStr: string): { start: string; end: string } {
-  // Parse dateStr as local date, produce ISO boundaries for the full day in local time
-  const [y, m, day] = dateStr.split('-').map(Number)
-  const start = new Date(y, m - 1, day, 0, 0, 0, 0)
-  const end   = new Date(y, m - 1, day, 23, 59, 59, 999)
-  return { start: start.toISOString(), end: end.toISOString() }
-}
-
 // ── SalesTab ──────────────────────────────────────────────────────────────────
 
 export default function SalesTab() {
   const { T } = useTheme()
-
-  const today     = localDateStr(new Date())
-  const [date, setDate] = useState(today)
+  const nav = useDateNav()
   const [lines, setLines] = useState<LineItem[]>([])
   const [loading, setLoading] = useState(false)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = getClient() as any
 
-  const fetchSales = useCallback(async (dateStr: string) => {
+  const fetchSales = useCallback(async (start: string, end: string) => {
     setLoading(true)
-    const { start, end } = dayBounds(dateStr)
     const { data, error } = await sb
       .from('order_items')
       .select('id, qty, unit_price, status, orders(table_id, opened_at), menu_items(name, category, cost)')
@@ -82,28 +69,29 @@ export default function SalesTab() {
     }
 
     const rows: SaleRow[] = (data ?? []).filter((r: SaleRow) => r.orders !== null)
-
-    const mapped: LineItem[] = rows.map((r: SaleRow) => {
+    setLines(rows.map((r: SaleRow) => {
       const gross = r.qty * r.unit_price
       const cost  = r.qty * (r.menu_items?.cost ?? 0)
       return {
-        id:        r.id,
-        tableId:   r.orders?.table_id ?? '—',
-        itemName:  r.menu_items?.name ?? '—',
-        category:  r.menu_items?.category ?? '—',
-        qty:       r.qty,
-        unitPrice: r.unit_price,
-        gross,
-        cost,
-        net: gross - cost,
+        id: r.id, tableId: r.orders?.table_id ?? '—',
+        itemName: r.menu_items?.name ?? '—', category: r.menu_items?.category ?? '—',
+        qty: r.qty, unitPrice: r.unit_price, gross, cost, net: gross - cost,
       }
-    })
-
-    setLines(mapped)
+    }))
     setLoading(false)
   }, [sb])
 
-  useEffect(() => { fetchSales(date) }, [date, fetchSales])
+  useEffect(() => {
+    let start: string, end: string
+    if (nav.mode === 'today') {
+      ;({ start, end } = dayBounds(nav.date))
+    } else if (nav.mode === 'week') {
+      ;({ start, end } = weekBounds(nav.weekRef))
+    } else {
+      ;({ start, end } = monthBounds(nav.year, nav.month))
+    }
+    fetchSales(start, end)
+  }, [nav.mode, nav.date, nav.weekRef, nav.month, nav.year, fetchSales])
 
   // ── Category summary — fixed order ────────────────────────────────────────
   const SUMMARY_CATS = ['Food', 'Beer', 'Cocktails/Hard', 'Non-Alcohol', 'Cigarettes']
@@ -177,45 +165,14 @@ export default function SalesTab() {
         title="Sales"
         badge={lines.length > 0 ? `${lines.length} items` : undefined}
         action={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button
-              onClick={() => {
-                const d = new Date()
-                d.setDate(d.getDate() - 1)
-                setDate(localDateStr(d))
-              }}
-              style={{
-                padding: '4px 12px', fontSize: 12, fontFamily: 'inherit',
-                background: T.chip, color: T.textDim,
-                border: `1px solid ${T.line2}`, borderRadius: T.radius,
-                cursor: 'pointer',
-              }}
-            >
-              Yesterday
-            </button>
-            <button
-              onClick={() => setDate(localDateStr(new Date()))}
-              style={{
-                padding: '4px 12px', fontSize: 12, fontFamily: 'inherit',
-                background: T.chip, color: T.textDim,
-                border: `1px solid ${T.line2}`, borderRadius: T.radius,
-                cursor: 'pointer',
-              }}
-            >
-              Today
-            </button>
-            <input
-              type="date"
-              value={date}
-              onChange={e => setDate(e.target.value)}
-              style={{
-                padding: '4px 10px', fontSize: 12, fontFamily: T.mono,
-                background: T.surface2, color: T.text,
-                border: `1px solid ${T.line2}`, borderRadius: T.radius,
-                outline: 'none', cursor: 'pointer',
-              }}
-            />
-          </div>
+          <DateRangeNav
+            mode={nav.mode} date={nav.date} weekRef={nav.weekRef}
+            month={nav.month} year={nav.year}
+            onModeChange={nav.setMode}
+            onDateChange={nav.setDate}
+            onWeekChange={nav.setWeekRef}
+            onMonthChange={nav.setMonth}
+          />
         }
       />
 
