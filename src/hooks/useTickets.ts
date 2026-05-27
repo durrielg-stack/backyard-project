@@ -30,7 +30,7 @@ interface RawItem {
   id:          number
   orderId:     number
   tableId:     string
-  openedAtMs:  number
+  createdAtMs: number
   firedAtMs:   number | null
   itemName:    string
   qty:         number
@@ -63,7 +63,7 @@ export function useTickets(tick: number): {
     const { data, error } = await sb
       .from('order_items')
       .select(`
-        id, order_id, qty, status, fired_at,
+        id, order_id, qty, status, fired_at, created_at,
         orders(id, table_id, opened_at, status, opened_by),
         menu_items(name, category)
       `)
@@ -85,8 +85,8 @@ export function useTickets(tick: number): {
         id:         row.id as number,
         orderId:    row.order_id as number,
         tableId:    order.table_id as string,
-        openedAtMs: new Date(order.opened_at as string).getTime(),
-        firedAtMs:  row.fired_at ? new Date(row.fired_at as string).getTime() : null,
+        createdAtMs: new Date(row.created_at as string).getTime(),
+        firedAtMs:   row.fired_at ? new Date(row.fired_at as string).getTime() : null,
         itemName:   mi.name as string,
         qty:        (row.qty as number) ?? 1,
         category:   mi.category as string,
@@ -127,7 +127,7 @@ export function useTickets(tick: number): {
 
     const result: KdsTicket[] = rawItems.map(item => {
       const station    = getStation(item.category)
-      const startMs    = item.firedAtMs ?? item.openedAtMs
+      const startMs    = item.firedAtMs ?? item.createdAtMs
       const elapsedSec = Math.max(0, Math.floor((now - startMs) / 1_000))
       const { agingSec, lateSec } = getThresholds(item.category)
       const status: KdsTicket['status'] =

@@ -108,12 +108,22 @@ export default function SalesTab() {
   // ── Category summary — fixed order ────────────────────────────────────────
   const SUMMARY_CATS = ['Food', 'Beer', 'Cocktails/Hard', 'Non-Alcohol', 'Cigarettes']
 
+  // Map DB category values → summary bucket
+  const CAT_BUCKET: Record<string, string> = {
+    Chicken: 'Food', Meals: 'Food', Noodles: 'Food', Pork: 'Food',
+    Seafood: 'Food', Starters: 'Food', Extra: 'Food',
+    Beer: 'Beer',
+    Cocktails: 'Cocktails/Hard', 'Hard Drinks': 'Cocktails/Hard',
+    'Non-Alcohol': 'Non-Alcohol',
+    Cigarettes: 'Cigarettes',
+  }
+
   const catMap = new Map<string, CategorySummary>()
   for (const cat of SUMMARY_CATS) {
     catMap.set(cat, { category: cat, gross: 0, cost: 0, net: 0, margin: 0 })
   }
   for (const l of lines) {
-    const key = SUMMARY_CATS.includes(l.category) ? l.category : null
+    const key = CAT_BUCKET[l.category] ?? null
     if (!key) continue
     const c = catMap.get(key)!
     c.gross += l.gross
