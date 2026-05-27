@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useTheme } from '@/lib/ThemeContext'
 
 const STAFF_LIST = [
-  { name: 'Marvin',  initials: 'MV', role: 'Staff',    password: 'marvin'  },
+  { name: 'Marvin',  initials: 'MV', role: 'Owner',    password: 'marvin'  },
   { name: 'Durriel', initials: 'DG', role: 'Owner',    password: 'durriel' },
   { name: 'Booba',   initials: 'BB', role: 'Staff',    password: 'booba'   },
 ]
