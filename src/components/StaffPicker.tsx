@@ -1,21 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useTheme } from '@/lib/ThemeContext'
 
-
 const STAFF_LIST = [
-  { name: 'Albert',  initials: 'AB', role: 'Owner' },
-  { name: 'Arvin',   initials: 'AV', role: 'Owner' },
-  { name: 'Benok',   initials: 'BK', role: 'Owner' },
-  { name: 'Bimbo',   initials: 'BB', role: 'Owner' },
-  { name: 'Durriel', initials: 'DG', role: 'Owner' },
-  { name: 'Ramon',   initials: 'RM', role: 'Owner' },
-  { name: 'Lia',     initials: 'LM', role: 'Server' },
-  { name: 'Rose',    initials: 'RB', role: 'Server' },
-  { name: 'Jun',     initials: 'JP', role: 'Server' },
-  { name: 'Karl',    initials: 'KD', role: 'Bartender' },
-  { name: 'Maya',    initials: 'MY', role: 'Server' },
+  { name: 'Marvin',  initials: 'MV', role: 'Staff',    password: 'marvin'  },
+  { name: 'Durriel', initials: 'DG', role: 'Owner',    password: 'durriel' },
+  { name: 'Booba',   initials: 'BB', role: 'Staff',    password: 'booba'   },
 ]
 
 interface StaffPickerProps {
@@ -24,13 +15,28 @@ interface StaffPickerProps {
 
 export default function StaffPicker({ onSelect }: StaffPickerProps) {
   const { T } = useTheme()
-  const [custom, setCustom] = useState('')
+  const [selected, setSelected] = useState<typeof STAFF_LIST[0] | null>(null)
+  const [password, setPassword] = useState('')
+  const [error, setError]       = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  function handleCustom() {
-    const name = custom.trim()
-    if (!name) return
-    const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
-    onSelect(name, initials, 'Staff')
+  useEffect(() => {
+    if (selected) {
+      setPassword('')
+      setError(false)
+      setTimeout(() => inputRef.current?.focus(), 50)
+    }
+  }, [selected])
+
+  function handleLogin() {
+    if (!selected) return
+    if (password === selected.password) {
+      onSelect(selected.name, selected.initials, selected.role)
+    } else {
+      setError(true)
+      setPassword('')
+      setTimeout(() => inputRef.current?.focus(), 50)
+    }
   }
 
   return (
@@ -41,8 +47,9 @@ export default function StaffPicker({ onSelect }: StaffPickerProps) {
     }}>
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
-        gap: 32, maxWidth: 600, width: '100%', padding: '0 40px',
+        gap: 36, maxWidth: 480, width: '100%', padding: '0 40px',
       }}>
+
         {/* Brand */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
@@ -57,96 +64,127 @@ export default function StaffPicker({ onSelect }: StaffPickerProps) {
               The Backyard Project
             </div>
             <div style={{ fontSize: 11, color: T.textMute, fontFamily: T.mono, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              POS · Select Staff
+              POS · Sign In
             </div>
           </div>
         </div>
 
-        {/* Staff grid */}
-        <div style={{ width: '100%' }}>
-          <div style={{
-            fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
-            textTransform: 'uppercase', color: T.textMute, marginBottom: 12,
-          }}>
-            Who's working?
+        {!selected ? (
+          /* ── User selection ── */
+          <div style={{ width: '100%' }}>
+            <div style={{
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
+              textTransform: 'uppercase', color: T.textMute, marginBottom: 12,
+            }}>
+              Who's working?
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {STAFF_LIST.map(s => (
+                <button
+                  key={s.name}
+                  onClick={() => setSelected(s)}
+                  style={{
+                    padding: '14px 16px',
+                    background: T.surface, border: `1px solid ${T.line2}`,
+                    borderRadius: T.radiusLg, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 14,
+                    transition: 'background 0.12s ease, border-color 0.12s ease',
+                    fontFamily: 'inherit', textAlign: 'left',
+                  }}
+                  onMouseEnter={e => {
+                    (e.currentTarget as HTMLElement).style.background = T.surface2
+                    ;(e.currentTarget as HTMLElement).style.borderColor = T.accent
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLElement).style.background = T.surface
+                    ;(e.currentTarget as HTMLElement).style.borderColor = T.line2
+                  }}
+                >
+                  <div style={{
+                    width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+                    background: T.chip, border: `1px solid ${T.line2}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 13, fontWeight: 700, color: T.text,
+                  }}>
+                    {s.initials}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{s.name}</div>
+                    <div style={{ fontSize: 11, color: T.textMute, marginTop: 1 }}>{s.role}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
-          <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10,
-          }}>
-            {STAFF_LIST.map(s => (
+        ) : (
+          /* ── Password entry ── */
+          <div style={{ width: '100%' }}>
+            {/* Back + user header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
               <button
-                key={s.name}
-                onClick={() => onSelect(s.name, s.initials, s.role)}
+                onClick={() => { setSelected(null); setError(false) }}
                 style={{
-                  padding: '14px 12px',
-                  background: T.surface, border: `1px solid ${T.line2}`,
-                  borderRadius: T.radiusLg, cursor: 'pointer',
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-                  transition: 'background 0.12s ease, border-color 0.12s ease',
-                  fontFamily: 'inherit',
-                }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.background = T.surface2
-                  ;(e.currentTarget as HTMLElement).style.borderColor = T.accent
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.background = T.surface
-                  ;(e.currentTarget as HTMLElement).style.borderColor = T.line2
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: T.textMute, fontSize: 13, padding: '4px 0',
+                  fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6,
                 }}
               >
+                ← Back
+              </button>
+              <div style={{ width: 1, height: 16, background: T.line }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{
-                  width: 40, height: 40, borderRadius: '50%',
+                  width: 32, height: 32, borderRadius: '50%',
                   background: T.chip, border: `1px solid ${T.line2}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 13, fontWeight: 700, color: T.text,
+                  fontSize: 11, fontWeight: 700, color: T.text,
                 }}>
-                  {s.initials}
+                  {selected.initials}
                 </div>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: T.text, textAlign: 'center' }}>
-                    {s.name}
-                  </div>
-                  <div style={{ fontSize: 10, color: T.textMute, textAlign: 'center', marginTop: 1 }}>
-                    {s.role}
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{selected.name}</div>
+              </div>
+            </div>
 
-        {/* Custom name */}
-        <div style={{ width: '100%' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: T.textMute, marginBottom: 8 }}>
-            Or enter name
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
+              textTransform: 'uppercase', color: T.textMute, marginBottom: 8,
+            }}>
+              Password
+            </div>
             <input
-              value={custom}
-              onChange={e => setCustom(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleCustom()}
-              placeholder="Full name…"
+              ref={inputRef}
+              type="password"
+              value={password}
+              onChange={e => { setPassword(e.target.value); setError(false) }}
+              onKeyDown={e => e.key === 'Enter' && handleLogin()}
+              placeholder="Enter password…"
               style={{
-                flex: 1, padding: '10px 14px', fontSize: 14,
-                background: T.surface, border: `1px solid ${T.line2}`,
+                width: '100%', padding: '12px 14px', fontSize: 14, boxSizing: 'border-box',
+                background: T.surface, border: `1px solid ${error ? T.bad : T.line2}`,
                 color: T.text, fontFamily: 'inherit', borderRadius: T.radius, outline: 'none',
               }}
             />
+            {error && (
+              <div style={{ marginTop: 8, fontSize: 12, color: T.bad, fontFamily: T.mono }}>
+                Incorrect password. Try again.
+              </div>
+            )}
             <button
-              onClick={handleCustom}
-              disabled={!custom.trim()}
+              onClick={handleLogin}
+              disabled={!password}
               style={{
-                padding: '10px 20px', fontSize: 13, fontWeight: 700,
-                background: custom.trim() ? T.accent : T.chip,
-                color: custom.trim() ? T.accentInk : T.textMute,
-                border: 'none', borderRadius: T.radius, cursor: custom.trim() ? 'pointer' : 'default',
-                fontFamily: 'inherit',
+                marginTop: 16, width: '100%', padding: '12px', fontSize: 14, fontWeight: 700,
+                background: password ? T.accent : T.chip,
+                color: password ? T.accentInk : T.textMute,
+                border: 'none', borderRadius: T.radius,
+                cursor: password ? 'pointer' : 'default',
+                fontFamily: 'inherit', transition: 'background 0.12s ease',
               }}
             >
-              Continue
+              Sign In
             </button>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
