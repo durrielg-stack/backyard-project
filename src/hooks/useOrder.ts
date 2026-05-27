@@ -249,10 +249,8 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
     // 3. Free the table
     await sb.from('restaurant_tables').update({ status: 'available' }).eq('id', tableId)
 
-    // 4. Deduct inventory for 1:1 items (Beer, Cigarettes)
-    const DEDUCT_CATS = new Set(['Beer', 'Cigarettes'])
-    const deductLines = lines.filter(l => DEDUCT_CATS.has(l.category))
-    for (const line of deductLines) {
+    // 4. Deduct inventory for all sold items (floors at 0, no-ops if no row)
+    for (const line of lines) {
       await sb.rpc('deduct_inventory', { p_menu_item_id: line.itemId, p_qty: line.qty })
     }
 
