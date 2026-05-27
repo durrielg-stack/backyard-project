@@ -220,96 +220,96 @@ export default function SalesTab() {
       />
 
       {/* ── Body ────────────────────────────────────────────────────────────── */}
-      {loading ? (
-        <div style={{
-          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: T.textMute, fontFamily: T.mono, fontSize: 12,
-        }}>
-          Loading…
-        </div>
-      ) : lines.length === 0 ? (
-        <div style={{
-          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: T.textMute, fontFamily: T.mono, fontSize: 12,
-        }}>
-          No sales on this date
-        </div>
-      ) : (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
 
-          {/* ── Category summary ────────────────────────────────────────────── */}
-          <div style={{ flexShrink: 0, borderBottom: `1px solid ${T.line}` }}>
+        {/* ── Category summary — always visible ───────────────────────────── */}
+        <div style={{ flexShrink: 0, background: T.surface, borderBottom: `2px solid ${T.line2}` }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th style={{ ...thStyle('left'),  position: 'static' }}>Category</th>
+                <th style={{ ...thStyle('right'), position: 'static' }}>Gross</th>
+                <th style={{ ...thStyle('right'), position: 'static' }}>Cost</th>
+                <th style={{ ...thStyle('right'), position: 'static' }}>Net</th>
+                <th style={{ ...thStyle('right'), position: 'static' }}>Margin %</th>
+              </tr>
+            </thead>
+            <tbody>
+              {catSummaries.map((c, i) => (
+                <tr key={c.category} style={{ background: i % 2 === 0 ? T.surface : T.bg }}>
+                  <td style={cellStyle('left')}>{c.category}</td>
+                  <td style={cellStyle('right')}>{fmtPeso(c.gross)}</td>
+                  <td style={{ ...cellStyle('right'), color: T.textMute }}>{fmtPeso(c.cost)}</td>
+                  <td style={{ ...cellStyle('right'), color: c.net >= 0 ? T.ok : T.bad }}>{fmtPeso(c.net)}</td>
+                  <td style={{ ...cellStyle('right'), color: T.textMute }}>{c.margin.toFixed(1)}%</td>
+                </tr>
+              ))}
+              <tr style={{ background: T.surface2, borderTop: `1px solid ${T.line2}` }}>
+                <td style={{ ...cellStyle('left'), fontWeight: 700, color: T.text }}>Total</td>
+                <td style={{ ...cellStyle('right'), fontWeight: 700, color: T.text }}>{fmtPeso(totalGross)}</td>
+                <td style={{ ...cellStyle('right'), fontWeight: 700, color: T.textMute }}>{fmtPeso(totalCost)}</td>
+                <td style={{ ...cellStyle('right'), fontWeight: 700, color: totalNet >= 0 ? T.ok : T.bad }}>{fmtPeso(totalNet)}</td>
+                <td style={{ ...cellStyle('right'), fontWeight: 700, color: T.textMute }}>{totalMargin.toFixed(1)}%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* ── Line items — always visible ──────────────────────────────────── */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          {/* Sticky header row */}
+          <table style={{ width: '100%', borderCollapse: 'collapse', flexShrink: 0 }}>
+            <thead>
+              <tr>
+                <th style={thStyle('left')}>Category</th>
+                <th style={thStyle('left')}>Table</th>
+                <th style={thStyle('left')}>Item Name</th>
+                <th style={thStyle('right')}>Qty</th>
+                <th style={thStyle('right')}>Unit Price</th>
+                <th style={thStyle('right')}>Gross</th>
+                <th style={thStyle('right')}>Cost</th>
+                <th style={thStyle('right')}>Net</th>
+              </tr>
+            </thead>
+          </table>
+
+          {loading ? (
             <div style={{
-              padding: '8px 0 4px',
-              borderBottom: `1px solid ${T.line}`,
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: T.textMute, fontFamily: T.mono, fontSize: 12,
             }}>
+              Loading…
+            </div>
+          ) : lines.length === 0 ? (
+            <div style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: T.textMute, fontFamily: T.mono, fontSize: 12,
+            }}>
+              No sales on this date
+            </div>
+          ) : (
+            <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} className="bp-no-scrollbar">
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr>
-                    <th style={{ ...thStyle('left'),   position: 'static' }}>Category</th>
-                    <th style={{ ...thStyle('right'),  position: 'static' }}>Gross</th>
-                    <th style={{ ...thStyle('right'),  position: 'static' }}>Cost</th>
-                    <th style={{ ...thStyle('right'),  position: 'static' }}>Net</th>
-                    <th style={{ ...thStyle('right'),  position: 'static' }}>Margin %</th>
-                  </tr>
-                </thead>
                 <tbody>
-                  {catSummaries.map((c, i) => (
-                    <tr key={c.category} style={{ background: i % 2 === 0 ? T.surface : 'transparent' }}>
-                      <td style={cellStyle('left')}>{c.category}</td>
-                      <td style={cellStyle('right')}>{fmtPeso(c.gross)}</td>
-                      <td style={{ ...cellStyle('right'), color: T.textMute }}>{fmtPeso(c.cost)}</td>
-                      <td style={{ ...cellStyle('right'), color: c.net >= 0 ? T.ok : T.bad }}>{fmtPeso(c.net)}</td>
-                      <td style={{ ...cellStyle('right'), color: T.textMute }}>{c.margin.toFixed(1)}%</td>
+                  {lines.map((l, i) => (
+                    <tr key={l.id} style={{ background: i % 2 === 0 ? T.surface : 'transparent' }}>
+                      <td style={{ ...cellStyle('left'), color: T.textDim }}>{l.category}</td>
+                      <td style={cellStyle('left')}>{l.tableId}</td>
+                      <td style={cellStyle('left')}>{l.itemName}</td>
+                      <td style={{ ...cellStyle('right'), color: T.textMute }}>{l.qty}</td>
+                      <td style={cellStyle('right')}>{fmtPeso(l.unitPrice)}</td>
+                      <td style={cellStyle('right')}>{fmtPeso(l.gross)}</td>
+                      <td style={{ ...cellStyle('right'), color: T.textMute }}>{fmtPeso(l.cost)}</td>
+                      <td style={{ ...cellStyle('right'), color: l.net >= 0 ? T.ok : T.bad }}>{fmtPeso(l.net)}</td>
                     </tr>
                   ))}
-                  {/* Totals row */}
-                  <tr style={{ background: T.surface2, borderTop: `1px solid ${T.line}` }}>
-                    <td style={{ ...cellStyle('left'), fontWeight: 700, color: T.text }}>Total</td>
-                    <td style={{ ...cellStyle('right'), fontWeight: 700, color: T.text }}>{fmtPeso(totalGross)}</td>
-                    <td style={{ ...cellStyle('right'), fontWeight: 700, color: T.textMute }}>{fmtPeso(totalCost)}</td>
-                    <td style={{ ...cellStyle('right'), fontWeight: 700, color: totalNet >= 0 ? T.ok : T.bad }}>{fmtPeso(totalNet)}</td>
-                    <td style={{ ...cellStyle('right'), fontWeight: 700, color: T.textMute }}>{totalMargin.toFixed(1)}%</td>
-                  </tr>
                 </tbody>
               </table>
             </div>
-          </div>
-
-          {/* ── Line items ──────────────────────────────────────────────────── */}
-          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} className="bp-no-scrollbar">
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr>
-                  <th style={thStyle('left')}>Category</th>
-                  <th style={thStyle('left')}>Table</th>
-                  <th style={thStyle('left')}>Item Name</th>
-                  <th style={thStyle('right')}>Qty</th>
-                  <th style={thStyle('right')}>Unit Price</th>
-                  <th style={thStyle('right')}>Gross</th>
-                  <th style={thStyle('right')}>Cost</th>
-                  <th style={thStyle('right')}>Net</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((l, i) => (
-                  <tr key={l.id} style={{ background: i % 2 === 0 ? T.surface : 'transparent' }}>
-                    <td style={{ ...cellStyle('left'), color: T.textDim }}>{l.category}</td>
-                    <td style={cellStyle('left')}>{l.tableId}</td>
-                    <td style={cellStyle('left')}>{l.itemName}</td>
-                    <td style={{ ...cellStyle('right'), color: T.textMute }}>{l.qty}</td>
-                    <td style={cellStyle('right')}>{fmtPeso(l.unitPrice)}</td>
-                    <td style={cellStyle('right')}>{fmtPeso(l.gross)}</td>
-                    <td style={{ ...cellStyle('right'), color: T.textMute }}>{fmtPeso(l.cost)}</td>
-                    <td style={{ ...cellStyle('right'), color: l.net >= 0 ? T.ok : T.bad }}>{fmtPeso(l.net)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
+          )}
         </div>
-      )}
+      </div>
+
     </div>
   )
 }
