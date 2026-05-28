@@ -251,6 +251,20 @@ export default function BudgetTab() {
         badge={budgetView === 'day' ? `Ending ${fmtSign(totalEnding)}` : `${ledgerRows.length} days`}
         action={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {budgetView === 'ledger' && ledgerRows.length > 0 && (() => {
+              const latest = ledgerRows[ledgerRows.length - 1].endTotal
+              return (
+                <span style={{
+                  fontFamily: T.mono, fontSize: 12, fontWeight: 700,
+                  color: latest >= 0 ? T.ok : T.bad,
+                  background: latest >= 0 ? `${T.ok}18` : `${T.bad}18`,
+                  border: `1px solid ${latest >= 0 ? T.ok : T.bad}44`,
+                  padding: '2px 8px', borderRadius: T.radius,
+                }}>
+                  {fmtPeso(latest)}
+                </span>
+              )
+            })()}
             <div style={{ display: 'flex', gap: 2 }}>
               {(['day', 'ledger'] as const).map(v => (
                 <button key={v} onClick={() => setBudgetView(v)} style={{
