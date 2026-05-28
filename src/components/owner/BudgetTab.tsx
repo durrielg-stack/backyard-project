@@ -171,12 +171,10 @@ export default function BudgetTab() {
   const fetchDay = useCallback(async (d: string) => {
     setLoading(true)
     const { start, end } = dayBounds(d)
-    console.log('[BudgetTab] fetchDay', d, 'bounds:', start, '→', end)
 
     // Today's orders
     const { data: dayOrders, error: dOrdErr } = await sb
       .from('orders').select('id').gte('opened_at', start).lte('opened_at', end)
-    console.log('[BudgetTab] dayOrders:', dayOrders, 'err:', dOrdErr)
     if (dOrdErr) console.error('[BudgetTab] day orders error', dOrdErr)
     const dayIds = (dayOrders ?? []).map((o: any) => o.id as number)
     const todayIncoming = emptyBycat()
@@ -184,11 +182,9 @@ export default function BudgetTab() {
       const { data: items, error: iErr } = await sb
         .from('order_items').select('order_id, qty, unit_price, menu_items(category)')
         .in('order_id', dayIds).neq('status', 'voided')
-      console.log('[BudgetTab] items:', items?.length, 'err:', iErr)
       if (iErr) console.error('[BudgetTab] day items error', iErr)
       accumulateItems(items ?? [], todayIncoming)
     }
-    console.log('[BudgetTab] todayIncoming:', todayIncoming)
 
     // Today's expenses
     const { data: expRows, error: expErr } = await sb
