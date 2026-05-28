@@ -170,7 +170,8 @@ export interface Database {
     }
     Views: Record<never, never>
     Functions: {
-      deduct_inventory: { Args: { p_menu_item_id: string; p_qty: number }; Returns: void }
+      deduct_inventory:  { Args: { p_menu_item_id: string; p_qty: number }; Returns: void }
+      restore_inventory: { Args: { p_menu_item_id: string; p_qty: number }; Returns: void }
     }
     Enums: Record<never, never>
   }

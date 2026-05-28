@@ -127,6 +127,7 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
       const { error } = await sb.from('order_items').update({ qty: newQty }).eq('id', match.dbId)
       if (error) { setError(error.message); return }
       setLines(prev => prev.map(l => l.lineId === match.lineId ? { ...l, qty: newQty } : l))
+      await sb.rpc('deduct_inventory', { p_menu_item_id: item.id, p_qty: qty })
     } else {
       // Optimistic: add immediately with a temp lineId, swap dbId on confirm
       const tempLineId = 'L' + (lineCount.current++)
@@ -156,6 +157,7 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
         return
       }
       setLines(prev => prev.map(l => l.lineId === tempLineId ? { ...l, dbId: data.id as number } : l))
+      await sb.rpc('deduct_inventory', { p_menu_item_id: item.id, p_qty: qty })
     }
   }, [lines, ensureOrder])
 
@@ -201,6 +203,7 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
       if (error) { setError(error.message); return }
     }
     setLines(prev => prev.filter(l => l.lineId !== lineId))
+    await sb.rpc('restore_inventory', { p_menu_item_id: line.itemId, p_qty: line.qty })
   }, [lines])
 
   // ── Set note on a line ───────────────────────────────────────────────────
@@ -253,12 +256,7 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
     // 3. Free the table
     await sb.from('restaurant_tables').update({ status: 'available' }).eq('id', tableId)
 
-    // 4. Deduct inventory for all sold items (floors at 0, no-ops if no row)
-    for (const line of linesRef.current) {
-      await sb.rpc('deduct_inventory', { p_menu_item_id: line.itemId, p_qty: line.qty })
-    }
-
-    // 5. Clear local state
+    // 4. Clear local state
     setLines([])
     setOrderId(null)
     return true
@@ -301,9 +299,6 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
     if (unpaidLines.length === 0 && autoClose) {
       await sb.from('orders').update({ status: 'closed', closed_at: new Date().toISOString() }).eq('id', orderId)
       await sb.from('restaurant_tables').update({ status: 'available' }).eq('id', tableId)
-      for (const line of linesRef.current) {
-        await sb.rpc('deduct_inventory', { p_menu_item_id: line.itemId, p_qty: line.qty })
-      }
       setLines([])
       setOrderId(null)
       return 'closed'
