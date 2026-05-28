@@ -26,6 +26,10 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState<string | null>(null)
   const lineCount               = useRef(1)
+  const linesRef                = useRef<CartLine[]>([])
+
+  // Keep linesRef in sync so callbacks with stale closures always see current lines
+  useEffect(() => { linesRef.current = lines }, [lines])
 
   // ── Load open order + items on mount ────────────────────────────────────
   useEffect(() => {
@@ -250,7 +254,7 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
     await sb.from('restaurant_tables').update({ status: 'available' }).eq('id', tableId)
 
     // 4. Deduct inventory for all sold items (floors at 0, no-ops if no row)
-    for (const line of lines) {
+    for (const line of linesRef.current) {
       await sb.rpc('deduct_inventory', { p_menu_item_id: line.itemId, p_qty: line.qty })
     }
 
@@ -297,7 +301,7 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
     if (unpaidLines.length === 0 && autoClose) {
       await sb.from('orders').update({ status: 'closed', closed_at: new Date().toISOString() }).eq('id', orderId)
       await sb.from('restaurant_tables').update({ status: 'available' }).eq('id', tableId)
-      for (const line of lines) {
+      for (const line of linesRef.current) {
         await sb.rpc('deduct_inventory', { p_menu_item_id: line.itemId, p_qty: line.qty })
       }
       setLines([])
