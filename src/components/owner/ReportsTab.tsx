@@ -44,47 +44,49 @@ export default function ReportsTab() {
     const endDateStr   = localDateStr(new Date(endISO))
     const startLocal   = parseLocalDate(startDateStr)   // guaranteed local midnight
 
-    // ── Sales via direct join ────────────────────────────────────────────────
-    const { data: allLines, error: linesErr } = await sb
-      .from('order_items')
-      .select('order_id, qty, unit_price, orders!inner(opened_at), menu_items(name, category, cost)')
-      .gte('orders.opened_at', startISO)
-      .lte('orders.opened_at', endISO)
-      .neq('status', 'voided')
-    if (linesErr) console.error('[ReportsTab] lines fetch error', linesErr)
-    const lines: any[] = allLines ?? []
+    // ── Sales: two-step fetch to avoid unreliable orders!inner join filter ──
+    const { data: rangeOrders } = await sb
+      .from('orders').select('id, opened_at')
+      .gte('opened_at', startISO).lte('opened_at', endISO)
+    const orderOpenedMap: Record<number, Date> = {}
+    for (const o of (rangeOrders ?? [])) orderOpenedMap[o.id] = new Date(o.opened_at)
+    const orderIds: number[] = Object.keys(orderOpenedMap).map(Number)
 
     const hourGross: Record<number, number> = {}; const hourCost: Record<number, number> = {}
     const dayGross:  Record<string, number> = {}; const dayCost:  Record<string, number> = {}
-    let gTotal = 0; let cTotal = 0; let txN = 0
-    const countedOrders = new Set<number>()
+    let gTotal = 0; let cTotal = 0; let txN = orderIds.length
     const itemAgg: Record<string, { qty: number; rev: number; cost: number }> = {}
     const catAgg:  Record<string, { gross: number; cost: number }> = {}
 
-    for (const row of lines) {
-      const orderData = Array.isArray(row.orders) ? row.orders[0] : row.orders
-      if (!orderData?.opened_at) continue
-      const openedAt = new Date(orderData.opened_at)
-      const val  = row.qty * row.unit_price
-      const mi   = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
-      const rc   = row.qty * (mi?.cost ?? 0)
-      const dk   = shiftLocalDate(openedAt)  // hours 0–3 belong to the previous day's shift
-      const name = mi?.name ?? '—'; const cat = mi?.category ?? 'Other'
+    if (orderIds.length > 0) {
+      const { data: allLines } = await sb
+        .from('order_items')
+        .select('order_id, qty, unit_price, menu_items(name, category, cost)')
+        .in('order_id', orderIds)
+        .neq('status', 'voided')
 
-      gTotal += val; cTotal += rc
-      dayGross[dk] = (dayGross[dk] ?? 0) + val; dayCost[dk] = (dayCost[dk] ?? 0) + rc
+      for (const row of (allLines ?? [])) {
+        const openedAt = orderOpenedMap[row.order_id]
+        if (!openedAt) continue
+        const val  = row.qty * row.unit_price
+        const mi   = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
+        const rc   = row.qty * (mi?.cost ?? 0)
+        const dk   = shiftLocalDate(openedAt)  // hours 0–3 belong to previous day's shift
+        const name = mi?.name ?? '—'; const cat = mi?.category ?? 'Other'
 
-      if (mode === 'today') {
-        const h = openedAt.getHours()
-        hourGross[h] = (hourGross[h] ?? 0) + val; hourCost[h] = (hourCost[h] ?? 0) + rc
+        gTotal += val; cTotal += rc
+        dayGross[dk] = (dayGross[dk] ?? 0) + val; dayCost[dk] = (dayCost[dk] ?? 0) + rc
+
+        if (mode === 'today') {
+          const h = openedAt.getHours()
+          hourGross[h] = (hourGross[h] ?? 0) + val; hourCost[h] = (hourCost[h] ?? 0) + rc
+        }
+
+        if (!itemAgg[name]) itemAgg[name] = { qty: 0, rev: 0, cost: 0 }
+        itemAgg[name].qty += row.qty; itemAgg[name].rev += val; itemAgg[name].cost += rc
+        if (!catAgg[cat]) catAgg[cat] = { gross: 0, cost: 0 }
+        catAgg[cat].gross += val; catAgg[cat].cost += rc
       }
-
-      if (!countedOrders.has(row.order_id)) { countedOrders.add(row.order_id); txN++ }
-
-      if (!itemAgg[name]) itemAgg[name] = { qty: 0, rev: 0, cost: 0 }
-      itemAgg[name].qty += row.qty; itemAgg[name].rev += val; itemAgg[name].cost += rc
-      if (!catAgg[cat]) catAgg[cat] = { gross: 0, cost: 0 }
-      catAgg[cat].gross += val; catAgg[cat].cost += rc
     }
 
     setGross(gTotal); setCost(cTotal); setTxCount(txN)
@@ -142,17 +144,16 @@ export default function ReportsTab() {
     for (const p of (pmts ?? [])) { mm[p.method] = (mm[p.method]??0) + p.amount }
     setMethodMap(mm)
 
-    const { data: voidedItems } = await sb
-      .from('order_items')
-      .select('qty, unit_price, orders!inner(opened_at)')
-      .eq('status', 'voided')
-      .gte('orders.opened_at', startISO)
-      .lte('orders.opened_at', endISO)
+    const { data: voidedItems } = orderIds.length > 0
+      ? await sb.from('order_items').select('qty, unit_price').eq('status', 'voided').in('order_id', orderIds)
+      : { data: [] }
     const vi: any[] = voidedItems ?? []
     setVoidedCount(vi.length)
     setVoidedAmount(vi.reduce((s: number, r: any) => s + r.qty * r.unit_price, 0))
 
-    const { data: closedOrders } = await sb.from('orders').select('opened_at, closed_at').eq('status', 'closed').gte('opened_at', startISO).lte('opened_at', endISO).not('closed_at', 'is', null)
+    const { data: closedOrders } = orderIds.length > 0
+      ? await sb.from('orders').select('opened_at, closed_at').eq('status', 'closed').in('id', orderIds).not('closed_at', 'is', null)
+      : { data: [] }
     const ct: any[] = closedOrders ?? []
     if (ct.length > 0) {
       const totalMin = ct.reduce((s: number, o: any) => s + (new Date(o.closed_at).getTime() - new Date(o.opened_at).getTime()) / 60000, 0)
