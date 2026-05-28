@@ -237,7 +237,7 @@ export default function NavBar({
           <NavTab
             active={view === 'reports'}
             onClick={onReports}
-            label="Reports"
+            label="Dashboard"
             sub="Sales · Expenses"
             isMobile={isMobile}
           />
