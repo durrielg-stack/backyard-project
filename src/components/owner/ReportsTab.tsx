@@ -6,7 +6,7 @@ import { getClient } from '@/lib/supabase'
 import { SectionHd, Pill, GroupedBarChart, HBarChart, fmtPeso, DAY_ABBR, MONTH_ABBR } from './ownerShared'
 import type { MultiBar, CategoryBreakdown } from './ownerShared'
 import DateRangeNav, { useDateNav } from '@/components/shared/DateRangeNav'
-import { dayBounds, weekBounds, monthBounds, localDateStr, parseLocalDate, ViewMode, shiftHoursUpToNow } from '@/lib/dateNav'
+import { dayBounds, weekBounds, monthBounds, localDateStr, parseLocalDate, shiftLocalDate, ViewMode, shiftHoursUpToNow } from '@/lib/dateNav'
 
 // ── Types local to ReportsTab ─────────────────────────────────────────────────
 
@@ -68,7 +68,7 @@ export default function ReportsTab() {
       const val  = row.qty * row.unit_price
       const mi   = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
       const rc   = row.qty * (mi?.cost ?? 0)
-      const dk   = localDateStr(openedAt)
+      const dk   = shiftLocalDate(openedAt)  // hours 0–3 belong to the previous day's shift
       const name = mi?.name ?? '—'; const cat = mi?.category ?? 'Other'
 
       gTotal += val; cTotal += rc

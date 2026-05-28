@@ -12,6 +12,16 @@ export function parseLocalDate(s: string): Date {
   return new Date(y, m - 1, day)
 }
 
+// Returns the shift-date string for a timestamp: hours 0–3 belong to the previous day's shift.
+export function shiftLocalDate(d: Date): string {
+  if (d.getHours() < 4) {
+    const prev = new Date(d)
+    prev.setDate(prev.getDate() - 1)
+    return localDateStr(prev)
+  }
+  return localDateStr(d)
+}
+
 // Shift hours in order: 2pm open → 3am close (next calendar day)
 export const SHIFT_HOURS = [14,15,16,17,18,19,20,21,22,23,0,1,2,3]
 

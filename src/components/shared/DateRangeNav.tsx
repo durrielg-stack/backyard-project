@@ -89,13 +89,31 @@ export default function DateRangeNav({
 
     if (mode === 'week') {
       const { label } = weekBounds(weekRef)
+      const weekStartStr = localDateStr(weekRef)
+      const todayWeekStr = localDateStr(new Date())
       return (
-        <span style={{
-          fontSize: 12, fontFamily: T.mono, color: T.text, fontWeight: 500,
-          minWidth: 200, textAlign: 'center',
-        }}>
-          {label}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <input
+            type="date"
+            value={weekStartStr}
+            onChange={e => e.target.value && onWeekChange(parseLocalDate(e.target.value))}
+            style={{
+              padding: '4px 8px', fontSize: 12, fontFamily: T.mono,
+              background: T.surface2, color: T.text,
+              border: `1px solid ${T.line2}`, borderRadius: T.radius,
+              outline: 'none', cursor: 'pointer',
+            }}
+          />
+          <span style={{ fontSize: 11, fontFamily: T.mono, color: T.textMute }}>{label}</span>
+          {weekStartStr !== todayWeekStr && (
+            <button
+              onClick={() => onWeekChange(new Date())}
+              style={{ ...inactiveBtn, padding: '3px 8px', fontSize: 11 }}
+            >
+              This Week
+            </button>
+          )}
+        </div>
       )
     }
 

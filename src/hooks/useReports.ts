@@ -3,7 +3,7 @@
 import { useEffect, useReducer, useCallback } from 'react'
 import { getClient } from '@/lib/supabase'
 import type { ViewMode } from '@/lib/dateNav'
-import { localDateStr, parseLocalDate, shiftHoursUpToNow } from '@/lib/dateNav'
+import { localDateStr, parseLocalDate, shiftLocalDate, shiftHoursUpToNow } from '@/lib/dateNav'
 
 // ── Output shapes ────────────────────────────────────────────────────────────
 export interface RevenueBar {
@@ -153,7 +153,7 @@ export function useReports({ start, end, mode }: { start: string; end: string; m
         if (!openedAt) continue
         const val = (row.qty as number) * (row.unit_price as number)
         const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
-        const dk  = localDateStr(openedAt)
+        const dk  = shiftLocalDate(openedAt)  // hours 0–3 belong to previous day's shift
 
         gross += val
         cost  += (row.qty as number) * ((mi as any)?.cost ?? 0)
