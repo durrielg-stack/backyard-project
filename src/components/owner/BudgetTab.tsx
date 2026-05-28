@@ -117,37 +117,45 @@ export default function BudgetTab() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = getClient() as any
 
-  // ── Fetch all-time data for ledger ───────────────────────────────────────
-  const fetchLedger = useCallback(async () => {
-    // Sales: fetch order_items with order date via join
-    const { data: items, error: itemsErr } = await sb
-      .from('order_items')
-      .select('qty, unit_price, orders!inner(opened_at), menu_items(category)')
-      .neq('status', 'voided')
-
-    if (itemsErr) console.error('[BudgetTab/ledger] items fetch error', itemsErr)
-
-    const allIncoming: Record<string, Record<string, number>> = {}
-    for (const row of (items ?? [])) {
-      const orderData = Array.isArray(row.orders) ? row.orders[0] : row.orders
-      if (!orderData?.opened_at) continue
-      const dk  = localDateStr(new Date(orderData.opened_at))
+  // ── Shared: accumulate order_items into a catId→amount map ──────────────
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function accumulateItems(rows: any[], out: Record<string, number>) {
+    for (const row of rows) {
       const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
       const cat = SALES_CAT_MAP[mi?.category ?? '']
       if (!cat) continue
-      const val = (row.qty as number) * (row.unit_price as number)
-      if (!allIncoming[dk]) allIncoming[dk] = emptyBycat()
-      allIncoming[dk][cat] = (allIncoming[dk][cat] ?? 0) + val
+      out[cat] = (out[cat] ?? 0) + (row.qty as number) * (row.unit_price as number)
+    }
+  }
+
+  // ── Fetch all-time data for ledger ───────────────────────────────────────
+  const fetchLedger = useCallback(async () => {
+    // Step 1: all orders → date map
+    const { data: allOrders, error: ordErr } = await sb.from('orders').select('id, opened_at')
+    if (ordErr) console.error('[BudgetTab/ledger] orders error', ordErr)
+    const orderDateMap: Record<number, string> = {}
+    for (const o of (allOrders ?? [])) orderDateMap[o.id] = localDateStr(new Date(o.opened_at))
+
+    // Step 2: all order_items
+    const orderIds = Object.keys(orderDateMap).map(Number)
+    const allIncoming: Record<string, Record<string, number>> = {}
+    if (orderIds.length > 0) {
+      const { data: items, error: itemsErr } = await sb
+        .from('order_items').select('order_id, qty, unit_price, menu_items(category)')
+        .in('order_id', orderIds).neq('status', 'voided')
+      if (itemsErr) console.error('[BudgetTab/ledger] items error', itemsErr)
+      for (const row of (items ?? [])) {
+        const dk = orderDateMap[row.order_id]
+        if (!dk) continue
+        if (!allIncoming[dk]) allIncoming[dk] = emptyBycat()
+        accumulateItems([row], allIncoming[dk])
+      }
     }
 
-    // Expenses
+    // Step 3: all expenses
     const { data: expRows, error: expErr } = await sb
-      .from('daily_expenses')
-      .select('expense_date, category, amount')
-      .order('expense_date')
-
-    if (expErr) console.error('[BudgetTab/ledger] expenses fetch error', expErr)
-
+      .from('daily_expenses').select('expense_date, category, amount').order('expense_date')
+    if (expErr) console.error('[BudgetTab/ledger] expenses error', expErr)
     const allExpenses: Record<string, Record<string, number>> = {}
     for (const r of (expRows ?? [])) {
       const cat = EXP_CAT_MAP[r.category]
@@ -163,28 +171,29 @@ export default function BudgetTab() {
   const fetchDay = useCallback(async (d: string) => {
     setLoading(true)
     const { start, end } = dayBounds(d)
+    console.log('[BudgetTab] fetchDay', d, 'bounds:', start, '→', end)
 
-    // Sales for this day — join filter on orders.opened_at (same approach as SalesTab)
-    const { data: items, error: itemsErr } = await sb
-      .from('order_items')
-      .select('qty, unit_price, orders!inner(opened_at), menu_items(category)')
-      .gte('orders.opened_at', start)
-      .lte('orders.opened_at', end)
-      .neq('status', 'voided')
-
-    if (itemsErr) console.error('[BudgetTab] items fetch error', itemsErr)
-
+    // Today's orders
+    const { data: dayOrders, error: dOrdErr } = await sb
+      .from('orders').select('id').gte('opened_at', start).lte('opened_at', end)
+    console.log('[BudgetTab] dayOrders:', dayOrders, 'err:', dOrdErr)
+    if (dOrdErr) console.error('[BudgetTab] day orders error', dOrdErr)
+    const dayIds = (dayOrders ?? []).map((o: any) => o.id as number)
     const todayIncoming = emptyBycat()
-    for (const row of (items ?? [])) {
-      const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
-      const cat = SALES_CAT_MAP[mi?.category ?? '']
-      if (!cat) continue
-      todayIncoming[cat] = (todayIncoming[cat] ?? 0) + (row.qty as number) * (row.unit_price as number)
+    if (dayIds.length > 0) {
+      const { data: items, error: iErr } = await sb
+        .from('order_items').select('order_id, qty, unit_price, menu_items(category)')
+        .in('order_id', dayIds).neq('status', 'voided')
+      console.log('[BudgetTab] items:', items?.length, 'err:', iErr)
+      if (iErr) console.error('[BudgetTab] day items error', iErr)
+      accumulateItems(items ?? [], todayIncoming)
     }
+    console.log('[BudgetTab] todayIncoming:', todayIncoming)
 
-    // Expenses for this day
-    const { data: expRows, error: expErr } = await sb.from('daily_expenses').select('category, amount').eq('expense_date', d)
-    if (expErr) console.error('[BudgetTab] expenses fetch error', expErr)
+    // Today's expenses
+    const { data: expRows, error: expErr } = await sb
+      .from('daily_expenses').select('category, amount').eq('expense_date', d)
+    if (expErr) console.error('[BudgetTab] day expenses error', expErr)
     const todayExpenses = emptyBycat()
     for (const r of (expRows ?? [])) {
       const cat = EXP_CAT_MAP[r.category]
@@ -192,24 +201,23 @@ export default function BudgetTab() {
       todayExpenses[cat] = (todayExpenses[cat] ?? 0) + r.amount
     }
 
-    // Cumulative from all prior days
-    const { data: priorItems, error: priorErr } = await sb
-      .from('order_items')
-      .select('qty, unit_price, orders!inner(opened_at), menu_items(category)')
-      .lt('orders.opened_at', start)
-      .neq('status', 'voided')
-
-    if (priorErr) console.error('[BudgetTab] prior items fetch error', priorErr)
+    // Cumulative prior days
+    const { data: priorOrders, error: pOrdErr } = await sb
+      .from('orders').select('id').lt('opened_at', start)
+    if (pOrdErr) console.error('[BudgetTab] prior orders error', pOrdErr)
+    const priorIds = (priorOrders ?? []).map((o: any) => o.id as number)
     const priorIncoming = emptyBycat()
-    for (const row of (priorItems ?? [])) {
-      const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
-      const cat = SALES_CAT_MAP[mi?.category ?? '']
-      if (!cat) continue
-      priorIncoming[cat] = (priorIncoming[cat] ?? 0) + (row.qty as number) * (row.unit_price as number)
+    if (priorIds.length > 0) {
+      const { data: priorItems, error: piErr } = await sb
+        .from('order_items').select('order_id, qty, unit_price, menu_items(category)')
+        .in('order_id', priorIds).neq('status', 'voided')
+      if (piErr) console.error('[BudgetTab] prior items error', piErr)
+      accumulateItems(priorItems ?? [], priorIncoming)
     }
 
-    const { data: priorExp, error: priorExpErr } = await sb.from('daily_expenses').select('category, amount').lt('expense_date', d)
-    if (priorExpErr) console.error('[BudgetTab] prior expenses fetch error', priorExpErr)
+    const { data: priorExp, error: peErr } = await sb
+      .from('daily_expenses').select('category, amount').lt('expense_date', d)
+    if (peErr) console.error('[BudgetTab] prior expenses error', peErr)
     const priorExpenses = emptyBycat()
     for (const r of (priorExp ?? [])) {
       const cat = EXP_CAT_MAP[r.category]
