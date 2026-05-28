@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import '@/styles/globals.css'
 import { ThemeProvider } from '@/lib/ThemeContext'
 import { SpeedInsights } from '@vercel/speed-insights/next'
+import { Analytics } from '@vercel/analytics/next'
 
 export const metadata: Metadata = {
   title: 'Backyard POS',
@@ -21,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body><ThemeProvider>{children}</ThemeProvider><SpeedInsights /></body>
+      <body><ThemeProvider>{children}</ThemeProvider><SpeedInsights /><Analytics /></body>
     </html>
   )
 }
