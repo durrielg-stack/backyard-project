@@ -48,8 +48,6 @@ export default function ReportsTab() {
     const { data: rangeOrders } = await sb
       .from('orders').select('id, opened_at')
       .gte('opened_at', startISO).lte('opened_at', endISO)
-    console.log('[ReportsTab] startISO:', startISO, 'endISO:', endISO)
-    console.log('[ReportsTab] rangeOrders:', rangeOrders?.map((o: any) => ({ id: o.id, opened_at: o.opened_at })))
     const orderOpenedMap: Record<number, Date> = {}
     for (const o of (rangeOrders ?? [])) orderOpenedMap[o.id] = new Date(o.opened_at)
     const orderIds: number[] = Object.keys(orderOpenedMap).map(Number)
@@ -74,7 +72,6 @@ export default function ReportsTab() {
         const mi   = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
         const rc   = row.qty * (mi?.cost ?? 0)
         const dk   = shiftLocalDate(openedAt)  // hours 0–3 belong to previous day's shift
-        console.log('[ReportsTab] order', row.order_id, 'opened_at raw:', orderOpenedMap[row.order_id], '→ hours:', openedAt.getHours(), '→ dk:', dk)
         const name = mi?.name ?? '—'; const cat = mi?.category ?? 'Other'
 
         gTotal += val; cTotal += rc
@@ -137,7 +134,6 @@ export default function ReportsTab() {
         return { label: `${i + 1}`, gross: dayGross[dk] ?? 0, cost: dayCost[dk] ?? 0, expenses: expDayBuckets[dk] ?? 0 }
       })
     }
-    console.log('[ReportsTab] dayGross:', dayGross, 'newBars:', newBars.filter(b => b.gross > 0 || b.expenses > 0))
     setBars(newBars)
 
     const { data: pmts } = await sb
