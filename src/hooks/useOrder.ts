@@ -297,6 +297,9 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
     if (unpaidLines.length === 0 && autoClose) {
       await sb.from('orders').update({ status: 'closed', closed_at: new Date().toISOString() }).eq('id', orderId)
       await sb.from('restaurant_tables').update({ status: 'available' }).eq('id', tableId)
+      for (const line of lines) {
+        await sb.rpc('deduct_inventory', { p_menu_item_id: line.itemId, p_qty: line.qty })
+      }
       setLines([])
       setOrderId(null)
       return 'closed'
