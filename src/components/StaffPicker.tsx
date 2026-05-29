@@ -6,17 +6,17 @@ import { getClient } from '@/lib/supabase'
 
 interface StaffUser { id: string; name: string; role: string; password: string }
 
-// Hardcoded staff list — update passwords here directly
+// Hardcoded staff list — ids must match public.users.id (uuid)
 const STAFF: StaffUser[] = [
-  { id: 'melvin',  name: 'Melvin',  role: 'owner',   password: 'melvin'  },
-  { id: 'albert',  name: 'Albert',  role: 'owner',   password: 'albert'  },
-  { id: 'ramon',   name: 'Ramon',   role: 'owner',   password: 'ramon'   },
-  { id: 'arvin',   name: 'Arvin',   role: 'owner',   password: 'arvin'   },
-  { id: 'marvin',  name: 'Marvin',  role: 'owner',   password: 'marvin'  },
-  { id: 'durriel', name: 'Durriel', role: 'owner',   password: 'durriel' },
-  { id: 'booba',   name: 'Booba',   role: 'manager', password: 'booba'   },
-  { id: 'rj',      name: 'RJ',      role: 'waiter',  password: 'rj'      },
-  { id: 'angeli',  name: 'Angeli',  role: 'waiter',  password: 'angeli'  },
+  { id: 'd5e857a0-2444-40b0-b770-64387d8766ea', name: 'Melvin',  role: 'owner',   password: 'melvin'  },
+  { id: '5b128d82-96ee-4783-afae-704d1ef8f9d6', name: 'Albert',  role: 'owner',   password: 'albert'  },
+  { id: '2589c685-b32f-430c-9317-18139c7a59c8', name: 'Ramon',   role: 'owner',   password: 'ramon'   },
+  { id: '1ea6db68-b713-43ec-abed-b3e7d1ab56fb', name: 'Arvin',   role: 'owner',   password: 'arvin'   },
+  { id: 'd20a8f80-68b5-4309-a79d-0c7514503851', name: 'Marvin',  role: 'owner',   password: 'marvin'  },
+  { id: 'e897578e-5ffd-48f1-b80d-c4ccb3910aca', name: 'Durriel', role: 'owner',   password: 'durriel' },
+  { id: '49dfc6c2-910c-46bd-9fe0-7032c03f45a7', name: 'Booba',   role: 'manager', password: 'booba'   },
+  { id: '9567524a-52e7-4f33-ae2e-20af6558f714', name: 'RJ',      role: 'waiter',  password: 'rj'      },
+  { id: '0bc47a89-05d1-45ec-b369-b01f453e0a67', name: 'Angeli',  role: 'waiter',  password: 'angeli'  },
 ]
 
 function initials(name: string): string {

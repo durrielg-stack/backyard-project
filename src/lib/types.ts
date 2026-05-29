@@ -154,7 +154,7 @@ export interface Database {
         Insert: { table_id: string; opened_by?: string | null; opened_at?: string; closed_at?: string | null; status?: OrderStatus; notes?: string | null }
         Update: { table_id?: string; opened_by?: string | null; opened_at?: string; closed_at?: string | null; status?: OrderStatus; notes?: string | null }
         Relationships: []
-        // opened_by is uuid FK → auth.users(id) ON DELETE SET NULL
+        // opened_by is uuid FK → public.users(id) ON DELETE SET NULL
       }
       payments: {
         Row: { id: number; order_id: number; method: PayMethod; amount: number; tendered: number | null; change_due: number | null; processed_by: string | null; processed_at: string; notes: string | null }
