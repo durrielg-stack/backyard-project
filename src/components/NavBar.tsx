@@ -198,7 +198,7 @@ export default function NavBar({
       {/* ── Tab strip ─────────────────────────────────────────────────────── */}
       <div className="bp-no-scrollbar" style={{
         display: 'flex', alignItems: 'stretch', flex: 1, minWidth: 0,
-        overflowX: isMobile ? 'auto' : 'hidden',
+        overflowX: 'auto', touchAction: 'pan-x',
         gap: 0,
       }}>
         {/* Sales (floor) */}
