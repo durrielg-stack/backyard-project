@@ -183,9 +183,9 @@ export default function DateRangeNav({
   }
 
   return (
-    <div className={isMobile ? 'bp-scroll-x bp-no-scrollbar' : ''} style={{
+    <div className={isMobile ? 'bp-no-scrollbar' : ''} style={{
       display: 'flex', alignItems: 'center', gap: 8,
-      overflowX: isMobile ? 'auto' : undefined,
+      overflowX: 'auto', touchAction: 'pan-x',
     }}>
       {/* Mode pills */}
       <div style={{ display: 'flex', gap: 2 }}>

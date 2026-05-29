@@ -333,7 +333,7 @@ function KpiStrip({ tables, tickets }: { tables: TableWithStatus[]; tickets: Kds
   ]
 
   const kpiStyle: React.CSSProperties = isMobile
-    ? { display: 'flex', flexDirection: 'row', overflowX: 'auto', WebkitOverflowScrolling: 'touch', height: 'auto', overscrollBehavior: 'contain' }
+    ? { display: 'flex', flexDirection: 'row', overflowX: 'auto', touchAction: 'pan-x', WebkitOverflowScrolling: 'touch', height: 'auto', overscrollBehavior: 'contain' }
     : { display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', height: 'clamp(80px, 9.3vh, 120px)' }
 
   return (
