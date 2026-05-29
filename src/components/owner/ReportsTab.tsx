@@ -418,62 +418,66 @@ export default function ReportsTab() {
         </div>
       </div>
 
-      {/* Category charts */}
-      <div style={{ display: 'flex', borderTop: `1px solid ${T.line}`, flexShrink: 0 }}>
-        <div style={{ flex: 1, borderRight: `1px solid ${T.line}` }}>
-          <SectionHd title={`Sales by Category · ${suffix}`} badge={fmtPeso(gross)} />
-          <HBarChart
-            color={`${T.accent}88`}
-            data={catBreakdown.map(c => ({
-              category: c.category,
-              value: c.gross,
-              sub: c.gross > 0 ? `${((c.net/c.gross)*100).toFixed(0)}% net` : undefined,
-            }))}
-          />
-        </div>
-        <div style={{ flex: 1 }}>
-          <SectionHd title={`Expenses by Category · ${suffix}`} badge={fmtPeso(expenses)} />
-          <HBarChart
-            color={`${T.bad}88`}
-            data={expCat.map(c => ({ category: c.category, value: c.amount }))}
-          />
-        </div>
-      </div>
-
-      {/* Category breakdown table */}
-      {catBreakdown.length > 0 && (
-        <div style={{ flexShrink: 0, borderTop: `1px solid ${T.line}` }}>
-          <SectionHd title={`By Category · ${suffix}`} />
-          <div style={{
-            display: 'grid', gridTemplateColumns: '1fr 130px 130px 130px 90px',
-            padding: '0 24px', height: 32, alignItems: 'center',
-            background: T.surface2, borderBottom: `1px solid ${T.line}`,
-          }}>
-            {['Category','Gross','Cost','Net','Margin'].map(h => (
-              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
-            ))}
+      {/* Category sections — fixed height, scrollable so they never squish the chart above */}
+      <div className="bp-no-scrollbar" style={{ height: 240, flexShrink: 0, overflowY: 'auto', borderTop: `1px solid ${T.line}` }}>
+        {/* Category charts */}
+        <div style={{ display: 'flex' }}>
+          <div style={{ flex: 1, borderRight: `1px solid ${T.line}` }}>
+            <SectionHd title={`Sales by Category · ${suffix}`} badge={fmtPeso(gross)} />
+            <HBarChart
+              color={`${T.accent}88`}
+              data={catBreakdown.map(c => ({
+                category: c.category,
+                value: c.gross,
+                sub: c.gross > 0 ? `${((c.net/c.gross)*100).toFixed(0)}% net` : undefined,
+              }))}
+            />
           </div>
-          {catBreakdown.map((row, i) => {
-            const margin = row.gross > 0 ? (row.net / row.gross) * 100 : 0
-            return (
-              <div key={row.category} style={{
-                display: 'grid', gridTemplateColumns: '1fr 130px 130px 130px 90px',
-                padding: '0 24px', height: 40, alignItems: 'center',
-                borderBottom: `1px solid ${T.line}`,
-                background: i % 2 === 0 ? 'transparent' : T.surface,
-              }}>
-                <span style={{ fontSize: 13, fontWeight: 500, color: T.text }}>{row.category}</span>
-                <span style={{ fontFamily: T.mono, fontSize: 12, color: T.accent, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(row.gross)}</span>
-                <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(row.cost)}</span>
-                <span style={{ fontFamily: T.mono, fontSize: 12, color: T.ok, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(row.net)}</span>
-                <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: margin >= 60 ? T.ok : margin >= 40 ? T.warn : T.bad }}>
-                  {margin.toFixed(1)}%
-                </span>
-              </div>
-            )
-          })}
+          <div style={{ flex: 1 }}>
+            <SectionHd title={`Expenses by Category · ${suffix}`} badge={fmtPeso(expenses)} />
+            <HBarChart
+              color={`${T.bad}88`}
+              data={expCat.map(c => ({ category: c.category, value: c.amount }))}
+            />
+          </div>
         </div>
-      )}
+
+        {/* Category breakdown table */}
+        {catBreakdown.length > 0 && (
+          <div style={{ borderTop: `1px solid ${T.line}` }}>
+            <SectionHd title={`By Category · ${suffix}`} />
+            <div style={{
+              display: 'grid', gridTemplateColumns: '1fr 130px 130px 130px 90px',
+              padding: '0 24px', height: 32, alignItems: 'center',
+              background: T.surface2, borderBottom: `1px solid ${T.line}`,
+              position: 'sticky', top: 0, zIndex: 1,
+            }}>
+              {['Category','Gross','Cost','Net','Margin'].map(h => (
+                <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
+              ))}
+            </div>
+            {catBreakdown.map((row, i) => {
+              const margin = row.gross > 0 ? (row.net / row.gross) * 100 : 0
+              return (
+                <div key={row.category} style={{
+                  display: 'grid', gridTemplateColumns: '1fr 130px 130px 130px 90px',
+                  padding: '0 24px', height: 40, alignItems: 'center',
+                  borderBottom: `1px solid ${T.line}`,
+                  background: i % 2 === 0 ? 'transparent' : T.surface,
+                }}>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: T.text }}>{row.category}</span>
+                  <span style={{ fontFamily: T.mono, fontSize: 12, color: T.accent, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(row.gross)}</span>
+                  <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(row.cost)}</span>
+                  <span style={{ fontFamily: T.mono, fontSize: 12, color: T.ok, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(row.net)}</span>
+                  <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: margin >= 60 ? T.ok : margin >= 40 ? T.warn : T.bad }}>
+                    {margin.toFixed(1)}%
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
