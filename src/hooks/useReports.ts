@@ -23,6 +23,17 @@ export interface TransactionRow {
   isRefund:  boolean
 }
 
+export interface VoidedRow {
+  id:        number
+  time:      string
+  tableId:   string
+  itemName:  string
+  qty:       number
+  unitPrice: number
+  amount:    number
+  reason:    string | null
+}
+
 export interface ExpenseRow {
   id:          number
   time:        string
@@ -51,6 +62,7 @@ export interface ReportsData {
   bars:            RevenueBar[]
   expenseDayBars:  RevenueBar[]
   transactions:    TransactionRow[]
+  voidedRows:      VoidedRow[]
   expenseRows:     ExpenseRow[]
   expCatBreakdown: CatBreakdown[]
   loading:         boolean
@@ -65,7 +77,7 @@ const EMPTY: ReportsData = {
   revenue: 0, cost: 0, expenses: 0,
   avgOrder: 0, txCount: 0, avgTurnMin: null,
   bars: [], expenseDayBars: [],
-  transactions: [], expenseRows: [],
+  transactions: [], voidedRows: [], expenseRows: [],
   expCatBreakdown: [],
   loading: true,
 }
@@ -292,6 +304,33 @@ export function useReports({ start, end, mode }: { start: string; end: string; m
       }
     }
 
+    // ── Voided items ──────────────────────────────────────────────────────
+    let voidedRows: VoidedRow[] = []
+    if (allOrderIds.length > 0) {
+      const { data: voidedItems } = await sb
+        .from('order_items')
+        .select('id, qty, unit_price, void_reason, completed_at, order_id, menu_items(name), orders!inner(table_id, opened_at)')
+        .eq('status', 'voided')
+        .in('order_id', allOrderIds)
+        .order('id', { ascending: false })
+
+      voidedRows = (voidedItems ?? []).map((row: any) => {
+        const order = Array.isArray(row.orders) ? row.orders[0] : row.orders
+        const mi    = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
+        const dt    = new Date(row.completed_at ?? order?.opened_at ?? 0)
+        return {
+          id:        row.id as number,
+          time:      `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`,
+          tableId:   order?.table_id ?? '—',
+          itemName:  (mi as any)?.name ?? '—',
+          qty:       row.qty as number,
+          unitPrice: row.unit_price as number,
+          amount:    (row.qty as number) * (row.unit_price as number),
+          reason:    (row.void_reason as string | null) ?? null,
+        }
+      })
+    }
+
     dispatch({
       type: 'data',
       payload: {
@@ -304,6 +343,7 @@ export function useReports({ start, end, mode }: { start: string; end: string; m
         bars,
         expenseDayBars,
         transactions: rp.map(mapTxRow),
+        voidedRows,
         expenseRows:  expAll.map(mapExpRow),
         expCatBreakdown,
       },
