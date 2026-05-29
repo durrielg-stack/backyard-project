@@ -675,28 +675,40 @@ function FloorPanel({
       )}
       {/* Panel header */}
       <div style={{
-        height: 46, padding: '0 20px', borderBottom: `1px solid ${T.line}`,
-        display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0,
+        padding: isMobile ? '8px 16px' : '0 20px',
+        height: isMobile ? 'auto' : 46,
+        borderBottom: `1px solid ${T.line}`,
+        display: 'flex', flexDirection: isMobile ? 'column' : 'row',
+        alignItems: isMobile ? 'flex-start' : 'center',
+        gap: isMobile ? 6 : 10, flexShrink: 0,
       }}>
-        <span style={{
-          fontSize: 11, fontWeight: 600, letterSpacing: '0.12em',
-          textTransform: 'uppercase', color: T.text,
-        }}>
-          <span style={{ color: T.accent, marginRight: 8 }}>▸</span>Floor · Section 1
-        </span>
-        <span style={{
-          fontFamily: T.mono, fontSize: 11, color: T.textDim,
-          background: T.chip, padding: '2px 8px', borderRadius: 2,
-        }}>
-          {tables.length} tables
-        </span>
+        {/* Title row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{
+            fontSize: 11, fontWeight: 600, letterSpacing: '0.12em',
+            textTransform: 'uppercase', color: T.text,
+          }}>
+            <span style={{ color: T.accent, marginRight: 8 }}>▸</span>Floor · Section 1
+          </span>
+          <span style={{
+            fontFamily: T.mono, fontSize: 11, color: T.textDim,
+            background: T.chip, padding: '2px 8px', borderRadius: 2,
+          }}>
+            {tables.length} tables
+          </span>
+        </div>
 
         {/* Legend */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginLeft: 8 }}>
+        <div className="bp-no-scrollbar" style={{
+          display: 'flex', alignItems: 'center', gap: 12,
+          marginLeft: isMobile ? 0 : 8,
+          overflowX: 'auto', touchAction: 'pan-x pan-y',
+          paddingBottom: isMobile ? 4 : 0,
+        }}>
           {legendItems.map(([label, color], i) => (
-            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
-              <span style={{ fontSize: 10, color: T.textMute, fontFamily: T.mono }}>
+              <span style={{ fontSize: 10, color: T.textMute, fontFamily: T.mono, whiteSpace: 'nowrap' }}>
                 {label} {legendCounts[i]}
               </span>
             </div>
