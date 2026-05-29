@@ -19,6 +19,15 @@ const STAFF: StaffUser[] = [
   { id: '0bc47a89-05d1-45ec-b369-b01f453e0a67', name: 'Angeli',  role: 'waiter',  password: 'angeli'  },
 ]
 
+type Category = 'owners' | 'staff'
+const CATEGORIES: { id: Category; label: string }[] = [
+  { id: 'owners', label: 'Owners' },
+  { id: 'staff',  label: 'Staff'  },
+]
+function categoryOf(u: StaffUser): Category {
+  return u.role === 'waiter' ? 'staff' : 'owners'
+}
+
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/)
   if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
@@ -31,6 +40,7 @@ interface StaffPickerProps {
 
 const StaffPicker = memo(function StaffPicker({ onSelect }: StaffPickerProps) {
   const { T } = useTheme()
+  const [category, setCategory] = useState<Category>('owners')
   const [selected, setSelected] = useState<StaffUser | null>(null)
   const [password, setPassword] = useState('')
   const [error, setError]       = useState(false)
@@ -92,14 +102,32 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: StaffPickerProps) {
 
         {!selected ? (
           <div style={{ width: '100%' }}>
-            <div style={{
-              fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
-              textTransform: 'uppercase', color: T.textMute, marginBottom: 12,
-            }}>
-              Who&apos;s working?
+            {/* Category tabs */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+              {CATEGORIES.map(cat => {
+                const active = category === cat.id
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setCategory(cat.id)}
+                    style={{
+                      flex: 1, padding: '9px 0', fontSize: 13, fontWeight: 700,
+                      background: active ? T.accent : T.surface,
+                      color: active ? T.accentInk : T.textMute,
+                      border: `1px solid ${active ? T.accent : T.line2}`,
+                      borderRadius: T.radius, cursor: 'pointer',
+                      fontFamily: 'inherit', transition: 'background 0.12s ease',
+                    }}
+                  >
+                    {cat.label}
+                  </button>
+                )
+              })}
             </div>
+
+            {/* Name cards */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {STAFF.map(u => (
+              {STAFF.filter(u => categoryOf(u) === category).map(u => (
                 <button
                   key={u.id}
                   onClick={() => setSelected(u)}
