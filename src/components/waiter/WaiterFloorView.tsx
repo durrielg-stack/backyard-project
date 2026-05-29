@@ -33,9 +33,14 @@ export default function WaiterFloorView({ waiterName, onTableSelect, onSignOut }
   }, [])
 
   useEffect(() => {
-    document.documentElement.style.overflow = 'auto'
-    document.body.style.overflow = 'auto'
+    function enableScroll() {
+      document.documentElement.style.overflow = 'auto'
+      document.body.style.overflow = 'auto'
+    }
+    enableScroll()
+    window.addEventListener('resize', enableScroll)
     return () => {
+      window.removeEventListener('resize', enableScroll)
       document.documentElement.style.overflow = ''
       document.body.style.overflow = ''
     }

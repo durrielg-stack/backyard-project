@@ -20,9 +20,14 @@ export default function WaiterTableView({ tableId, waiterName, onAddItems, onBac
   const { lines, loading }  = useOrder(tableId, waiterName)
 
   useEffect(() => {
-    document.documentElement.style.overflow = 'auto'
-    document.body.style.overflow = 'auto'
+    function enableScroll() {
+      document.documentElement.style.overflow = 'auto'
+      document.body.style.overflow = 'auto'
+    }
+    enableScroll()
+    window.addEventListener('resize', enableScroll)
     return () => {
+      window.removeEventListener('resize', enableScroll)
       document.documentElement.style.overflow = ''
       document.body.style.overflow = ''
     }

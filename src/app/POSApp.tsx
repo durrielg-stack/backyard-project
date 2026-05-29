@@ -176,7 +176,7 @@ export default function POSApp() {
 
   return (
     <div style={{
-      width: '100vw', height: '100vh',
+      width: '100vw', height: '100dvh',
       background: T.bg, color: T.text,
       fontFamily: T.sansBody, fontSize: 14, lineHeight: 1.3,
       display: 'flex', flexDirection: 'column',
