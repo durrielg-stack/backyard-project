@@ -165,27 +165,20 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
     }
   }, [lines, ensureOrder])
 
-  // ── Update qty (+delta; removes line at 0) ───────────────────────────────
+  // ── Update qty (+delta; floor at 1 — use voidItem to remove) ────────────
   const updateQty = useCallback(async (lineId: string, delta: number) => {
     const sb   = getClient()
     const line = lines.find(l => l.lineId === lineId)
     if (!line) return
 
-    const newQty = line.qty + delta
+    const newQty = Math.max(1, line.qty + delta)
+    if (newQty === line.qty) return
 
-    if (newQty <= 0) {
-      if (line.dbId) {
-        const { error } = await sb.from('order_items').update({ status: 'voided' }).eq('id', line.dbId)
-        if (error) { setError(error.message); return }
-      }
-      setLines(prev => prev.filter(l => l.lineId !== lineId))
-    } else {
-      if (line.dbId) {
-        const { error } = await sb.from('order_items').update({ qty: newQty }).eq('id', line.dbId)
-        if (error) { setError(error.message); return }
-      }
-      setLines(prev => prev.map(l => l.lineId === lineId ? { ...l, qty: newQty } : l))
+    if (line.dbId) {
+      const { error } = await sb.from('order_items').update({ qty: newQty }).eq('id', line.dbId)
+      if (error) { setError(error.message); return }
     }
+    setLines(prev => prev.map(l => l.lineId === lineId ? { ...l, qty: newQty } : l))
   }, [lines])
 
   // ── Remove line entirely ─────────────────────────────────────────────────

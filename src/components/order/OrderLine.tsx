@@ -152,12 +152,14 @@ export default function OrderLine({
           {/* Qty stepper */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <button
-              onClick={e => { e.stopPropagation(); onUpdateQty(line.lineId, -1) }}
+              onClick={e => { e.stopPropagation(); if (line.qty > 1) onUpdateQty(line.lineId, -1) }}
+              disabled={line.qty <= 1}
               style={{
                 width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 background: T.chip, border: `1px solid ${T.line2}`,
-                color: T.textDim, fontFamily: 'inherit', fontSize: 16, lineHeight: 1,
-                borderRadius: T.radius, cursor: 'pointer',
+                color: line.qty <= 1 ? T.textMute : T.textDim, fontFamily: 'inherit', fontSize: 16, lineHeight: 1,
+                borderRadius: T.radius, cursor: line.qty <= 1 ? 'default' : 'pointer',
+                opacity: line.qty <= 1 ? 0.4 : 1,
               }}
             >−</button>
             <span style={{
