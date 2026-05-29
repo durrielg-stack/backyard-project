@@ -149,8 +149,8 @@ export default function NavBar({
   const attnTabs  = tables.filter(t => t.status === 'attention').length
 
   const currentTableId = typeof view === 'object' ? view.tableId : null
-  const isOwner   = staff.role === 'Owner'
-  const isManager = staff.role === 'Manager'
+  const isOwner   = staff.role === 'owner'
+  const isManager = staff.role === 'manager'
 
   // Build table lookup for tabs
   const tableMap = new Map(tables.map(t => [t.id, t]))
@@ -340,7 +340,7 @@ export default function NavBar({
           {!isMobile && (
             <div>
               <div style={{ fontSize: 12, fontWeight: 500, color: T.text, lineHeight: 1 }}>{staff.name}</div>
-              <div style={{ fontSize: 10, color: T.textMute, lineHeight: 1, marginTop: 2 }}>· {staff.role}</div>
+              <div style={{ fontSize: 10, color: T.textMute, lineHeight: 1, marginTop: 2 }}>· {staff.role.charAt(0).toUpperCase() + staff.role.slice(1)}</div>
             </div>
           )}
         </div>

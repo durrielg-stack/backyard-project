@@ -212,15 +212,15 @@ export default function POSApp() {
         )}
         {view === 'floor' && <MessengerBadge />}
 
-        {view === 'expenses' && (staff.role === 'Owner' || staff.role === 'Manager') && <ExpensesView />}
+        {view === 'expenses' && (staff.role === 'owner' || staff.role === 'manager') && <ExpensesView />}
 
-        {view === 'sales' && (staff.role === 'Owner' || staff.role === 'Manager') && <SalesView />}
+        {view === 'sales' && (staff.role === 'owner' || staff.role === 'manager') && <SalesView />}
 
-        {view === 'reports' && (staff.role === 'Owner' || staff.role === 'Manager') && (
+        {view === 'reports' && (staff.role === 'owner' || staff.role === 'manager') && (
           <ReportsView tables={tablesWithStatus} />
         )}
 
-        {view === 'owner' && staff.role === 'Owner' && (
+        {view === 'owner' && staff.role === 'owner' && (
           <OwnerView tables={tablesWithStatus} />
         )}
 
