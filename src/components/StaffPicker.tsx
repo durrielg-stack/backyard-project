@@ -25,7 +25,7 @@ const CATEGORIES: { id: Category; label: string }[] = [
   { id: 'staff',  label: 'Staff'  },
 ]
 function categoryOf(u: StaffUser): Category {
-  return u.role === 'waiter' ? 'staff' : 'owners'
+  return u.role === 'owner' ? 'owners' : 'staff'
 }
 
 function initials(name: string): string {
@@ -40,7 +40,7 @@ interface StaffPickerProps {
 
 const StaffPicker = memo(function StaffPicker({ onSelect }: StaffPickerProps) {
   const { T } = useTheme()
-  const [category, setCategory] = useState<Category>('owners')
+  const [category, setCategory] = useState<Category>('staff')
   const [selected, setSelected] = useState<StaffUser | null>(null)
   const [password, setPassword] = useState('')
   const [error, setError]       = useState(false)
