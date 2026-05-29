@@ -156,7 +156,8 @@ export default function POSApp() {
   const closeTab = useCallback((tableId: string) => {
     setOpenTabs(prev => prev.filter(id => id !== tableId))
     setView(v => (typeof v === 'object' && v.tableId === tableId) ? 'floor' : v)
-  }, [])
+    clearCart(tableId)
+  }, [clearCart])
 
   const goFloor    = useCallback(() => setView('floor'),    [])
   const goExpenses = useCallback(() => setView('expenses'), [])

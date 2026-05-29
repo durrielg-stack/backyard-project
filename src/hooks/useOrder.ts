@@ -298,9 +298,9 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
       await sb.from('order_items').update({ payment_id: payment.id }).in('id', dbIds)
     }
 
-    // Check if all non-voided lines are now paid
+    // Close order when all lines are paid, regardless of autoClose flag
     const unpaidLines = lines.filter(l => !lineIds.includes(l.lineId))
-    if (unpaidLines.length === 0 && autoClose) {
+    if (unpaidLines.length === 0) {
       await sb.from('orders').update({ status: 'closed', closed_at: new Date().toISOString() }).eq('id', orderId)
       await sb.from('restaurant_tables').update({ status: 'available' }).eq('id', tableId)
       setLines([])
