@@ -209,14 +209,16 @@ export default function WaiterMenuPicker({ tableId, waiterName, onBack, onSent }
                 background: selected ? `${T.accent}12` : T.surface,
                 border: `1px solid ${selected ? T.accent : T.line}`,
                 borderRadius: T.radiusLg, padding: '12px 10px',
-                display: 'flex', flexDirection: 'column', gap: 6,
+                display: 'flex', flexDirection: 'column',
                 transition: 'border-color 0.1s, background 0.1s',
               }}
             >
-              <div style={{ fontSize: 13, fontWeight: 600, color: T.text, lineHeight: 1.3 }}>{item.name}</div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: T.info }}>{fmtPeso(item.price)}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: T.text, lineHeight: 1.3, marginBottom: 4 }}>{item.name}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: T.info }}>{fmtPeso(item.price)}</div>
+              </div>
               {/* Qty controls */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
                 {selected ? (
                   <>
                     <button
