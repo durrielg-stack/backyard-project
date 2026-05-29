@@ -4,7 +4,20 @@ import { useState, useRef, useEffect, memo } from 'react'
 import { useTheme } from '@/lib/ThemeContext'
 import { getClient } from '@/lib/supabase'
 
-interface StaffUser { id: string; name: string; role: string }
+interface StaffUser { id: string; name: string; role: string; password: string }
+
+// Hardcoded staff list — update passwords here directly
+const STAFF: StaffUser[] = [
+  { id: 'melvin',  name: 'Melvin',  role: 'owner',   password: 'melvin'  },
+  { id: 'albert',  name: 'Albert',  role: 'owner',   password: 'albert'  },
+  { id: 'ramon',   name: 'Ramon',   role: 'owner',   password: 'ramon'   },
+  { id: 'arvin',   name: 'Arvin',   role: 'owner',   password: 'arvin'   },
+  { id: 'marvin',  name: 'Marvin',  role: 'owner',   password: 'marvin'  },
+  { id: 'durriel', name: 'Durriel', role: 'owner',   password: 'durriel' },
+  { id: 'booba',   name: 'Booba',   role: 'manager', password: 'booba'   },
+  { id: 'rj',      name: 'RJ',      role: 'waiter',  password: 'rj'      },
+  { id: 'angeli',  name: 'Angeli',  role: 'waiter',  password: 'angeli'  },
+]
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/)
@@ -18,21 +31,10 @@ interface StaffPickerProps {
 
 const StaffPicker = memo(function StaffPicker({ onSelect }: StaffPickerProps) {
   const { T } = useTheme()
-  const [users, setUsers]     = useState<StaffUser[]>([])
   const [selected, setSelected] = useState<StaffUser | null>(null)
   const [password, setPassword] = useState('')
   const [error, setError]       = useState(false)
-  const [loading, setLoading]   = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    getClient()
-      .from('users')
-      .select('id, name, role')
-      .eq('is_active', true)
-      .order('name')
-      .then(({ data }) => setUsers(data ?? []))
-  }, [])
 
   useEffect(() => {
     if (selected) {
@@ -42,17 +44,14 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: StaffPickerProps) {
     }
   }, [selected])
 
-  async function handleLogin() {
+  // Keep Supabase anon session alive (needed for DB queries elsewhere in the app)
+  useEffect(() => {
+    getClient() // initialise singleton
+  }, [])
+
+  function handleLogin() {
     if (!selected || !password) return
-    setLoading(true)
-    setError(false)
-    const sb = getClient()
-    const { data, error: rpcErr } = await sb.rpc('verify_staff_login', {
-      p_name: selected.name,
-      p_password: password,
-    })
-    setLoading(false)
-    if (rpcErr || !data || data.length === 0) {
+    if (password !== selected.password) {
       setError(true)
       setPassword('')
       setTimeout(() => inputRef.current?.focus(), 50)
@@ -100,11 +99,7 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: StaffPickerProps) {
               Who&apos;s working?
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {users.length === 0 ? (
-                <div style={{ color: T.textMute, fontSize: 13, fontFamily: T.mono, padding: '16px 0' }}>
-                  Loading…
-                </div>
-              ) : users.map(u => (
+              {STAFF.map(u => (
                 <button
                   key={u.id}
                   onClick={() => setSelected(u)}
@@ -178,15 +173,13 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: StaffPickerProps) {
               ref={inputRef}
               type="password"
               value={password}
-              disabled={loading}
               onChange={e => { setPassword(e.target.value); setError(false) }}
-              onKeyDown={e => e.key === 'Enter' && !loading && handleLogin()}
+              onKeyDown={e => e.key === 'Enter' && handleLogin()}
               placeholder="Enter password…"
               style={{
                 width: '100%', padding: '12px 14px', fontSize: 14, boxSizing: 'border-box',
                 background: T.surface, border: `1px solid ${error ? T.bad : T.line2}`,
                 color: T.text, fontFamily: 'inherit', borderRadius: T.radius, outline: 'none',
-                opacity: loading ? 0.5 : 1,
               }}
             />
             {error && (
@@ -196,17 +189,17 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: StaffPickerProps) {
             )}
             <button
               onClick={handleLogin}
-              disabled={!password || loading}
+              disabled={!password}
               style={{
                 marginTop: 16, width: '100%', padding: '12px', fontSize: 14, fontWeight: 700,
-                background: (password && !loading) ? T.accent : T.chip,
-                color: (password && !loading) ? T.accentInk : T.textMute,
+                background: password ? T.accent : T.chip,
+                color: password ? T.accentInk : T.textMute,
                 border: 'none', borderRadius: T.radius,
-                cursor: (password && !loading) ? 'pointer' : 'default',
+                cursor: password ? 'pointer' : 'default',
                 fontFamily: 'inherit', transition: 'background 0.12s ease',
               }}
             >
-              {loading ? 'Signing in…' : 'Sign In'}
+              Sign In
             </button>
           </div>
         )}
