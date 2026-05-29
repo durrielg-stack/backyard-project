@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, memo } from 'react'
 import { useTheme } from '@/lib/ThemeContext'
 import { getClient } from '@/lib/supabase'
 
@@ -16,7 +16,7 @@ interface StaffPickerProps {
   onSelect: (userId: string, name: string, initials: string, role: string) => void
 }
 
-export default function StaffPicker({ onSelect }: StaffPickerProps) {
+const StaffPicker = memo(function StaffPicker({ onSelect }: StaffPickerProps) {
   const { T } = useTheme()
   const [users, setUsers]     = useState<StaffUser[]>([])
   const [selected, setSelected] = useState<StaffUser | null>(null)
@@ -176,13 +176,15 @@ export default function StaffPicker({ onSelect }: StaffPickerProps) {
               ref={inputRef}
               type="password"
               value={password}
+              disabled={loading}
               onChange={e => { setPassword(e.target.value); setError(false) }}
-              onKeyDown={e => e.key === 'Enter' && handleLogin()}
+              onKeyDown={e => e.key === 'Enter' && !loading && handleLogin()}
               placeholder="Enter password…"
               style={{
                 width: '100%', padding: '12px 14px', fontSize: 14, boxSizing: 'border-box',
                 background: T.surface, border: `1px solid ${error ? T.bad : T.line2}`,
                 color: T.text, fontFamily: 'inherit', borderRadius: T.radius, outline: 'none',
+                opacity: loading ? 0.5 : 1,
               }}
             />
             {error && (
@@ -209,4 +211,6 @@ export default function StaffPicker({ onSelect }: StaffPickerProps) {
       </div>
     </div>
   )
-}
+})
+
+export default StaffPicker

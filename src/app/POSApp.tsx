@@ -46,12 +46,12 @@ export default function POSApp() {
     return loadStaff()
   })
 
-  function handleSelectStaff(userId: string, name: string, initials: string, role: string) {
+  const handleSelectStaff = useCallback((userId: string, name: string, initials: string, role: string) => {
     if (role === 'waiter') { window.location.href = '/waiter'; return }
     const s = { userId, name, initials, role }
     localStorage.setItem('bp_staff', JSON.stringify(s))
     setStaff(s)
-  }
+  }, [])
 
   // ── View router ───────────────────────────────────────────────────────────
   const [view, setView]         = useState<View>('floor')
