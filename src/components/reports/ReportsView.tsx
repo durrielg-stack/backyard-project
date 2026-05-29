@@ -102,17 +102,25 @@ function ExpensesKpiStrip({ expenses, expCatBreakdown }: {
 }
 
 // ── Bar chart ──────────────────────────────────────────────────────────────────
-function BarChart({ bars, barColor }: { bars: RevenueBar[]; barColor?: string }) {
+function BarChart({ bars, barColor, chartHeight = 140 }: { bars: RevenueBar[]; barColor?: string; chartHeight?: number }) {
   const { T } = useTheme()
+  const bp = useBreakpoint()
+  const isMobile = bp === 'mobile'
+
   if (bars.length === 0) {
     return <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No data yet</div>
   }
   const maxVal = Math.max(...bars.map(b => b.value), 1)
   const color  = barColor ?? T.accent
 
-  return (
-    <div style={{ flex: 1, padding: '10px 18px 0', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-      <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+  // On mobile each bar gets at least 28px; total chart width at least fills the container
+  const minBarWidth = 28
+  const minChartWidth = isMobile ? Math.max(bars.length * minBarWidth, 0) : 0
+
+  const chartContent = (
+    <div style={{ padding: '10px 18px 0', display: 'flex', flexDirection: 'column', width: '100%', boxSizing: 'border-box' }}>
+      {/* Bar area — fixed height so bars render correctly */}
+      <div style={{ position: 'relative', height: chartHeight }}>
         {[0.25, 0.5, 0.75, 1].map(pct => (
           <div key={pct} style={{ position: 'absolute', left: 0, right: 0, top: `${(1-pct)*100}%`, borderTop: `1px solid ${T.line}`, pointerEvents: 'none' }}>
             <span style={{ position: 'absolute', right: 0, transform: 'translateY(-100%)', fontSize: 9, fontFamily: T.mono, color: T.textMute, paddingBottom: 2 }}>
@@ -136,36 +144,53 @@ function BarChart({ bars, barColor }: { bars: RevenueBar[]; barColor?: string })
           })}
         </div>
       </div>
+      {/* Labels */}
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${bars.length}, 1fr)`, marginTop: 4, paddingBottom: 8 }}>
         {bars.map((bar, i) => (
-          <div key={bar.label} style={{ textAlign: 'center', fontFamily: T.mono, fontSize: 9, color: T.textMute, visibility: (bars.length > 12 && i % 3 !== 0) ? 'hidden' : 'visible' }}>
+          <div key={bar.label} style={{ textAlign: 'center', fontFamily: T.mono, fontSize: 9, color: T.textMute, visibility: (!isMobile && bars.length > 12 && i % 3 !== 0) ? 'hidden' : 'visible' }}>
             {bar.label}
           </div>
         ))}
       </div>
     </div>
   )
+
+  if (isMobile) {
+    return (
+      <div className="bp-no-scrollbar" style={{ overflowX: 'auto', overflowY: 'hidden', touchAction: 'pan-x' }}>
+        <div style={{ minWidth: minChartWidth || '100%', width: minChartWidth > 0 ? `max(100%, ${minChartWidth}px)` : '100%' }}>
+          {chartContent}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      {chartContent}
+    </div>
+  )
 }
 
 // ── Revenue chart panel ────────────────────────────────────────────────────────
-function RevenuePanel({ bars }: { bars: RevenueBar[] }) {
+function RevenuePanel({ bars, mobile }: { bars: RevenueBar[]; mobile?: boolean }) {
   const { T } = useTheme()
   const total = bars.reduce((s, b) => s + b.value, 0)
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: `1px solid ${T.line}`, minHeight: 0 }}>
+    <div style={{ flex: mobile ? undefined : 1, display: 'flex', flexDirection: 'column', borderRight: mobile ? 'none' : `1px solid ${T.line}`, borderBottom: mobile ? `1px solid ${T.line}` : 'none', minHeight: 0 }}>
       <PanelHd title="Revenue" badge={`₱${total.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
-      <BarChart bars={bars} />
+      <BarChart bars={bars} chartHeight={mobile ? 160 : 140} />
     </div>
   )
 }
 
 // ── Expenses chart panel ───────────────────────────────────────────────────────
-function ExpensesChartPanel({ expenseDayBars, expenses }: { expenseDayBars: RevenueBar[]; expenses: number }) {
+function ExpensesChartPanel({ expenseDayBars, expenses, mobile }: { expenseDayBars: RevenueBar[]; expenses: number; mobile?: boolean }) {
   const { T } = useTheme()
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+    <div style={{ flex: mobile ? undefined : 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <PanelHd title="Expenses" badge={`₱${expenses.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} badgeColor={T.bad} />
-      <BarChart bars={expenseDayBars} barColor={T.bad} />
+      <BarChart bars={expenseDayBars} barColor={T.bad} chartHeight={mobile ? 160 : 140} />
     </div>
   )
 }
@@ -176,10 +201,12 @@ const TX_HDRS = ['Time', 'ID', 'Tbl', 'Server', '×', 'Total', 'Pay']
 
 function TransactionsPanel({ transactions }: { transactions: TransactionRow[] }) {
   const { T } = useTheme()
+  const bp = useBreakpoint()
+  const isMobile = bp === 'mobile'
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, borderRight: `1px solid ${T.line}` }}>
+    <div style={{ flex: isMobile ? undefined : 1, display: 'flex', flexDirection: 'column', minHeight: isMobile ? undefined : 0, borderRight: `1px solid ${T.line}` }}>
       <PanelHd title="Sales Transactions" badge={`${transactions.length}`} />
-      <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+      <div className="bp-no-scrollbar" style={{ flex: isMobile ? undefined : 1, overflowY: isMobile ? 'visible' : 'auto', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
         <div style={{ minWidth: 420 }}>
         <div style={{ display: 'grid', gridTemplateColumns: TX_COLS, padding: '0 14px', height: 30, alignItems: 'center', borderBottom: `1px solid ${T.line}`, flexShrink: 0, position: 'sticky', top: 0, background: T.surface2, zIndex: 1 }}>
           {TX_HDRS.map(h => <span key={h} style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>)}
@@ -219,10 +246,12 @@ const EX_HDRS = ['Time', 'Category', 'Name', 'Amount']
 
 function ExpensesListPanel({ expenseRows }: { expenseRows: ExpenseRow[] }) {
   const { T } = useTheme()
+  const bp = useBreakpoint()
+  const isMobile = bp === 'mobile'
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+    <div style={{ flex: isMobile ? undefined : 1, display: 'flex', flexDirection: 'column', minHeight: isMobile ? undefined : 0 }}>
       <PanelHd title="Expenses Transactions" badge={`${expenseRows.length}`} badgeColor={T.bad} />
-      <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+      <div className="bp-no-scrollbar" style={{ flex: isMobile ? undefined : 1, overflowY: isMobile ? 'visible' : 'auto', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
         <div style={{ minWidth: 300 }}>
         <div style={{ display: 'grid', gridTemplateColumns: EX_COLS, padding: '0 14px', height: 30, alignItems: 'center', borderBottom: `1px solid ${T.line}`, flexShrink: 0, position: 'sticky', top: 0, background: T.surface2, zIndex: 1 }}>
           {EX_HDRS.map(h => <span key={h} style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>)}
@@ -251,6 +280,8 @@ function ExpensesListPanel({ expenseRows }: { expenseRows: ExpenseRow[] }) {
 // ── Drag-resizable split panel ─────────────────────────────────────────────────
 function ResizableSplit({ left, right }: { left: React.ReactNode; right: React.ReactNode }) {
   const { T } = useTheme()
+  const bp = useBreakpoint()
+  const isMobile = bp === 'mobile'
   const [split, setSplit] = useState(50) // percent
   const dragging = useRef(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -267,6 +298,16 @@ function ResizableSplit({ left, right }: { left: React.ReactNode; right: React.R
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
   }, [])
+
+  // On mobile: stack panels vertically, each with a minimum height
+  if (isMobile) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div style={{ minHeight: 320 }}>{left}</div>
+        <div style={{ borderTop: `1px solid ${T.line}`, minHeight: 280 }}>{right}</div>
+      </div>
+    )
+  }
 
   return (
     <div ref={containerRef} style={{ flex: 1, display: 'flex', minHeight: 0 }}>
@@ -289,6 +330,8 @@ function ResizableSplit({ left, right }: { left: React.ReactNode; right: React.R
 // ── ReportsView ────────────────────────────────────────────────────────────────
 export default function ReportsView({ tables: _tables }: { tables: TableWithStatus[] }) {
   const { T } = useTheme()
+  const bp = useBreakpoint()
+  const isMobile = bp === 'mobile'
   const nav = useDateNav()
 
   // Compute bounds from nav state
@@ -308,7 +351,7 @@ export default function ReportsView({ tables: _tables }: { tables: TableWithStat
   const suffix = nav.mode === 'today' ? 'Today' : nav.mode === 'week' ? 'Week' : 'Month'
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: isMobile ? 'auto' : '100%', display: 'flex', flexDirection: 'column' }}>
 
       {/* ── Date range nav ───────────────────────────────────────────────── */}
       <div className="bp-no-scrollbar" style={{
@@ -346,11 +389,18 @@ export default function ReportsView({ tables: _tables }: { tables: TableWithStat
         expCatBreakdown={expCatBreakdown}
       />
 
-      {/* ── Charts row (220px) ───────────────────────────────────────────── */}
-      <div style={{ height: 220, display: 'flex', borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
-        <RevenuePanel bars={bars} />
-        <ExpensesChartPanel expenseDayBars={expenseDayBars} expenses={expenses} />
-      </div>
+      {/* ── Charts row ───────────────────────────────────────────────────── */}
+      {isMobile ? (
+        <div style={{ flexShrink: 0 }}>
+          <RevenuePanel bars={bars} mobile />
+          <ExpensesChartPanel expenseDayBars={expenseDayBars} expenses={expenses} mobile />
+        </div>
+      ) : (
+        <div style={{ height: 220, display: 'flex', borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
+          <RevenuePanel bars={bars} />
+          <ExpensesChartPanel expenseDayBars={expenseDayBars} expenses={expenses} />
+        </div>
+      )}
 
       {/* ── Resizable lists row ──────────────────────────────────────────── */}
       <ResizableSplit

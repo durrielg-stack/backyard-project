@@ -7,6 +7,7 @@ import { useMenuItems }   from '@/hooks/useMenuItems'
 import { useAutoStatus }  from '@/hooks/useAutoStatus'
 import { useTickets }     from '@/hooks/useTickets'
 import { useTheme }       from '@/lib/ThemeContext'
+import { useBreakpoint }  from '@/hooks/useBreakpoint'
 import type { CartLine }  from '@/lib/types'
 import NavBar       from '@/components/NavBar'
 import FloorView    from '@/components/floor/FloorView'
@@ -170,17 +171,24 @@ export default function POSApp() {
   const attnCount = tablesWithStatus.filter(t => t.status === 'attention').length
 
   // ── Render ────────────────────────────────────────────────────────────────
+  const bp = useBreakpoint()
+  const isMobile = bp === 'mobile'
 
   // ── Show staff picker if no one is logged in ──────────────────────────────
   if (!staff) return <StaffPicker onSelect={handleSelectStaff} />
 
   return (
     <div style={{
-      width: '100vw', height: '100vh',
+      width: '100vw',
+      // Mobile: let content grow; desktop: fixed viewport height, no scroll
+      height: isMobile ? undefined : '100vh',
+      minHeight: isMobile ? '100dvh' : undefined,
       background: T.bg, color: T.text,
       fontFamily: T.sansBody, fontSize: 14, lineHeight: 1.3,
       display: 'flex', flexDirection: 'column',
-      overflow: 'hidden', userSelect: 'none',
+      overflow: isMobile ? undefined : 'hidden',
+      overflowY: isMobile ? 'auto' : undefined,
+      userSelect: 'none',
       fontFeatureSettings: '"ss01", "cv11"',
       overscrollBehavior: 'none',
     }}>
@@ -202,7 +210,7 @@ export default function POSApp() {
         onSignOut={() => { localStorage.removeItem('bp_staff'); setStaff(null) }}
       />
 
-      <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+      <div style={{ flex: 1, minHeight: isMobile ? undefined : 0, position: 'relative' }}>
         {view === 'floor' && (
           <FloorView
             tables={tablesWithStatus}
