@@ -276,183 +276,197 @@ export default function ReportsTab() {
         )
       })()}
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: isMobile ? 'column' : 'row', minHeight: 0 }}>
-        {/* P&L Overview chart */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: isMobile ? 'none' : `1px solid ${T.line}`, borderBottom: isMobile ? `1px solid ${T.line}` : 'none' }}>
-          <SectionHd
-            title="P&L Overview"
-            badge={`Gross ${fmtPeso(gross)} · Net ${fmtPeso(net)}`}
-            action={
-              <div style={{ display: 'flex', gap: 2 }}>
-                {(['bar', 'line'] as const).map(m => (
-                  <button
-                    key={m}
-                    onClick={() => setChartMode(m)}
-                    title={m === 'bar' ? 'Bar chart' : 'Line chart'}
-                    style={{
-                      width: 28, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: chartMode === m ? T.accent : T.chip,
-                      border: `1px solid ${chartMode === m ? T.accent : T.line2}`,
-                      borderRadius: T.radius, cursor: 'pointer', padding: 0,
-                      transition: 'background 0.12s ease',
-                    }}
-                  >
-                    {m === 'bar' ? (
-                      <svg viewBox="0 0 12 10" width={12} height={10} fill="none">
-                        <rect x="0" y="4" width="2.5" height="6" fill={chartMode === 'bar' ? T.accentInk : T.textDim} />
-                        <rect x="3.5" y="1" width="2.5" height="9" fill={chartMode === 'bar' ? T.accentInk : T.textDim} />
-                        <rect x="7" y="2.5" width="2.5" height="7.5" fill={chartMode === 'bar' ? T.accentInk : T.textDim} />
-                        <rect x="10" y="5.5" width="2" height="4.5" fill={chartMode === 'bar' ? T.accentInk : T.textDim} />
-                      </svg>
-                    ) : (
-                      <svg viewBox="0 0 12 10" width={12} height={10} fill="none" stroke={chartMode === 'line' ? T.accentInk : T.textDim} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round">
-                        <polyline points="0,8 3,4 6,5.5 9,1.5 12,3" />
-                      </svg>
-                    )}
-                  </button>
+      {/* Single scroll body — prevents category sections from squishing P&L chart */}
+      <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', touchAction: 'pan-y' }}>
+
+        {/* P&L Overview + Top/Voided panel */}
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', borderBottom: `1px solid ${T.line}` }}>
+
+          {/* P&L chart column */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: isMobile ? 'none' : `1px solid ${T.line}`, borderBottom: isMobile ? `1px solid ${T.line}` : 'none' }}>
+            <SectionHd
+              title="P&L Overview"
+              badge={`Gross ${fmtPeso(gross)} · Net ${fmtPeso(net)}`}
+              action={
+                <div style={{ display: 'flex', gap: 2 }}>
+                  {(['bar', 'line'] as const).map(m => (
+                    <button
+                      key={m}
+                      onClick={() => setChartMode(m)}
+                      title={m === 'bar' ? 'Bar chart' : 'Line chart'}
+                      style={{
+                        width: 28, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: chartMode === m ? T.accent : T.chip,
+                        border: `1px solid ${chartMode === m ? T.accent : T.line2}`,
+                        borderRadius: T.radius, cursor: 'pointer', padding: 0,
+                        transition: 'background 0.12s ease',
+                      }}
+                    >
+                      {m === 'bar' ? (
+                        <svg viewBox="0 0 12 10" width={12} height={10} fill="none">
+                          <rect x="0" y="4" width="2.5" height="6" fill={chartMode === 'bar' ? T.accentInk : T.textDim} />
+                          <rect x="3.5" y="1" width="2.5" height="9" fill={chartMode === 'bar' ? T.accentInk : T.textDim} />
+                          <rect x="7" y="2.5" width="2.5" height="7.5" fill={chartMode === 'bar' ? T.accentInk : T.textDim} />
+                          <rect x="10" y="5.5" width="2" height="4.5" fill={chartMode === 'bar' ? T.accentInk : T.textDim} />
+                        </svg>
+                      ) : (
+                        <svg viewBox="0 0 12 10" width={12} height={10} fill="none" stroke={chartMode === 'line' ? T.accentInk : T.textDim} strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round">
+                          <polyline points="0,8 3,4 6,5.5 9,1.5 12,3" />
+                        </svg>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              }
+            />
+            {loading ? (
+              <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
+            ) : isMobile ? (
+              <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+                <div style={{ minWidth: 480 }}>
+                  <GroupedBarChart bars={bars} height={220} mode={chartMode} />
+                </div>
+              </div>
+            ) : (
+              <GroupedBarChart bars={bars} height={220} mode={chartMode} />
+            )}
+
+            {/* Payment method breakdown */}
+            <div style={{ padding: '12px 24px', borderTop: `1px solid ${T.line}`, flexShrink: 0 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, marginBottom: 8 }}>
+                Payment Methods · {suffix}
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {Object.entries(methodMap).length === 0 ? (
+                  <span style={{ fontSize: 12, color: T.textMute, fontFamily: T.mono }}>No payments</span>
+                ) : Object.entries(methodMap).map(([m, v]) => (
+                  <div key={m} style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    background: T.surface2, border: `1px solid ${T.line2}`,
+                    padding: '4px 10px', borderRadius: T.radius,
+                  }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: methodColors[m] ?? T.textDim }} />
+                    <span style={{ fontSize: 11, fontFamily: T.mono, fontWeight: 600, textTransform: 'uppercase', color: T.textDim }}>
+                      {m === 'gcash' ? 'QR' : m.toUpperCase()}
+                    </span>
+                    <span style={{ fontSize: 12, fontFamily: T.mono, color: T.text, fontVariantNumeric: 'tabular-nums' }}>
+                      {fmtPeso(v)}
+                    </span>
+                  </div>
                 ))}
               </div>
-            }
-          />
-          {loading ? (
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
-          ) : (
-            <GroupedBarChart bars={bars} height={220} mode={chartMode} />
-          )}
-
-          {/* Payment method breakdown */}
-          <div style={{ padding: '12px 24px', borderTop: `1px solid ${T.line}`, flexShrink: 0 }}>
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, marginBottom: 8 }}>
-              Payment Methods · {suffix}
             </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {Object.entries(methodMap).length === 0 ? (
-                <span style={{ fontSize: 12, color: T.textMute, fontFamily: T.mono }}>No payments</span>
-              ) : Object.entries(methodMap).map(([m, v]) => (
-                <div key={m} style={{
-                  display: 'flex', alignItems: 'center', gap: 5,
-                  background: T.surface2, border: `1px solid ${T.line2}`,
-                  padding: '4px 10px', borderRadius: T.radius,
-                }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: methodColors[m] ?? T.textDim }} />
-                  <span style={{ fontSize: 11, fontFamily: T.mono, fontWeight: 600, textTransform: 'uppercase', color: T.textDim }}>
-                    {m === 'gcash' ? 'QR' : m.toUpperCase()}
-                  </span>
-                  <span style={{ fontSize: 12, fontFamily: T.mono, color: T.text, fontVariantNumeric: 'tabular-nums' }}>
-                    {fmtPeso(v)}
-                  </span>
-                </div>
+          </div>
+
+          {/* Top items / Voided items panel */}
+          <div style={{ width: isMobile ? '100%' : 300, flexShrink: 0, display: 'flex', flexDirection: 'column', borderTop: isMobile ? `1px solid ${T.line}` : 'none' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 12px', height: 36, borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
+              {([['top', `Top Items`], ['voided', `Voided (${voidedCount})`]] as const).map(([t, label]) => (
+                <button
+                  key={t}
+                  onClick={() => setRightTab(t)}
+                  style={{
+                    padding: '3px 10px', fontSize: 10, fontWeight: 700,
+                    borderRadius: 99, cursor: 'pointer', fontFamily: 'inherit',
+                    letterSpacing: '0.06em', textTransform: 'uppercase',
+                    border: `1px solid ${rightTab === t ? (t === 'voided' ? T.bad : T.accent) : T.line2}`,
+                    background: rightTab === t ? (t === 'voided' ? `${T.bad}18` : `${T.accent}18`) : 'transparent',
+                    color: rightTab === t ? (t === 'voided' ? T.bad : T.accent) : T.textMute,
+                  }}
+                >{label}</button>
               ))}
             </div>
+
+            {rightTab === 'top' ? (
+              <div className="bp-no-scrollbar" style={{ overflowY: isMobile ? 'visible' : 'auto', touchAction: 'pan-y' }}>
+                {topItems.length === 0 ? (
+                  <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No data</div>
+                ) : topItems.map((item, i) => {
+                  const maxRev = topItems[0].rev
+                  const margin = item.rev > 0 ? ((item.rev - item.cost) / item.rev) * 100 : null
+                  return (
+                    <div key={item.name} style={{ padding: '10px 16px', borderBottom: `1px solid ${T.line}` }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                        <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute, width: 16 }}>{String(i+1).padStart(2,'0')}</span>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: T.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
+                        <span style={{ fontFamily: T.mono, fontSize: 11, color: T.accent, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(item.rev)}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                        <div style={{ flex: 1, height: 3, background: T.line2, borderRadius: 2 }}>
+                          <div style={{ width: `${(item.rev / maxRev) * 100}%`, height: '100%', background: `${T.accent}66`, borderRadius: 2 }} />
+                        </div>
+                        <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute }}>{item.qty}×</span>
+                      </div>
+                      {item.cost > 0 && (
+                        <div style={{ display: 'flex', gap: 8, paddingLeft: 24 }}>
+                          <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute }}>cost {fmtPeso(item.cost)}</span>
+                          {margin !== null && (
+                            <span style={{ fontFamily: T.mono, fontSize: 10, fontWeight: 600, color: margin >= 60 ? T.ok : margin >= 40 ? T.warn : T.bad }}>
+                              {margin.toFixed(0)}% margin
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="bp-no-scrollbar" style={{ overflowY: isMobile ? 'visible' : 'auto', touchAction: 'pan-y' }}>
+                {voidedItems.length === 0 ? (
+                  <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No voided items</div>
+                ) : voidedItems.map((row, i) => (
+                  <div key={row.id} style={{ padding: '10px 16px', borderBottom: `1px solid ${T.line}`, background: i % 2 === 0 ? 'transparent' : T.surface }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                      <span style={{ fontSize: 12, fontWeight: 500, color: T.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: 8 }}>{row.itemName}</span>
+                      <span style={{ fontFamily: T.mono, fontSize: 11, fontWeight: 700, color: T.bad, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{fmtPeso(row.amount)}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute }}>{row.time}</span>
+                      <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textDim }}>{row.tableId}</span>
+                      <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute }}>×{row.qty}</span>
+                      {row.reason && <span style={{ fontSize: 10, color: T.textMute, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {row.reason}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Top items / Voided items toggle panel */}
-        <div style={{ width: isMobile ? '100%' : 300, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
-          {/* Tab header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 12px', height: 36, borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
-            {([['top', `Top Items`], ['voided', `Voided (${voidedCount})`]] as const).map(([t, label]) => (
-              <button
-                key={t}
-                onClick={() => setRightTab(t)}
-                style={{
-                  padding: '3px 10px', fontSize: 10, fontWeight: 700,
-                  borderRadius: 99, cursor: 'pointer', fontFamily: 'inherit',
-                  letterSpacing: '0.06em', textTransform: 'uppercase',
-                  border: `1px solid ${rightTab === t ? (t === 'voided' ? T.bad : T.accent) : T.line2}`,
-                  background: rightTab === t ? (t === 'voided' ? `${T.bad}18` : `${T.accent}18`) : 'transparent',
-                  color: rightTab === t ? (t === 'voided' ? T.bad : T.accent) : T.textMute,
-                }}
-              >{label}</button>
-            ))}
-          </div>
-
-          {rightTab === 'top' ? (
-            <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', touchAction: 'pan-y' }}>
-              {topItems.length === 0 ? (
-                <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No data</div>
-              ) : topItems.map((item, i) => {
-                const maxRev = topItems[0].rev
-                const margin = item.rev > 0 ? ((item.rev - item.cost) / item.rev) * 100 : null
-                return (
-                  <div key={item.name} style={{ padding: '10px 16px', borderBottom: `1px solid ${T.line}` }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                      <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute, width: 16 }}>{String(i+1).padStart(2,'0')}</span>
-                      <span style={{ fontSize: 12, fontWeight: 500, color: T.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
-                      <span style={{ fontFamily: T.mono, fontSize: 11, color: T.accent, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(item.rev)}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                      <div style={{ flex: 1, height: 3, background: T.line2, borderRadius: 2 }}>
-                        <div style={{ width: `${(item.rev / maxRev) * 100}%`, height: '100%', background: `${T.accent}66`, borderRadius: 2 }} />
-                      </div>
-                      <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute }}>{item.qty}×</span>
-                    </div>
-                    {item.cost > 0 && (
-                      <div style={{ display: 'flex', gap: 8, paddingLeft: 24 }}>
-                        <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute }}>cost {fmtPeso(item.cost)}</span>
-                        {margin !== null && (
-                          <span style={{ fontFamily: T.mono, fontSize: 10, fontWeight: 600, color: margin >= 60 ? T.ok : margin >= 40 ? T.warn : T.bad }}>
-                            {margin.toFixed(0)}% margin
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', touchAction: 'pan-y' }}>
-              {voidedItems.length === 0 ? (
-                <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No voided items</div>
-              ) : voidedItems.map((row, i) => (
-                <div key={row.id} style={{ padding: '10px 16px', borderBottom: `1px solid ${T.line}`, background: i % 2 === 0 ? 'transparent' : T.surface }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                    <span style={{ fontSize: 12, fontWeight: 500, color: T.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: 8 }}>{row.itemName}</span>
-                    <span style={{ fontFamily: T.mono, fontSize: 11, fontWeight: 700, color: T.bad, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{fmtPeso(row.amount)}</span>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute }}>{row.time}</span>
-                    <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textDim }}>{row.tableId}</span>
-                    <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute }}>×{row.qty}</span>
-                    {row.reason && <span style={{ fontSize: 10, color: T.textMute, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {row.reason}</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Category sections */}
-      <div className="bp-no-scrollbar" style={{ flexShrink: 0, overflowY: 'auto', touchAction: 'pan-y', borderTop: `1px solid ${T.line}` }}>
-        {/* Category charts */}
-        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row' }}>
+        {/* Sales by Category */}
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', borderBottom: `1px solid ${T.line}` }}>
           <div style={{ flex: 1, borderRight: isMobile ? 'none' : `1px solid ${T.line}`, borderBottom: isMobile ? `1px solid ${T.line}` : 'none' }}>
             <SectionHd title={`Sales by Category · ${suffix}`} badge={fmtPeso(gross)} />
-            <HBarChart
-              color={`${T.accent}88`}
-              data={catBreakdown.map(c => ({
-                category: c.category,
-                value: c.gross,
-                sub: c.gross > 0 ? `${((c.net/c.gross)*100).toFixed(0)}% net` : undefined,
-              }))}
-            />
+            {isMobile ? (
+              <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+                <div style={{ minWidth: 360 }}>
+                  <HBarChart color={`${T.accent}88`} data={catBreakdown.map(c => ({ category: c.category, value: c.gross, sub: c.gross > 0 ? `${((c.net/c.gross)*100).toFixed(0)}% net` : undefined }))} />
+                </div>
+              </div>
+            ) : (
+              <HBarChart color={`${T.accent}88`} data={catBreakdown.map(c => ({ category: c.category, value: c.gross, sub: c.gross > 0 ? `${((c.net/c.gross)*100).toFixed(0)}% net` : undefined }))} />
+            )}
           </div>
           <div style={{ flex: 1 }}>
             <SectionHd title={`Expenses by Category · ${suffix}`} badge={fmtPeso(expenses)} />
-            <HBarChart
-              color={`${T.bad}88`}
-              data={expCat.map(c => ({ category: c.category, value: c.amount }))}
-            />
+            {isMobile ? (
+              <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+                <div style={{ minWidth: 360 }}>
+                  <HBarChart color={`${T.bad}88`} data={expCat.map(c => ({ category: c.category, value: c.amount }))} />
+                </div>
+              </div>
+            ) : (
+              <HBarChart color={`${T.bad}88`} data={expCat.map(c => ({ category: c.category, value: c.amount }))} />
+            )}
           </div>
         </div>
 
-        {/* Category breakdown table */}
+        {/* By Category breakdown table */}
         {catBreakdown.length > 0 && (
-          <div style={{ borderTop: `1px solid ${T.line}` }}>
+          <div>
             <SectionHd title={`By Category · ${suffix}`} />
-            <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y' }}>
+            <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
             <div style={{ minWidth: 580 }}>
             <div style={{
               display: 'grid', gridTemplateColumns: '1fr 130px 130px 130px 90px',
@@ -486,6 +500,7 @@ export default function ReportsTab() {
             </div>
           </div>
         )}
+
       </div>
     </div>
   )
