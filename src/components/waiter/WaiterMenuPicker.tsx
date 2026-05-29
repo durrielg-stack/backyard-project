@@ -123,9 +123,10 @@ export default function WaiterMenuPicker({ tableId, waiterName, onBack, onSent }
       }}>
         <button
           onClick={onBack}
+          disabled={sending}
           style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: T.info, fontSize: 14, fontFamily: 'inherit', padding: '4px 0',
+            background: 'none', border: 'none', cursor: sending ? 'default' : 'pointer',
+            color: sending ? T.textMute : T.info, fontSize: 14, fontFamily: 'inherit', padding: '4px 0',
           }}
         >
           ← Order
