@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useTheme } from '@/lib/ThemeContext'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { getClient } from '@/lib/supabase'
 import DateRangeNav, { useDateNav } from '@/components/shared/DateRangeNav'
 import { localDateStr, dayBounds, weekBounds, monthBounds } from '@/lib/dateNav'
@@ -100,6 +101,8 @@ function SuggestionsPortal({ open, anchorRef, suggestions, activeIdx, onPick }: 
 
 export default function ExpensesView() {
   const { T } = useTheme()
+  const bp = useBreakpoint()
+  const isMobile = bp === 'mobile'
   const [rows,       setRows]       = useState<ExpenseRow[]>([])
   const [presets,    setPresets]    = useState<Preset[]>([])
   const [loading,    setLoading]    = useState(true)
@@ -228,17 +231,21 @@ export default function ExpensesView() {
         background: T.bg, borderBottom: `1px solid ${T.line}`,
         display: 'flex', alignItems: 'center', gap: 12,
       }}>
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>
-          Expenses
-        </span>
-        <span style={{
-          fontFamily: T.mono, fontSize: 12, fontWeight: 600,
-          color: T.bad, background: `${T.bad}18`,
-          border: `1px solid ${T.bad}44`,
-          padding: '2px 8px', borderRadius: T.radius,
-        }}>
-          {fmtPeso(totalShown)}
-        </span>
+        {!isMobile && (
+          <>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>
+              Expenses
+            </span>
+            <span style={{
+              fontFamily: T.mono, fontSize: 12, fontWeight: 600,
+              color: T.bad, background: `${T.bad}18`,
+              border: `1px solid ${T.bad}44`,
+              padding: '2px 8px', borderRadius: T.radius,
+            }}>
+              {fmtPeso(totalShown)}
+            </span>
+          </>
+        )}
 
         <div style={{ flex: 1 }} />
 

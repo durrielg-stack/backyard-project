@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useTheme } from '@/lib/ThemeContext'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { getClient } from '@/lib/supabase'
 import { SectionHd, fmtPeso } from './ownerShared'
 import DateRangeNav, { useDateNav } from '@/components/shared/DateRangeNav'
@@ -44,6 +45,8 @@ interface CategorySummary {
 
 export default function SalesTab() {
   const { T } = useTheme()
+  const bp = useBreakpoint()
+  const isMobile = bp === 'mobile'
   const nav = useDateNav()
   const [lines, setLines] = useState<LineItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -161,10 +164,8 @@ export default function SalesTab() {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
 
       {/* ── Header controls ─────────────────────────────────────────────────── */}
-      <SectionHd
-        title="Sales"
-        badge={lines.length > 0 ? `${lines.length} items` : undefined}
-        action={
+      {isMobile ? (
+        <div style={{ minHeight: 48, padding: '8px 16px', display: 'flex', alignItems: 'center', borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
           <DateRangeNav
             mode={nav.mode} date={nav.date} weekRef={nav.weekRef}
             month={nav.month} year={nav.year}
@@ -173,8 +174,23 @@ export default function SalesTab() {
             onWeekChange={nav.setWeekRef}
             onMonthChange={nav.setMonth}
           />
-        }
-      />
+        </div>
+      ) : (
+        <SectionHd
+          title="Sales"
+          badge={lines.length > 0 ? `${lines.length} items` : undefined}
+          action={
+            <DateRangeNav
+              mode={nav.mode} date={nav.date} weekRef={nav.weekRef}
+              month={nav.month} year={nav.year}
+              onModeChange={nav.setMode}
+              onDateChange={nav.setDate}
+              onWeekChange={nav.setWeekRef}
+              onMonthChange={nav.setMonth}
+            />
+          }
+        />
+      )}
 
       {/* ── Body ────────────────────────────────────────────────────────────── */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflowY: 'auto' }}>
