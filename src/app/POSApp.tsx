@@ -28,7 +28,7 @@ type View =
   | { kind: 'order'; tableId: string }
 
 // ── Staff context ─────────────────────────────────────────────────────────
-interface StaffSession { name: string; initials: string; role: string }
+interface StaffSession { userId: string; name: string; initials: string; role: string }
 
 function loadStaff(): StaffSession | null {
   try {
@@ -46,8 +46,8 @@ export default function POSApp() {
     return loadStaff()
   })
 
-  function handleSelectStaff(name: string, initials: string, role: string) {
-    const s = { name, initials, role }
+  function handleSelectStaff(userId: string, name: string, initials: string, role: string) {
+    const s = { userId, name, initials, role }
     localStorage.setItem('bp_staff', JSON.stringify(s))
     setStaff(s)
   }
@@ -227,7 +227,7 @@ export default function POSApp() {
               tableId={view.tableId}
               table={tws}
               tables={tablesWithStatus}
-              staff={staff.name}
+              staff={staff.userId}
               onBack={goFloor}
               onCartSync={syncCart}
             />

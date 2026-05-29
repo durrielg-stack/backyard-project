@@ -2,23 +2,38 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useTheme } from '@/lib/ThemeContext'
+import { getClient } from '@/lib/supabase'
 
-const STAFF_LIST = [
-  { name: 'Marvin',  initials: 'MV', role: 'Owner',    password: 'marvin'  },
-  { name: 'Durriel', initials: 'DG', role: 'Owner',    password: 'durriel' },
-  { name: 'Booba',   initials: 'BB', role: 'Manager',  password: 'booba'   },
-]
+interface StaffUser { id: string; name: string; role: string }
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/)
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+  return name.slice(0, 2).toUpperCase()
+}
 
 interface StaffPickerProps {
-  onSelect: (name: string, initials: string, role: string) => void
+  onSelect: (userId: string, name: string, initials: string, role: string) => void
 }
 
 export default function StaffPicker({ onSelect }: StaffPickerProps) {
   const { T } = useTheme()
-  const [selected, setSelected] = useState<typeof STAFF_LIST[0] | null>(null)
+  const [users, setUsers]     = useState<StaffUser[]>([])
+  const [selected, setSelected] = useState<StaffUser | null>(null)
   const [password, setPassword] = useState('')
   const [error, setError]       = useState(false)
+  const [loading, setLoading]   = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    getClient()
+      .from('users')
+      .select('id, name, role')
+      .eq('is_active', true)
+      .neq('role', 'waiter')
+      .order('name')
+      .then(({ data }) => setUsers(data ?? []))
+  }, [])
 
   useEffect(() => {
     if (selected) {
@@ -28,16 +43,24 @@ export default function StaffPicker({ onSelect }: StaffPickerProps) {
     }
   }, [selected])
 
-  function handleLogin() {
-    if (!selected) return
-    if (password === selected.password) {
-      onSelect(selected.name, selected.initials, selected.role)
-    } else {
+  async function handleLogin() {
+    if (!selected || !password) return
+    setLoading(true)
+    setError(false)
+    const sb = getClient()
+    const email = `${selected.name.toLowerCase().replace(/\s+/g, '.')}@backyard.pos`
+    const { error: authErr } = await sb.auth.signInWithPassword({ email, password })
+    setLoading(false)
+    if (authErr) {
       setError(true)
       setPassword('')
       setTimeout(() => inputRef.current?.focus(), 50)
+      return
     }
+    onSelect(selected.id, selected.name, initials(selected.name), selected.role)
   }
+
+  const roleLabel = (role: string) => role.charAt(0).toUpperCase() + role.slice(1)
 
   return (
     <div style={{
@@ -56,9 +79,7 @@ export default function StaffPicker({ onSelect }: StaffPickerProps) {
             width: 36, height: 36, background: T.accent, color: T.accentInk,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontWeight: 800, fontSize: 16, letterSpacing: '-0.04em', borderRadius: 3,
-          }}>
-            B
-          </div>
+          }}>B</div>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', color: T.text }}>
               The Backyard Project
@@ -70,19 +91,22 @@ export default function StaffPicker({ onSelect }: StaffPickerProps) {
         </div>
 
         {!selected ? (
-          /* ── User selection ── */
           <div style={{ width: '100%' }}>
             <div style={{
               fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
               textTransform: 'uppercase', color: T.textMute, marginBottom: 12,
             }}>
-              Who's working?
+              Who&apos;s working?
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {STAFF_LIST.map(s => (
+              {users.length === 0 ? (
+                <div style={{ color: T.textMute, fontSize: 13, fontFamily: T.mono, padding: '16px 0' }}>
+                  Loading…
+                </div>
+              ) : users.map(u => (
                 <button
-                  key={s.name}
-                  onClick={() => setSelected(s)}
+                  key={u.id}
+                  onClick={() => setSelected(u)}
                   style={{
                     padding: '14px 16px',
                     background: T.surface, border: `1px solid ${T.line2}`,
@@ -106,20 +130,18 @@ export default function StaffPicker({ onSelect }: StaffPickerProps) {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 13, fontWeight: 700, color: T.text,
                   }}>
-                    {s.initials}
+                    {initials(u.name)}
                   </div>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{s.name}</div>
-                    <div style={{ fontSize: 11, color: T.textMute, marginTop: 1 }}>{s.role}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{u.name}</div>
+                    <div style={{ fontSize: 11, color: T.textMute, marginTop: 1 }}>{roleLabel(u.role)}</div>
                   </div>
                 </button>
               ))}
             </div>
           </div>
         ) : (
-          /* ── Password entry ── */
           <div style={{ width: '100%' }}>
-            {/* Back + user header */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
               <button
                 onClick={() => { setSelected(null); setError(false) }}
@@ -139,7 +161,7 @@ export default function StaffPicker({ onSelect }: StaffPickerProps) {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 11, fontWeight: 700, color: T.text,
                 }}>
-                  {selected.initials}
+                  {initials(selected.name)}
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{selected.name}</div>
               </div>
@@ -171,17 +193,17 @@ export default function StaffPicker({ onSelect }: StaffPickerProps) {
             )}
             <button
               onClick={handleLogin}
-              disabled={!password}
+              disabled={!password || loading}
               style={{
                 marginTop: 16, width: '100%', padding: '12px', fontSize: 14, fontWeight: 700,
-                background: password ? T.accent : T.chip,
-                color: password ? T.accentInk : T.textMute,
+                background: (password && !loading) ? T.accent : T.chip,
+                color: (password && !loading) ? T.accentInk : T.textMute,
                 border: 'none', borderRadius: T.radius,
-                cursor: password ? 'pointer' : 'default',
+                cursor: (password && !loading) ? 'pointer' : 'default',
                 fontFamily: 'inherit', transition: 'background 0.12s ease',
               }}
             >
-              Sign In
+              {loading ? 'Signing in…' : 'Sign In'}
             </button>
           </div>
         )}
