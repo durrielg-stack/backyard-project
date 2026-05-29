@@ -1,7 +1,5 @@
-import dynamic from 'next/dynamic'
-
-const WaiterApp = dynamic(() => import('@/components/waiter/WaiterApp'), { ssr: false })
+import WaiterClientApp from './ClientApp'
 
 export default function WaiterPage() {
-  return <WaiterApp />
+  return <WaiterClientApp />
 }
