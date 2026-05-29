@@ -333,7 +333,7 @@ function KpiStrip({ tables, tickets }: { tables: TableWithStatus[]; tickets: Kds
   ]
 
   const kpiStyle: React.CSSProperties = isMobile
-    ? { display: 'flex', flexDirection: 'row', overflowX: 'auto', WebkitOverflowScrolling: 'touch', height: 'auto' }
+    ? { display: 'flex', flexDirection: 'row', overflowX: 'auto', WebkitOverflowScrolling: 'touch', height: 'auto', overscrollBehavior: 'contain' }
     : { display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', height: 'clamp(80px, 9.3vh, 120px)' }
 
   return (
@@ -742,7 +742,7 @@ export default function FloorView({
   const isMobile = bp === 'mobile'
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflowY: isMobile ? 'auto' : undefined }}>
+    <div className={isMobile ? 'bp-no-scrollbar' : undefined} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflowY: isMobile ? 'auto' : undefined }}>
       <KpiStrip tables={tables} tickets={tickets} />
 
       {isMobile ? (

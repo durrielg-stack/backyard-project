@@ -69,7 +69,7 @@ function SuggestionsPortal({ open, anchorRef, suggestions, activeIdx, onPick }: 
       zIndex: 9999,
       background: T.surface2, border: `1px solid ${T.line2}`,
       borderRadius: T.radius, boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
-      maxHeight: 260, overflowY: 'auto',
+      maxHeight: 260, overflowY: 'auto', overscrollBehavior: 'contain',
     }}>
       {suggestions.map((s, i) => (
         <div

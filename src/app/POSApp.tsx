@@ -182,6 +182,7 @@ export default function POSApp() {
       display: 'flex', flexDirection: 'column',
       overflow: 'hidden', userSelect: 'none',
       fontFeatureSettings: '"ss01", "cv11"',
+      overscrollBehavior: 'none',
     }}>
       <NavBar
         view={view}

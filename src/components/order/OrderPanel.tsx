@@ -192,7 +192,7 @@ export default function OrderPanel({
       )}
 
       {/* ── Seat selector ───────────────────────────────────────────────── */}
-      <div style={{
+      <div className="bp-no-scrollbar" style={{
         padding: '8px 24px',
         borderBottom: `1px solid ${T.line}`,
         display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,

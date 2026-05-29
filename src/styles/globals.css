@@ -2,9 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Scrollbar suppression ────────────────────────────────── */
+/* ── Scrollbar suppression + overscroll containment ──────── */
 .bp-no-scrollbar::-webkit-scrollbar { display: none; }
-.bp-no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.bp-no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; overscroll-behavior: contain; }
 
 /* ── bp-attn — red halo breath on Attention (late) tables ───
    2.4s ease-in-out infinite                                   */
