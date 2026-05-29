@@ -201,12 +201,10 @@ const TX_HDRS = ['Time', 'ID', 'Tbl', 'Server', '×', 'Total', 'Pay']
 
 function TransactionsPanel({ transactions }: { transactions: TransactionRow[] }) {
   const { T } = useTheme()
-  const bp = useBreakpoint()
-  const isMobile = bp === 'mobile'
   return (
-    <div style={{ flex: isMobile ? undefined : 1, display: 'flex', flexDirection: 'column', minHeight: isMobile ? undefined : 0, borderRight: `1px solid ${T.line}` }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, borderRight: `1px solid ${T.line}` }}>
       <PanelHd title="Sales Transactions" badge={`${transactions.length}`} />
-      <div className="bp-no-scrollbar" style={{ flex: isMobile ? undefined : 1, overflowY: isMobile ? 'visible' : 'auto', overflowX: 'auto', touchAction: 'pan-x pan-y', WebkitOverflowScrolling: 'touch' }}>
+      <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none', WebkitOverflowScrolling: 'touch' }}>
         <div style={{ minWidth: 420 }}>
         <div style={{ display: 'grid', gridTemplateColumns: TX_COLS, padding: '0 14px', height: 30, alignItems: 'center', borderBottom: `1px solid ${T.line}`, flexShrink: 0, position: 'sticky', top: 0, background: T.surface2, zIndex: 1 }}>
           {TX_HDRS.map(h => <span key={h} style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>)}
@@ -246,12 +244,10 @@ const EX_HDRS = ['Time', 'Category', 'Name', 'Amount']
 
 function ExpensesListPanel({ expenseRows }: { expenseRows: ExpenseRow[] }) {
   const { T } = useTheme()
-  const bp = useBreakpoint()
-  const isMobile = bp === 'mobile'
   return (
-    <div style={{ flex: isMobile ? undefined : 1, display: 'flex', flexDirection: 'column', minHeight: isMobile ? undefined : 0 }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <PanelHd title="Expenses Transactions" badge={`${expenseRows.length}`} badgeColor={T.bad} />
-      <div className="bp-no-scrollbar" style={{ flex: isMobile ? undefined : 1, overflowY: isMobile ? 'visible' : 'auto', overflowX: 'auto', touchAction: 'pan-x pan-y', WebkitOverflowScrolling: 'touch' }}>
+      <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none', WebkitOverflowScrolling: 'touch' }}>
         <div style={{ minWidth: 300 }}>
         <div style={{ display: 'grid', gridTemplateColumns: EX_COLS, padding: '0 14px', height: 30, alignItems: 'center', borderBottom: `1px solid ${T.line}`, flexShrink: 0, position: 'sticky', top: 0, background: T.surface2, zIndex: 1 }}>
           {EX_HDRS.map(h => <span key={h} style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>)}
@@ -299,12 +295,12 @@ function ResizableSplit({ left, right }: { left: React.ReactNode; right: React.R
     window.addEventListener('mouseup', onUp)
   }, [])
 
-  // On mobile: stack panels vertically, each with a minimum height
+  // On mobile: stack panels vertically with fixed heights so each panel has its own scroll container
   if (isMobile) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <div style={{ minHeight: 320 }}>{left}</div>
-        <div style={{ borderTop: `1px solid ${T.line}`, minHeight: 280 }}>{right}</div>
+        <div style={{ height: 360, display: 'flex', flexDirection: 'column' }}>{left}</div>
+        <div style={{ borderTop: `1px solid ${T.line}`, height: 320, display: 'flex', flexDirection: 'column' }}>{right}</div>
       </div>
     )
   }
