@@ -30,7 +30,6 @@ export default function StaffPicker({ onSelect }: StaffPickerProps) {
       .from('users')
       .select('id, name, role')
       .eq('is_active', true)
-      .neq('role', 'waiter')
       .order('name')
       .then(({ data }) => setUsers(data ?? []))
   }, [])

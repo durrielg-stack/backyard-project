@@ -47,6 +47,7 @@ export default function POSApp() {
   })
 
   function handleSelectStaff(userId: string, name: string, initials: string, role: string) {
+    if (role === 'waiter') { window.location.href = '/waiter'; return }
     const s = { userId, name, initials, role }
     localStorage.setItem('bp_staff', JSON.stringify(s))
     setStaff(s)
