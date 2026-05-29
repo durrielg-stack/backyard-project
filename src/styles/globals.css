@@ -76,6 +76,25 @@
   .bp-landscape-block { display: flex !important; }
 }
 
+/* ── Waiter: suppress overscroll bounce on root ──────────── */
+.bp-waiter-root {
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: auto;
+}
+
+/* ── Horizontal-only scroll (tab strips) ─────────────────── */
+.bp-scroll-x {
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: none;
+  touch-action: pan-x;
+}
+
+/* ── Vertical-only scroll (lists) ────────────────────────── */
+.bp-scroll-y {
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
 /* ── Base reset ──────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 

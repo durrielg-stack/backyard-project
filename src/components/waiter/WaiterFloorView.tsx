@@ -45,7 +45,7 @@ export default function WaiterFloorView({ waiterName, onTableSelect, onSignOut }
   const orderByTable = new Map(orders.map(o => [o.table_id, o]))
 
   return (
-    <div style={{
+    <div className="bp-waiter-root" style={{
       background: T.bg, minHeight: '100dvh',
       fontFamily: T.sansBody, display: 'flex', flexDirection: 'column',
     }}>

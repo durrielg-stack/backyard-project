@@ -31,7 +31,7 @@ export default function WaiterTableView({ tableId, waiterName, onAddItems, onBac
   const total = lines.reduce((sum, l) => sum + l.unitPrice * l.qty, 0)
 
   return (
-    <div style={{
+    <div className="bp-waiter-root" style={{
       background: T.bg, height: '100dvh',
       fontFamily: T.sansBody, display: 'flex', flexDirection: 'column',
     }}>
@@ -65,7 +65,7 @@ export default function WaiterTableView({ tableId, waiterName, onAddItems, onBac
       </div>
 
       {/* Order lines */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
+      <div className="bp-scroll-y" style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
         {loading ? (
           <div style={{ color: T.textMute, fontSize: 13, fontFamily: T.mono, padding: '24px 0', textAlign: 'center' }}>
             Loading order…

@@ -110,7 +110,7 @@ export default function WaiterMenuPicker({ tableId, waiterName, onBack, onSent }
   )
 
   return (
-    <div style={{
+    <div className="bp-waiter-root" style={{
       background: T.bg, height: '100dvh', fontFamily: T.sansBody,
       display: 'flex', flexDirection: 'column', position: 'relative',
     }}>
@@ -160,10 +160,9 @@ export default function WaiterMenuPicker({ tableId, waiterName, onBack, onSent }
       </div>
 
       {/* Category tabs */}
-      <div style={{
+      <div className="bp-scroll-x bp-no-scrollbar" style={{
         display: 'flex', gap: 6, padding: '10px 16px',
         overflowX: 'auto', flexShrink: 0,
-        scrollbarWidth: 'none',
       }}>
         {GROUPS.map(g => (
           <button
@@ -185,7 +184,7 @@ export default function WaiterMenuPicker({ tableId, waiterName, onBack, onSent }
       </div>
 
       {/* Item grid */}
-      <div style={{
+      <div className="bp-scroll-y" style={{
         flex: 1, overflowY: 'auto', padding: '0 16px',
         display: 'grid', gridTemplateColumns: '1fr 1fr',
         gap: 10, alignContent: 'start', paddingBottom: 80,
@@ -302,7 +301,7 @@ export default function WaiterMenuPicker({ tableId, waiterName, onBack, onSent }
               background: T.surface, borderRadius: '16px 16px 0 0',
               borderTop: `1px solid ${T.line2}`,
               padding: '20px 20px 32px',
-              width: '100%', maxHeight: '70dvh', overflowY: 'auto',
+              width: '100%', maxHeight: '70dvh', overflowY: 'auto', overscrollBehavior: 'contain',
             }}
           >
             <div style={{ width: 36, height: 4, background: T.line2, borderRadius: 99, margin: '0 auto 18px' }} />
