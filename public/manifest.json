@@ -4,7 +4,7 @@
   "description": "The Backyard Project — Point of Sale",
   "start_url": "/",
   "display": "standalone",
-  "orientation": "landscape",
+  "orientation": "any",
   "background_color": "#0d0d0d",
   "theme_color": "#0d0d0d",
   "icons": [
