@@ -165,15 +165,25 @@ export default function SalesTab() {
 
       {/* ── Header controls ─────────────────────────────────────────────────── */}
       {isMobile ? (
-        <div style={{ minHeight: 48, padding: '8px 16px', display: 'flex', alignItems: 'center', borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
-          <DateRangeNav
-            mode={nav.mode} date={nav.date} weekRef={nav.weekRef}
-            month={nav.month} year={nav.year}
-            onModeChange={nav.setMode}
-            onDateChange={nav.setDate}
-            onWeekChange={nav.setWeekRef}
-            onMonthChange={nav.setMonth}
-          />
+        <div style={{ borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
+          <div style={{ height: 44, padding: '0 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>Sales</span>
+            {lines.length > 0 && (
+              <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: T.accent, background: `${T.accent}18`, border: `1px solid ${T.accent}44`, padding: '2px 8px', borderRadius: T.radius }}>
+                {lines.length} items
+              </span>
+            )}
+          </div>
+          <div className="bp-no-scrollbar" style={{ padding: '0 16px 10px', overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+            <DateRangeNav
+              mode={nav.mode} date={nav.date} weekRef={nav.weekRef}
+              month={nav.month} year={nav.year}
+              onModeChange={nav.setMode}
+              onDateChange={nav.setDate}
+              onWeekChange={nav.setWeekRef}
+              onMonthChange={nav.setMonth}
+            />
+          </div>
         </div>
       ) : (
         <SectionHd

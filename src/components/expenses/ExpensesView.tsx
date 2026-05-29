@@ -226,49 +226,61 @@ export default function ExpensesView() {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: T.surface }}>
 
       {/* Header */}
-      <div style={{
-        height: 52, padding: '0 24px', flexShrink: 0,
-        background: T.bg, borderBottom: `1px solid ${T.line}`,
-        display: 'flex', alignItems: 'center', gap: 12,
-      }}>
-        {!isMobile && (
-          <>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>
-              Expenses
-            </span>
-            <span style={{
-              fontFamily: T.mono, fontSize: 12, fontWeight: 600,
-              color: T.bad, background: `${T.bad}18`,
-              border: `1px solid ${T.bad}44`,
-              padding: '2px 8px', borderRadius: T.radius,
-            }}>
+      {isMobile ? (
+        <div style={{ flexShrink: 0, background: T.bg, borderBottom: `1px solid ${T.line}` }}>
+          <div style={{ height: 44, padding: '0 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>Expenses</span>
+            <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: T.bad, background: `${T.bad}18`, border: `1px solid ${T.bad}44`, padding: '2px 8px', borderRadius: T.radius }}>
               {fmtPeso(totalShown)}
             </span>
-          </>
-        )}
-
-        <div style={{ flex: 1 }} />
-
-        {/* Date nav */}
-        <DateRangeNav
-          mode={nav.mode} date={nav.date} weekRef={nav.weekRef}
-          month={nav.month} year={nav.year}
-          onModeChange={nav.setMode}
-          onDateChange={nav.setDate}
-          onWeekChange={nav.setWeekRef}
-          onMonthChange={nav.setMonth}
-        />
-
-        <button onClick={() => setShowForm(v => !v)} style={{
-          padding: '5px 14px', fontSize: 12, fontFamily: 'inherit', fontWeight: 600,
-          background: showForm ? T.chip : T.accent,
-          color: showForm ? T.textDim : T.accentInk,
-          border: `1px solid ${showForm ? T.line2 : T.accent}`,
-          borderRadius: T.radius, cursor: 'pointer',
+            <div style={{ flex: 1 }} />
+            <button onClick={() => setShowForm(v => !v)} style={{
+              padding: '6px 14px', fontSize: 12, fontFamily: 'inherit', fontWeight: 600,
+              background: showForm ? T.chip : T.accent, color: showForm ? T.textDim : T.accentInk,
+              border: `1px solid ${showForm ? T.line2 : T.accent}`, borderRadius: T.radius, cursor: 'pointer',
+            }}>
+              {showForm ? 'Cancel' : '+ Add'}
+            </button>
+          </div>
+          <div className="bp-no-scrollbar" style={{ padding: '0 16px 10px', overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+            <DateRangeNav
+              mode={nav.mode} date={nav.date} weekRef={nav.weekRef}
+              month={nav.month} year={nav.year}
+              onModeChange={nav.setMode}
+              onDateChange={nav.setDate}
+              onWeekChange={nav.setWeekRef}
+              onMonthChange={nav.setMonth}
+            />
+          </div>
+        </div>
+      ) : (
+        <div style={{
+          height: 52, padding: '0 24px', flexShrink: 0,
+          background: T.bg, borderBottom: `1px solid ${T.line}`,
+          display: 'flex', alignItems: 'center', gap: 12,
         }}>
-          {showForm ? 'Cancel' : '+ Add Expense'}
-        </button>
-      </div>
+          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>Expenses</span>
+          <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: T.bad, background: `${T.bad}18`, border: `1px solid ${T.bad}44`, padding: '2px 8px', borderRadius: T.radius }}>
+            {fmtPeso(totalShown)}
+          </span>
+          <div style={{ flex: 1 }} />
+          <DateRangeNav
+            mode={nav.mode} date={nav.date} weekRef={nav.weekRef}
+            month={nav.month} year={nav.year}
+            onModeChange={nav.setMode}
+            onDateChange={nav.setDate}
+            onWeekChange={nav.setWeekRef}
+            onMonthChange={nav.setMonth}
+          />
+          <button onClick={() => setShowForm(v => !v)} style={{
+            padding: '5px 14px', fontSize: 12, fontFamily: 'inherit', fontWeight: 600,
+            background: showForm ? T.chip : T.accent, color: showForm ? T.textDim : T.accentInk,
+            border: `1px solid ${showForm ? T.line2 : T.accent}`, borderRadius: T.radius, cursor: 'pointer',
+          }}>
+            {showForm ? 'Cancel' : '+ Add Expense'}
+          </button>
+        </div>
+      )}
 
       {/* Add form */}
       {showForm && (() => {
