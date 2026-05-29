@@ -675,42 +675,43 @@ function FloorPanel({
       )}
       {/* Panel header */}
       <div style={{
-        padding: isMobile ? '8px 16px' : '0 20px',
-        height: isMobile ? 'auto' : 46,
+        padding: isMobile ? '0 16px' : '0 20px',
+        height: 46,
         borderBottom: `1px solid ${T.line}`,
-        display: 'flex', flexDirection: isMobile ? 'column' : 'row',
-        alignItems: isMobile ? 'flex-start' : 'center',
-        gap: isMobile ? 6 : 10, flexShrink: 0,
+        display: 'flex', alignItems: 'center',
+        gap: 10, flexShrink: 0,
       }}>
-        {/* Title row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {/* Section title — hidden on mobile to save space */}
+        {!isMobile && (
           <span style={{
             fontSize: 11, fontWeight: 600, letterSpacing: '0.12em',
             textTransform: 'uppercase', color: T.text,
           }}>
             <span style={{ color: T.accent, marginRight: 8 }}>▸</span>Floor · Section 1
           </span>
-          <span style={{
-            fontFamily: T.mono, fontSize: 11, color: T.textDim,
-            background: T.chip, padding: '2px 8px', borderRadius: 2,
-          }}>
-            {tables.length} tables
-          </span>
-        </div>
+        )}
 
-        {/* Legend */}
-        <div className="bp-no-scrollbar" style={{
-          display: 'flex', alignItems: 'center', gap: 12,
-          marginLeft: isMobile ? 0 : 8,
-          overflowX: 'auto', touchAction: 'pan-x pan-y',
-          paddingBottom: isMobile ? 4 : 0,
+        <span style={{
+          fontFamily: T.mono, fontSize: 11, color: T.textDim,
+          background: T.chip, padding: '2px 8px', borderRadius: 2, flexShrink: 0,
         }}>
+          {tables.length} tables
+        </span>
+
+        {/* Legend — on mobile: dot + count only to fit on one line */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 12, marginLeft: isMobile ? 0 : 8 }}>
           {legendItems.map(([label, color], i) => (
-            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+            <div key={label} title={label} style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
-              <span style={{ fontSize: 10, color: T.textMute, fontFamily: T.mono, whiteSpace: 'nowrap' }}>
-                {label} {legendCounts[i]}
-              </span>
+              {isMobile ? (
+                <span style={{ fontSize: 11, fontFamily: T.mono, color: T.textMute, fontVariantNumeric: 'tabular-nums' }}>
+                  {legendCounts[i]}
+                </span>
+              ) : (
+                <span style={{ fontSize: 10, color: T.textMute, fontFamily: T.mono, whiteSpace: 'nowrap' }}>
+                  {label} {legendCounts[i]}
+                </span>
+              )}
             </div>
           ))}
         </div>
