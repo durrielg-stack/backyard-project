@@ -5,6 +5,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { getClient } from '@/lib/supabase'
 import { SectionHd, fmtPeso } from './ownerShared'
 import { localDateStr, parseLocalDate, dayBounds, currentShiftDate } from '@/lib/dateNav'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 
 // ── Category config ───────────────────────────────────────────────────────────
 
@@ -99,6 +100,8 @@ const DATE_W = 96
 
 export default function BudgetTab() {
   const { T } = useTheme()
+  const bp = useBreakpoint()
+  const isMobile = bp === 'mobile'
 
   const GROUPS_L = [
     { key: 'starting', label: 'Starting', color: T.textDim },
@@ -243,69 +246,92 @@ export default function BudgetTab() {
   const fmtSign  = (v: number) => v === 0 ? '—' : fmtPeso(v)
   const todayStr = localDateStr(new Date())
 
+  const actionControls = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {budgetView === 'ledger' && ledgerRows.length > 0 && (() => {
+        const latest = ledgerRows[ledgerRows.length - 1].endTotal
+        return (
+          <span style={{
+            fontFamily: T.mono, fontSize: 12, fontWeight: 700,
+            color: latest >= 0 ? T.ok : T.bad,
+            background: latest >= 0 ? `${T.ok}18` : `${T.bad}18`,
+            border: `1px solid ${latest >= 0 ? T.ok : T.bad}44`,
+            padding: '2px 8px', borderRadius: T.radius,
+          }}>
+            {fmtPeso(latest)}
+          </span>
+        )
+      })()}
+      <div style={{ display: 'flex', gap: 2 }}>
+        {(['day', 'ledger'] as const).map(v => (
+          <button key={v} onClick={() => setBudgetView(v)} style={{
+            padding: '4px 12px', fontSize: 11, fontFamily: 'inherit', fontWeight: budgetView === v ? 600 : 400,
+            background: budgetView === v ? T.accent : T.chip,
+            color:      budgetView === v ? T.accentInk : T.textDim,
+            border: `1px solid ${budgetView === v ? T.accent : T.line2}`,
+            borderRadius: T.radius, cursor: 'pointer',
+          }}>
+            {v === 'day' ? 'Day' : 'Ledger'}
+          </button>
+        ))}
+      </div>
+      {budgetView === 'day' && (
+        <>
+          <button onClick={() => shiftDate(-1)} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: T.chip, border: `1px solid ${T.line2}`, color: T.textDim, borderRadius: T.radius, cursor: 'pointer', fontSize: 14 }}>‹</button>
+          <input type="date" value={date} onChange={e => e.target.value && setDate(e.target.value)} style={{ fontFamily: T.mono, fontSize: 12, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '4px 8px', outline: 'none', cursor: 'pointer' }} />
+          <button onClick={() => shiftDate(1)} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: T.chip, border: `1px solid ${T.line2}`, color: T.textDim, borderRadius: T.radius, cursor: 'pointer', fontSize: 14 }}>›</button>
+          {date !== todayStr && (
+            <button onClick={() => setDate(todayStr)} style={{ padding: '3px 8px', fontSize: 11, fontFamily: 'inherit', background: T.chip, color: T.textDim, border: `1px solid ${T.line2}`, borderRadius: T.radius, cursor: 'pointer' }}>Today</button>
+          )}
+        </>
+      )}
+    </div>
+  )
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
 
-      <SectionHd
-        title={budgetView === 'day' ? 'Daily Budget' : 'Running Ledger'}
-        badge={budgetView === 'day' ? `Ending ${fmtSign(totalEnding)}` : `${ledgerRows.length} days`}
-        action={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {budgetView === 'ledger' && ledgerRows.length > 0 && (() => {
-              const latest = ledgerRows[ledgerRows.length - 1].endTotal
-              return (
-                <span style={{
-                  fontFamily: T.mono, fontSize: 12, fontWeight: 700,
-                  color: latest >= 0 ? T.ok : T.bad,
-                  background: latest >= 0 ? `${T.ok}18` : `${T.bad}18`,
-                  border: `1px solid ${latest >= 0 ? T.ok : T.bad}44`,
-                  padding: '2px 8px', borderRadius: T.radius,
-                }}>
-                  {fmtPeso(latest)}
-                </span>
-              )
-            })()}
-            <div style={{ display: 'flex', gap: 2 }}>
-              {(['day', 'ledger'] as const).map(v => (
-                <button key={v} onClick={() => setBudgetView(v)} style={{
-                  padding: '4px 12px', fontSize: 11, fontFamily: 'inherit', fontWeight: budgetView === v ? 600 : 400,
-                  background: budgetView === v ? T.accent : T.chip,
-                  color:      budgetView === v ? T.accentInk : T.textDim,
-                  border: `1px solid ${budgetView === v ? T.accent : T.line2}`,
-                  borderRadius: T.radius, cursor: 'pointer',
-                }}>
-                  {v === 'day' ? 'Day' : 'Ledger'}
-                </button>
-              ))}
-            </div>
-            {budgetView === 'day' && (
-              <>
-                <button onClick={() => shiftDate(-1)} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: T.chip, border: `1px solid ${T.line2}`, color: T.textDim, borderRadius: T.radius, cursor: 'pointer', fontSize: 14 }}>‹</button>
-                <input type="date" value={date} onChange={e => e.target.value && setDate(e.target.value)} style={{ fontFamily: T.mono, fontSize: 12, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '4px 8px', outline: 'none', cursor: 'pointer' }} />
-                <button onClick={() => shiftDate(1)} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: T.chip, border: `1px solid ${T.line2}`, color: T.textDim, borderRadius: T.radius, cursor: 'pointer', fontSize: 14 }}>›</button>
-                {date !== todayStr && (
-                  <button onClick={() => setDate(todayStr)} style={{ padding: '3px 8px', fontSize: 11, fontFamily: 'inherit', background: T.chip, color: T.textDim, border: `1px solid ${T.line2}`, borderRadius: T.radius, cursor: 'pointer' }}>Today</button>
-                )}
-              </>
-            )}
+      {isMobile ? (
+        <div style={{ flexShrink: 0, borderBottom: `1px solid ${T.line}` }}>
+          {/* Row 1: title + badge */}
+          <div style={{ height: 44, padding: '0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>
+              {budgetView === 'day' ? 'Daily Budget' : 'Running Ledger'}
+            </span>
+            <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: T.accent, background: `${T.accent}18`, border: `1px solid ${T.accent}44`, padding: '2px 8px', borderRadius: T.radius }}>
+              {budgetView === 'day' ? `Ending ${fmtSign(totalEnding)}` : `${ledgerRows.length} days`}
+            </span>
           </div>
-        }
-      />
+          {/* Row 2: controls, h-scrollable */}
+          <div className="bp-no-scrollbar" style={{ height: 44, overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none', display: 'flex', alignItems: 'center', padding: '0 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+              {actionControls}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <SectionHd
+          title={budgetView === 'day' ? 'Daily Budget' : 'Running Ledger'}
+          badge={budgetView === 'day' ? `Ending ${fmtSign(totalEnding)}` : `${ledgerRows.length} days`}
+          action={actionControls}
+        />
+      )}
 
       {/* ── DAY VIEW ──────────────────────────────────────────────────────── */}
       {budgetView === 'day' && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr 1fr 1fr 1fr', padding: '0 24px', height: 36, alignItems: 'center', borderBottom: `1px solid ${T.line}`, background: T.surface2, flexShrink: 0 }}>
-            {['Category', 'Starting', 'Sales', 'Expenses', 'Ending'].map(h => (
-              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
-            ))}
-          </div>
           {loading ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
           ) : (
             <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', touchAction: 'pan-y' }}>
-            <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y' }}>
+            <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
             <div style={{ minWidth: 560 }}>
+              {/* Column header */}
+              <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr 1fr 1fr 1fr', padding: '0 24px', height: 36, alignItems: 'center', borderBottom: `1px solid ${T.line}`, background: T.surface2, flexShrink: 0 }}>
+                {['Category', 'Starting', 'Sales', 'Expenses', 'Ending'].map(h => (
+                  <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
+                ))}
+              </div>
               {BUDGET_CATS.map((cat, i) => {
                 const starting = getStarting(cat.id)
                 const incoming = dayData.incoming[cat.id] ?? 0

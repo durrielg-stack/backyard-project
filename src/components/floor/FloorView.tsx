@@ -612,6 +612,8 @@ function FloorPanel({
   const isMobile = bp === 'mobile'
   const isTablet = bp === 'tablet'
   const [removeBlockedTable, setRemoveBlockedTable] = useState<string | null>(null)
+  const [tooltipIdx, setTooltipIdx] = useState<number | null>(null)
+  const tooltipTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   async function removeWalkup(tableId: string) {
     const t = tables.find(t => t.id === tableId)
@@ -698,15 +700,38 @@ function FloorPanel({
           {tables.length} tables
         </span>
 
-        {/* Legend — on mobile: dot + count only to fit on one line */}
+        {/* Legend — on mobile: dot + count only; tap shows label tooltip */}
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 12, marginLeft: isMobile ? 0 : 8 }}>
           {legendItems.map(([label, color], i) => (
-            <div key={label} title={label} style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+            <div
+              key={label}
+              title={!isMobile ? label : undefined}
+              onClick={isMobile ? () => {
+                if (tooltipTimer.current) clearTimeout(tooltipTimer.current)
+                setTooltipIdx(prev => prev === i ? null : i)
+                tooltipTimer.current = setTimeout(() => setTooltipIdx(null), 1500)
+              } : undefined}
+              style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, cursor: isMobile ? 'pointer' : 'default' }}
+            >
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
               {isMobile ? (
-                <span style={{ fontSize: 11, fontFamily: T.mono, color: T.textMute, fontVariantNumeric: 'tabular-nums' }}>
-                  {legendCounts[i]}
-                </span>
+                <>
+                  <span style={{ fontSize: 11, fontFamily: T.mono, color: T.textMute, fontVariantNumeric: 'tabular-nums' }}>
+                    {legendCounts[i]}
+                  </span>
+                  {tooltipIdx === i && (
+                    <span style={{
+                      position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)',
+                      marginBottom: 6, whiteSpace: 'nowrap',
+                      background: T.surface2, border: `1px solid ${T.line}`,
+                      color: T.text, fontSize: 11, fontWeight: 600,
+                      padding: '3px 8px', borderRadius: 4,
+                      pointerEvents: 'none', zIndex: 50,
+                    }}>
+                      {label}
+                    </span>
+                  )}
+                </>
               ) : (
                 <span style={{ fontSize: 10, color: T.textMute, fontFamily: T.mono, whiteSpace: 'nowrap' }}>
                   {label} {legendCounts[i]}

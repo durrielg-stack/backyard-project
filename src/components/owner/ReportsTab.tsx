@@ -3,6 +3,7 @@
 import { useTheme } from '@/lib/ThemeContext'
 import { useState, useEffect, useCallback } from 'react'
 import { getClient } from '@/lib/supabase'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { SectionHd, Pill, GroupedBarChart, HBarChart, fmtPeso, DAY_ABBR, MONTH_ABBR } from './ownerShared'
 import type { MultiBar, CategoryBreakdown } from './ownerShared'
 import DateRangeNav, { useDateNav } from '@/components/shared/DateRangeNav'
@@ -17,6 +18,8 @@ interface VoidedItem { id: number; time: string; tableId: string; itemName: stri
 
 export default function ReportsTab() {
   const { T } = useTheme()
+  const bp = useBreakpoint()
+  const isMobile = bp === 'mobile'
   const nav = useDateNav()
 
   const [chartMode, setChartMode] = useState<'bar' | 'line'>('bar')
@@ -233,19 +236,20 @@ export default function ReportsTab() {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
 
-      <div style={{ height: 46, padding: '0 24px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
-        <DateRangeNav
-          mode={nav.mode}
-          date={nav.date}
-          weekRef={nav.weekRef}
-          month={nav.month}
-          year={nav.year}
-          onModeChange={nav.setMode}
-          onDateChange={nav.setDate}
-          onWeekChange={nav.setWeekRef}
-          onMonthChange={nav.setMonth}
-        />
-      </div>
+      {isMobile ? (
+        <div style={{ borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
+          <div style={{ height: 44, padding: '0 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>Reports</span>
+          </div>
+          <div className="bp-no-scrollbar" style={{ padding: '0 16px 10px', overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+            <DateRangeNav mode={nav.mode} date={nav.date} weekRef={nav.weekRef} month={nav.month} year={nav.year} onModeChange={nav.setMode} onDateChange={nav.setDate} onWeekChange={nav.setWeekRef} onMonthChange={nav.setMonth} />
+          </div>
+        </div>
+      ) : (
+        <div style={{ height: 46, padding: '0 24px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
+          <DateRangeNav mode={nav.mode} date={nav.date} weekRef={nav.weekRef} month={nav.month} year={nav.year} onModeChange={nav.setMode} onDateChange={nav.setDate} onWeekChange={nav.setWeekRef} onMonthChange={nav.setMonth} />
+        </div>
+      )}
 
       {/* KPIs */}
       {(() => {
@@ -258,7 +262,7 @@ export default function ReportsTab() {
           { label: 'Avg Turn Time',        value: avgTurnMin != null ? `${avgTurnMin}m` : '—', sub: 'open → close',                color: T.info },
         ]
         return (
-          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', flexShrink: 0 }}>
+          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none', flexShrink: 0 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', borderBottom: `1px solid ${T.line}`, minWidth: 720 }}>
             {kpis.map((k, i) => (
               <div key={k.label} style={{ padding: '14px 20px', borderRight: i < 5 ? `1px solid ${T.line}` : 'none' }}>
@@ -272,9 +276,9 @@ export default function ReportsTab() {
         )
       })()}
 
-      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: isMobile ? 'column' : 'row', minHeight: 0 }}>
         {/* P&L Overview chart */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: `1px solid ${T.line}` }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: isMobile ? 'none' : `1px solid ${T.line}`, borderBottom: isMobile ? `1px solid ${T.line}` : 'none' }}>
           <SectionHd
             title="P&L Overview"
             badge={`Gross ${fmtPeso(gross)} · Net ${fmtPeso(net)}`}
@@ -344,7 +348,7 @@ export default function ReportsTab() {
         </div>
 
         {/* Top items / Voided items toggle panel */}
-        <div style={{ width: 300, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ width: isMobile ? '100%' : 300, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
           {/* Tab header */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 12px', height: 36, borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
             {([['top', `Top Items`], ['voided', `Voided (${voidedCount})`]] as const).map(([t, label]) => (
@@ -420,11 +424,11 @@ export default function ReportsTab() {
         </div>
       </div>
 
-      {/* Category sections — fixed height, scrollable so they never squish the chart above */}
-      <div className="bp-no-scrollbar" style={{ height: '50%', flexShrink: 0, overflowY: 'auto', touchAction: 'pan-y', borderTop: `1px solid ${T.line}` }}>
+      {/* Category sections */}
+      <div className="bp-no-scrollbar" style={{ flexShrink: 0, overflowY: 'auto', touchAction: 'pan-y', borderTop: `1px solid ${T.line}` }}>
         {/* Category charts */}
-        <div style={{ display: 'flex' }}>
-          <div style={{ flex: 1, borderRight: `1px solid ${T.line}` }}>
+        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row' }}>
+          <div style={{ flex: 1, borderRight: isMobile ? 'none' : `1px solid ${T.line}`, borderBottom: isMobile ? `1px solid ${T.line}` : 'none' }}>
             <SectionHd title={`Sales by Category · ${suffix}`} badge={fmtPeso(gross)} />
             <HBarChart
               color={`${T.accent}88`}

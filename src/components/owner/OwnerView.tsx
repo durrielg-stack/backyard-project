@@ -6,6 +6,7 @@ import { getClient } from '@/lib/supabase'
 import type { TableWithStatus } from '@/lib/types'
 import BudgetTab from './BudgetTab'
 import ReportsTab from './ReportsTab'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -429,6 +430,8 @@ function TablesTab({ liveTableStatuses }: { liveTableStatuses: TableWithStatus[]
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
       ) : (
         <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+          <div style={{ minWidth: 640 }}>
           {/* Header */}
           <div style={{
             display: 'grid', gridTemplateColumns: '64px 1fr 80px 60px 80px 1fr 220px',
@@ -500,6 +503,8 @@ function TablesTab({ liveTableStatuses }: { liveTableStatuses: TableWithStatus[]
               </div>
             )
           })}
+          </div>
+          </div>
         </div>
       )}
     </div>
@@ -556,7 +561,7 @@ function MenuTab() {
         title="Menu"
         badge={`${items.filter(i => i.isAvailable).length}/${items.length} available`}
         action={
-          <div className="bp-no-scrollbar" style={{ display: 'flex', gap: 4, overflowX: 'auto', maxWidth: 480 }}>
+          <div className="bp-no-scrollbar" style={{ display: 'flex', gap: 4, overflowX: 'auto', maxWidth: 480, touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
             {cats.slice(0, 8).map(c => (
               <Pill key={c} label={c === 'all' ? 'All' : c} active={filterCat === c} onClick={() => setFilterCat(c)} />
             ))}
@@ -567,6 +572,8 @@ function MenuTab() {
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
       ) : (
         <>
+          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none', flexShrink: 0 }}>
+          <div style={{ minWidth: 480 }}>
           {/* Column header */}
           <div style={{
             display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px 120px',
@@ -579,8 +586,12 @@ function MenuTab() {
               </span>
             ))}
           </div>
+          </div>
+          </div>
 
           <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+          <div style={{ minWidth: 480 }}>
             {filtered.map((item, i) => {
               const isEditing = editId === item.id
               const isSaving  = saving === item.id
@@ -652,6 +663,8 @@ function MenuTab() {
               )
             })}
           </div>
+          </div>
+          </div>
         </>
       )}
     </div>
@@ -709,6 +722,8 @@ function InventoryTab() {
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
       ) : (
         <>
+          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none', flexShrink: 0 }}>
+          <div style={{ minWidth: 560 }}>
           <div style={{
             display: 'grid', gridTemplateColumns: '1fr 120px 80px 80px 120px 160px',
             padding: '0 24px', height: 36, alignItems: 'center',
@@ -720,8 +735,12 @@ function InventoryTab() {
               </span>
             ))}
           </div>
+          </div>
+          </div>
 
           <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+          <div style={{ minWidth: 560 }}>
             {rows.map((row, i) => {
               const isLow = row.quantity <= row.lowStockThresh
               const isCritical = row.quantity === 0
@@ -771,6 +790,8 @@ function InventoryTab() {
                 </div>
               )
             })}
+          </div>
+          </div>
           </div>
         </>
       )}
@@ -881,11 +902,12 @@ function ExpensesTab() {
         const autoAmt = up != null ? (qty * up).toFixed(2) : fAmt
         const canSave = fDesc.trim() && (up != null ? up > 0 : (parseFloat(fAmt) > 0))
         return (
+          <div style={{ background: T.surface2, borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
+          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
           <div style={{
             padding: '16px 24px',
-            background: T.surface2, borderBottom: `1px solid ${T.line}`,
             display: 'grid', gridTemplateColumns: '140px 1fr 70px 100px 110px 130px 110px auto',
-            gap: 8, alignItems: 'end', flexShrink: 0,
+            gap: 8, alignItems: 'end', minWidth: 760,
           }}>
             {/* Category */}
             <div>
@@ -971,9 +993,13 @@ function ExpensesTab() {
               Save
             </button>
           </div>
+          </div>
+          </div>
         )
       })()}
 
+      <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none', flexShrink: 0 }}>
+      <div style={{ minWidth: 700 }}>
       {/* List header */}
       <div style={{
         display: 'grid', gridTemplateColumns: '90px 100px 1fr 120px 100px 100px 80px 36px',
@@ -986,8 +1012,12 @@ function ExpensesTab() {
           </span>
         ))}
       </div>
+      </div>
+      </div>
 
       <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+      <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+      <div style={{ minWidth: 700 }}>
         {loading ? (
           <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
         ) : rows.length === 0 ? (
@@ -1028,6 +1058,8 @@ function ExpensesTab() {
             </div>
           )
         })}
+      </div>
+      </div>
       </div>
 
       {/* Total footer */}
@@ -1072,6 +1104,8 @@ interface RemittanceSplit {
 
 function SavingsTab() {
   const { T } = useTheme()
+  const bp = useBreakpoint()
+  const isMobile = bp === 'mobile'
   const [rows,     setRows]     = useState<Remittance[]>([])
   const [loading,  setLoading]  = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -1162,19 +1196,23 @@ function SavingsTab() {
       />
 
       {/* Running balance per partner */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
-        {PARTNERS.map((p, i) => (
-          <div key={p} style={{ padding: '14px 20px', borderRight: i < 5 ? `1px solid ${T.line}` : 'none' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>{p}</div>
-            <div style={{ fontFamily: T.mono, fontSize: 18, fontWeight: 700, color: balances[p] >= 0 ? T.ok : T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(balances[p])}</div>
-            <div style={{ fontSize: 10, color: T.textMute, marginTop: 2 }}>running balance</div>
-          </div>
-        ))}
+      <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none', flexShrink: 0, borderBottom: `1px solid ${T.line}` }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', minWidth: 600 }}>
+          {PARTNERS.map((p, i) => (
+            <div key={p} style={{ padding: '14px 20px', borderRight: i < 5 ? `1px solid ${T.line}` : 'none' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>{p}</div>
+              <div style={{ fontFamily: T.mono, fontSize: 18, fontWeight: 700, color: balances[p] >= 0 ? T.ok : T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(balances[p])}</div>
+              <div style={{ fontSize: 10, color: T.textMute, marginTop: 2 }}>running balance</div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Add form */}
       {showForm && (
-        <div style={{ padding: '20px 24px', background: T.surface2, borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
+        <div style={{ background: T.surface2, borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
+        <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+        <div style={{ minWidth: 480, padding: '20px 24px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '160px 160px 1fr auto', gap: 12, marginBottom: 16 }}>
             <div>
               <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Date</div>
@@ -1201,16 +1239,20 @@ function SavingsTab() {
               <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 8 }}>
                 Paid Out per Partner — each earns {fmtPeso(previewPer)} (auto-split equally)
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8 }}>
-                {PARTNERS.map(p => (
-                  <div key={p}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: T.textDim, marginBottom: 4 }}>{p}</div>
-                    <input value={fPaidOut[p] ?? ''} onChange={e => setFPaidOut(prev => ({ ...prev, [p]: e.target.value }))} placeholder={fmtPeso(previewPer)} type="number" min="0" style={{ width: '100%', fontFamily: T.mono, fontSize: 12, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '5px 8px', outline: 'none', boxSizing: 'border-box' }} />
-                  </div>
-                ))}
+              <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, minWidth: 520 }}>
+                  {PARTNERS.map(p => (
+                    <div key={p}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: T.textDim, marginBottom: 4 }}>{p}</div>
+                      <input value={fPaidOut[p] ?? ''} onChange={e => setFPaidOut(prev => ({ ...prev, [p]: e.target.value }))} placeholder={fmtPeso(previewPer)} type="number" min="0" style={{ width: '100%', fontFamily: T.mono, fontSize: 12, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '5px 8px', outline: 'none', boxSizing: 'border-box' }} />
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
+        </div>
+        </div>
         </div>
       )}
 
@@ -1225,9 +1267,10 @@ function SavingsTab() {
           return (
             <div key={r.id} style={{ borderBottom: `1px solid ${T.line}` }}>
               {/* Row header */}
+              <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
               <div
                 onClick={() => setExpanded(isOpen ? null : r.id)}
-                style={{ display: 'grid', gridTemplateColumns: '120px 160px 1fr 160px 36px', padding: '0 24px', height: 48, alignItems: 'center', background: i % 2 === 0 ? 'transparent' : T.surface, cursor: 'pointer' }}
+                style={{ display: 'grid', gridTemplateColumns: '120px 160px 1fr 160px 36px', padding: '0 24px', height: 48, alignItems: 'center', background: i % 2 === 0 ? 'transparent' : T.surface, cursor: 'pointer', minWidth: 480 }}
               >
                 <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute }}>{r.date}</span>
                 <span style={{ fontFamily: T.mono, fontSize: 15, fontWeight: 700, color: T.accent, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(r.total)}</span>
@@ -1237,10 +1280,13 @@ function SavingsTab() {
                 </span>
                 <span style={{ color: T.textMute, fontSize: 14 }}>{isOpen ? '▲' : '▼'}</span>
               </div>
+              </div>
 
               {/* Expanded detail */}
               {isOpen && (
-                <div style={{ padding: '12px 24px 16px', background: T.surface2, borderTop: `1px solid ${T.line}` }}>
+                <div style={{ background: T.surface2, borderTop: `1px solid ${T.line}` }}>
+                  <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+                  <div style={{ minWidth: 480, padding: '12px 24px 16px' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: `140px repeat(${PARTNERS.length}, 1fr)`, gap: 0, marginBottom: 8 }}>
                     <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute }}></span>
                     {PARTNERS.map(p => (
@@ -1267,6 +1313,8 @@ function SavingsTab() {
                     <button onClick={() => deleteRemittance(r.id)} style={{ padding: '4px 12px', fontSize: 11, fontFamily: 'inherit', background: `${T.bad}18`, border: `1px solid ${T.bad}44`, color: T.bad, borderRadius: T.radius, cursor: 'pointer' }}>
                       Delete remittance
                     </button>
+                  </div>
+                  </div>
                   </div>
                 </div>
               )}
@@ -1297,57 +1345,84 @@ interface OwnerViewProps {
 
 export default function OwnerView({ tables }: OwnerViewProps) {
   const { T } = useTheme()
+  const bp = useBreakpoint()
+  const isMobile = bp === 'mobile'
   const [tab, setTab] = useState<OwnerTab>('reports')
   const today = new Date()
+
+  const tabStrip = (
+    <div className="bp-no-scrollbar" style={{ display: 'flex', gap: 2, overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+      {TABS.map(t => (
+        <button key={t.id} onClick={() => setTab(t.id)} style={{
+          padding: '10px 16px', fontSize: 12, fontFamily: 'inherit', fontWeight: tab === t.id ? 700 : 400,
+          flexShrink: 0,
+          background: tab === t.id ? T.surface2 : 'transparent',
+          color:      tab === t.id ? T.text : T.textDim,
+          border:     `1px solid ${tab === t.id ? T.line2 : 'transparent'}`,
+          borderRadius: T.radius, cursor: 'pointer',
+          borderBottom: tab === t.id ? `2px solid ${T.accent}` : `2px solid transparent`,
+          transition: 'background 0.12s ease',
+        }}>
+          {t.label}
+        </button>
+      ))}
+    </div>
+  )
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: T.surface }}>
 
       {/* ── Owner header ──────────────────────────────────────────────────── */}
-      <div style={{
-        height: 52, padding: '0 24px', flexShrink: 0,
-        background: T.bg, borderBottom: `1px solid ${T.line}`,
-        display: 'flex', alignItems: 'center', gap: 16,
-      }}>
-        {/* Lock icon */}
+      {isMobile ? (
+        <div style={{ flexShrink: 0, background: T.bg, borderBottom: `1px solid ${T.line}` }}>
+          {/* Row 1: lock + Owner + divider + date */}
+          <div style={{ height: 44, padding: '0 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.accent }}>
+              <svg viewBox="0 0 16 16" width={13} height={13} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinejoin="round">
+                <rect x="3" y="7" width="10" height="7" rx="1" />
+                <path d="M5 7V5a3 3 0 016 0v2" />
+              </svg>
+              Owner
+            </div>
+            <div style={{ width: 1, height: 16, background: T.line2 }} />
+            <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute }}>{fmtDate(today)}</span>
+          </div>
+          {/* Row 2: tab strip */}
+          <div style={{ height: 44, display: 'flex', alignItems: 'center', padding: '0 8px' }}>
+            {tabStrip}
+          </div>
+        </div>
+      ) : (
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
-          textTransform: 'uppercase', color: T.accent,
+          height: 52, padding: '0 24px', flexShrink: 0,
+          background: T.bg, borderBottom: `1px solid ${T.line}`,
+          display: 'flex', alignItems: 'center', gap: 16,
         }}>
-          <svg viewBox="0 0 16 16" width={13} height={13} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinejoin="round">
-            <rect x="3" y="7" width="10" height="7" rx="1" />
-            <path d="M5 7V5a3 3 0 016 0v2" />
-          </svg>
-          Owner
+          {/* Lock icon */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
+            textTransform: 'uppercase', color: T.accent,
+          }}>
+            <svg viewBox="0 0 16 16" width={13} height={13} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinejoin="round">
+              <rect x="3" y="7" width="10" height="7" rx="1" />
+              <path d="M5 7V5a3 3 0 016 0v2" />
+            </svg>
+            Owner
+          </div>
+
+          <div style={{ width: 1, height: 20, background: T.line2 }} />
+
+          <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute }}>
+            {fmtDate(today)}
+          </span>
+
+          <div style={{ flex: 1 }} />
+
+          {/* Tab strip */}
+          {tabStrip}
         </div>
-
-        <div style={{ width: 1, height: 20, background: T.line2 }} />
-
-        <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute }}>
-          {fmtDate(today)}
-        </span>
-
-        <div style={{ flex: 1 }} />
-
-        {/* Tab strip */}
-        <div className="bp-no-scrollbar" style={{ display: 'flex', gap: 2, overflowX: 'auto', touchAction: 'pan-x pan-y' }}>
-          {TABS.map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)} style={{
-              padding: '10px 16px', fontSize: 12, fontFamily: 'inherit', fontWeight: tab === t.id ? 700 : 400,
-              flexShrink: 0,
-              background: tab === t.id ? T.surface2 : 'transparent',
-              color:      tab === t.id ? T.text : T.textDim,
-              border:     `1px solid ${tab === t.id ? T.line2 : 'transparent'}`,
-              borderRadius: T.radius, cursor: 'pointer',
-              borderBottom: tab === t.id ? `2px solid ${T.accent}` : `2px solid transparent`,
-              transition: 'background 0.12s ease',
-            }}>
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      )}
 
       {/* ── Tab content ───────────────────────────────────────────────────── */}
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
