@@ -351,9 +351,9 @@ export default function ReportsView({ tables: _tables }: { tables: TableWithStat
   const suffix = nav.mode === 'today' ? 'Today' : nav.mode === 'week' ? 'Week' : 'Month'
 
   return (
-    <div style={{ height: isMobile ? 'auto' : '100%', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
 
-      {/* ── Date range nav ───────────────────────────────────────────────── */}
+      {/* ── Date range nav — sticky at top ───────────────────────────────── */}
       <div className="bp-no-scrollbar" style={{
         minHeight: 44, padding: '8px 20px', display: 'flex', alignItems: 'center', gap: 8,
         overflowX: 'auto',
@@ -372,44 +372,53 @@ export default function ReportsView({ tables: _tables }: { tables: TableWithStat
         />
       </div>
 
-      {/* ── Sales KPI ───────────────────────────────────────────────────── */}
-      <SalesKpiStrip
-        suffix={suffix}
-        revenue={revenue}
-        cost={cost}
-        expenses={expenses}
-        txCount={txCount}
-        avgOrder={avgOrder}
-        avgTurnMin={avgTurnMin}
-      />
+      {/* ── Scrollable body (mobile: single scroll container) ────────────── */}
+      <div className="bp-no-scrollbar" style={{
+        flex: 1, minHeight: 0,
+        overflowY: 'auto',
+        display: 'flex', flexDirection: 'column',
+      }}>
 
-      {/* ── Expenses KPI ─────────────────────────────────────────────────── */}
-      <ExpensesKpiStrip
-        expenses={expenses}
-        expCatBreakdown={expCatBreakdown}
-      />
+        {/* ── Sales KPI ─────────────────────────────────────────────────── */}
+        <SalesKpiStrip
+          suffix={suffix}
+          revenue={revenue}
+          cost={cost}
+          expenses={expenses}
+          txCount={txCount}
+          avgOrder={avgOrder}
+          avgTurnMin={avgTurnMin}
+        />
 
-      {/* ── Charts row ───────────────────────────────────────────────────── */}
-      {isMobile ? (
-        <div style={{ flexShrink: 0 }}>
-          <RevenuePanel bars={bars} mobile />
-          <ExpensesChartPanel expenseDayBars={expenseDayBars} expenses={expenses} mobile />
-        </div>
-      ) : (
-        <div style={{ height: 220, display: 'flex', borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
-          <RevenuePanel bars={bars} />
-          <ExpensesChartPanel expenseDayBars={expenseDayBars} expenses={expenses} />
-        </div>
-      )}
+        {/* ── Expenses KPI ──────────────────────────────────────────────── */}
+        <ExpensesKpiStrip
+          expenses={expenses}
+          expCatBreakdown={expCatBreakdown}
+        />
 
-      {/* ── Resizable lists row ──────────────────────────────────────────── */}
-      <ResizableSplit
-        left={<TransactionsPanel transactions={transactions} />}
-        right={<ExpensesListPanel expenseRows={expenseRows} />}
-      />
+        {/* ── Charts ────────────────────────────────────────────────────── */}
+        {isMobile ? (
+          <div style={{ flexShrink: 0 }}>
+            <RevenuePanel bars={bars} mobile />
+            <ExpensesChartPanel expenseDayBars={expenseDayBars} expenses={expenses} mobile />
+          </div>
+        ) : (
+          <div style={{ height: 220, display: 'flex', borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
+            <RevenuePanel bars={bars} />
+            <ExpensesChartPanel expenseDayBars={expenseDayBars} expenses={expenses} />
+          </div>
+        )}
 
-      {/* ── Stock alerts strip ───────────────────────────────────────────── */}
-      <StockAlertsStrip />
+        {/* ── Resizable lists row ───────────────────────────────────────── */}
+        <ResizableSplit
+          left={<TransactionsPanel transactions={transactions} />}
+          right={<ExpensesListPanel expenseRows={expenseRows} />}
+        />
+
+        {/* ── Stock alerts strip ────────────────────────────────────────── */}
+        <StockAlertsStrip />
+
+      </div>
     </div>
   )
 }
