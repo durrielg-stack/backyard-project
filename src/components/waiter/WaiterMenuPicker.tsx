@@ -126,7 +126,8 @@ export default function WaiterMenuPicker({ tableId, waiterName, onBack, onSent }
           disabled={sending}
           style={{
             background: 'none', border: 'none', cursor: sending ? 'default' : 'pointer',
-            color: sending ? T.textMute : T.info, fontSize: 14, fontFamily: 'inherit', padding: '4px 0',
+            color: sending ? T.textMute : T.info, fontSize: 14, fontFamily: 'inherit',
+            padding: '10px 8px', minHeight: 44, display: 'flex', alignItems: 'center',
           }}
         >
           ← Order
@@ -136,8 +137,9 @@ export default function WaiterMenuPicker({ tableId, waiterName, onBack, onSent }
           onClick={toggle}
           style={{
             background: T.surface2, border: `1px solid ${T.line2}`,
-            borderRadius: T.radiusLg, padding: '6px 10px',
-            color: T.textDim, fontSize: 15, cursor: 'pointer', lineHeight: 1,
+            borderRadius: T.radiusLg, padding: '10px 14px',
+            color: T.textDim, fontSize: 16, cursor: 'pointer', lineHeight: 1,
+            minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
           {mode === 'dark' ? '☀️' : '🌙'}
@@ -187,7 +189,8 @@ export default function WaiterMenuPicker({ tableId, waiterName, onBack, onSent }
       <div className="bp-scroll-y" style={{
         flex: 1, overflowY: 'auto', padding: '0 16px',
         display: 'grid', gridTemplateColumns: '1fr 1fr',
-        gap: 10, alignContent: 'start', paddingBottom: 80,
+        gap: 10, alignContent: 'start',
+        paddingBottom: 'calc(88px + env(safe-area-inset-bottom, 0px))',
       }}>
         {loading ? (
           <div style={{ gridColumn: '1/-1', color: T.textMute, fontSize: 13, fontFamily: T.mono, textAlign: 'center', padding: '32px 0' }}>
@@ -224,22 +227,24 @@ export default function WaiterMenuPicker({ tableId, waiterName, onBack, onSent }
                     <button
                       onClick={() => adjustQty(item, -1)}
                       style={{
-                        width: 28, height: 28, borderRadius: T.radius,
+                        width: 40, height: 40, borderRadius: T.radius,
                         background: T.surface2, border: `1px solid ${T.line2}`,
-                        color: T.text, fontSize: 16, cursor: 'pointer', lineHeight: 1,
+                        color: T.text, fontSize: 18, cursor: 'pointer', lineHeight: 1,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
                       }}
                     >−</button>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: T.text, minWidth: 20, textAlign: 'center' }}>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: T.text, minWidth: 24, textAlign: 'center' }}>
                       {qty}
                     </span>
                     <button
                       onClick={() => adjustQty(item, 1)}
                       style={{
-                        width: 28, height: 28, borderRadius: T.radius,
+                        width: 40, height: 40, borderRadius: T.radius,
                         background: T.accent, border: 'none',
-                        color: T.accentInk, fontSize: 16, cursor: 'pointer', lineHeight: 1,
+                        color: T.accentInk, fontSize: 18, cursor: 'pointer', lineHeight: 1,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
                       }}
                     >+</button>
                   </>
@@ -247,9 +252,9 @@ export default function WaiterMenuPicker({ tableId, waiterName, onBack, onSent }
                   <button
                     onClick={() => adjustQty(item, 1)}
                     style={{
-                      width: '100%', padding: '5px 0', borderRadius: T.radius,
+                      width: '100%', padding: '10px 0', borderRadius: T.radius,
                       background: T.surface2, border: `1px solid ${T.line2}`,
-                      color: T.textDim, fontSize: 12, fontWeight: 600,
+                      color: T.textDim, fontSize: 13, fontWeight: 600,
                       cursor: 'pointer', fontFamily: 'inherit',
                     }}
                   >
@@ -267,7 +272,7 @@ export default function WaiterMenuPicker({ tableId, waiterName, onBack, onSent }
         <div style={{
           position: 'fixed', bottom: 0, left: 0, right: 0,
           background: T.surface, borderTop: `1px solid ${T.line}`,
-          padding: '12px 16px',
+          padding: `12px 16px calc(12px + env(safe-area-inset-bottom, 0px))`,
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
         }}>
           <div>
@@ -302,7 +307,7 @@ export default function WaiterMenuPicker({ tableId, waiterName, onBack, onSent }
             style={{
               background: T.surface, borderRadius: '16px 16px 0 0',
               borderTop: `1px solid ${T.line2}`,
-              padding: '20px 20px 32px',
+              padding: `20px 20px calc(32px + env(safe-area-inset-bottom, 0px))`,
               width: '100%', maxHeight: '70dvh', overflowY: 'auto', overscrollBehavior: 'contain',
             }}
           >

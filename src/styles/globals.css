@@ -95,6 +95,26 @@
   touch-action: pan-y;
 }
 
+/* ── Safe-area bottom padding utilities ──────────────────── */
+.bp-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.bp-safe-bottom-16 {
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+}
+.bp-safe-bottom-12 {
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ── Touch target minimum (44×44) ────────────────────────── */
+.bp-touch {
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* ── Base reset ──────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 

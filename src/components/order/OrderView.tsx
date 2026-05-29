@@ -241,8 +241,9 @@ export default function OrderView({ tableId, table, tables, staff, onBack, onCar
       {isMobile && (
         <div style={{
           position: 'fixed', bottom: 0, left: 0, right: 0,
-          display: 'flex', height: 56, zIndex: 50,
+          display: 'flex', zIndex: 50,
           background: T.surface2, borderTop: `1px solid ${T.line}`,
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}>
           {(['menu', 'cart'] as const).map(tab => (
             <button
@@ -253,7 +254,7 @@ export default function OrderView({ tableId, table, tables, staff, onBack, onCar
                 alignItems: 'center', justifyContent: 'center', gap: 3,
                 background: 'none', border: 'none', cursor: 'pointer',
                 color: mobileTab === tab ? T.accent : T.textDim,
-                fontFamily: 'inherit',
+                fontFamily: 'inherit', minHeight: 56, padding: '8px 0',
               }}
             >
               <span style={{ fontSize: 18 }}>{tab === 'menu' ? '☰' : '🧾'}</span>

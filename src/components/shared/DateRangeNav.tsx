@@ -1,6 +1,7 @@
 'use client'
 
 import { useTheme } from '@/lib/ThemeContext'
+import { useBreakpoint } from '@/hooks/useBreakpoint'
 import {
   ViewMode, localDateStr, weekBounds, navigateDay, navigateWeek, navigateMonth,
   todayLabel, MONTH_NAMES, parseLocalDate, currentShiftDate,
@@ -26,9 +27,13 @@ export default function DateRangeNav({
   onModeChange, onDateChange, onWeekChange, onMonthChange,
 }: DateRangeNavProps) {
   const { T } = useTheme()
+  const bp = useBreakpoint()
+  const isMobile = bp === 'mobile'
 
   const btnBase: React.CSSProperties = {
-    padding: '5px 14px', fontSize: 12, fontFamily: 'inherit',
+    padding: isMobile ? '10px 14px' : '5px 14px',
+    minHeight: isMobile ? 44 : undefined,
+    fontSize: 12, fontFamily: 'inherit',
     border: `1px solid ${T.line2}`, borderRadius: T.radius,
     cursor: 'pointer', lineHeight: 1,
   }
@@ -36,9 +41,10 @@ export default function DateRangeNav({
   const inactiveBtn: React.CSSProperties = { ...btnBase, background: T.chip, color: T.textDim, fontWeight: 400 }
 
   const navBtn: React.CSSProperties = {
-    width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    width: isMobile ? 44 : 28, height: isMobile ? 44 : 28,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
     background: T.chip, border: `1px solid ${T.line2}`, borderRadius: T.radius,
-    cursor: 'pointer', color: T.textDim, fontSize: 14, lineHeight: 1, flexShrink: 0,
+    cursor: 'pointer', color: T.textDim, fontSize: isMobile ? 18 : 14, lineHeight: 1, flexShrink: 0,
   }
 
   function handlePrev() {
@@ -69,7 +75,9 @@ export default function DateRangeNav({
             value={date}
             onChange={e => e.target.value && onDateChange(e.target.value)}
             style={{
-              padding: '4px 8px', fontSize: 12, fontFamily: T.mono,
+              padding: isMobile ? '10px 8px' : '4px 8px',
+              minHeight: isMobile ? 44 : undefined,
+              fontSize: 12, fontFamily: T.mono,
               background: T.surface2, color: T.text,
               border: `1px solid ${T.line2}`, borderRadius: T.radius,
               outline: 'none', cursor: 'pointer',
@@ -99,7 +107,9 @@ export default function DateRangeNav({
             title={label}
             onChange={e => e.target.value && onWeekChange(parseLocalDate(e.target.value))}
             style={{
-              padding: '4px 8px', fontSize: 12, fontFamily: T.mono,
+              padding: isMobile ? '10px 8px' : '4px 8px',
+              minHeight: isMobile ? 44 : undefined,
+              fontSize: 12, fontFamily: T.mono,
               background: T.surface2, color: T.text,
               border: `1px solid ${T.line2}`, borderRadius: T.radius,
               outline: 'none', cursor: 'pointer',
@@ -173,7 +183,10 @@ export default function DateRangeNav({
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <div className={isMobile ? 'bp-scroll-x bp-no-scrollbar' : ''} style={{
+      display: 'flex', alignItems: 'center', gap: 8,
+      overflowX: isMobile ? 'auto' : undefined,
+    }}>
       {/* Mode pills */}
       <div style={{ display: 'flex', gap: 2 }}>
         {(['today', 'week', 'month'] as ViewMode[]).map(m => (

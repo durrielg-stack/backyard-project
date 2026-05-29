@@ -46,7 +46,8 @@ export default function WaiterTableView({ tableId, waiterName, onAddItems, onBac
           onClick={onBack}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
-            color: T.info, fontSize: 14, fontFamily: 'inherit', padding: '4px 0',
+            color: T.info, fontSize: 14, fontFamily: 'inherit',
+            padding: '10px 8px', minHeight: 44, display: 'flex', alignItems: 'center',
           }}
         >
           ← Tables
@@ -56,8 +57,9 @@ export default function WaiterTableView({ tableId, waiterName, onAddItems, onBac
           onClick={toggle}
           style={{
             background: T.surface2, border: `1px solid ${T.line2}`,
-            borderRadius: T.radiusLg, padding: '6px 10px',
-            color: T.textDim, fontSize: 15, cursor: 'pointer', lineHeight: 1,
+            borderRadius: T.radiusLg, padding: '10px 14px',
+            color: T.textDim, fontSize: 16, cursor: 'pointer', lineHeight: 1,
+            minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
           {mode === 'dark' ? '☀️' : '🌙'}
@@ -113,7 +115,7 @@ export default function WaiterTableView({ tableId, waiterName, onAddItems, onBac
       </div>
 
       {/* Add Items button */}
-      <div style={{ padding: '12px 16px', borderTop: `1px solid ${T.line}`, background: T.surface }}>
+      <div style={{ padding: `12px 16px calc(12px + env(safe-area-inset-bottom, 0px))`, borderTop: `1px solid ${T.line}`, background: T.surface }}>
         <button
           onClick={onAddItems}
           style={{

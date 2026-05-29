@@ -311,8 +311,9 @@ export default function ReportsView({ tables: _tables }: { tables: TableWithStat
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
 
       {/* ── Date range nav ───────────────────────────────────────────────── */}
-      <div style={{
-        height: 44, padding: '0 20px', display: 'flex', alignItems: 'center', gap: 8,
+      <div className="bp-no-scrollbar" style={{
+        minHeight: 44, padding: '8px 20px', display: 'flex', alignItems: 'center', gap: 8,
+        overflowX: 'auto',
         borderBottom: `1px solid ${T.line}`, flexShrink: 0, background: T.bg,
       }}>
         <DateRangeNav

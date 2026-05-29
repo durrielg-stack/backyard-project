@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Waiter Mobile View — Wireframe</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #1a1a2e;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: #e2e8f0;
+    padding: 40px 24px;
+  }
+  h1 {
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #94a3b8;
+    margin-bottom: 8px;
+  }
+  .subtitle {
+    text-align: center;
+    font-size: 12px;
+    color: #475569;
+    margin-bottom: 48px;
+  }
+
+  /* Flow arrows */
+  .flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 48px;
+    flex-wrap: wrap;
+  }
+  .flow-step {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 11px;
+    color: #94a3b8;
+    white-space: nowrap;
+  }
+  .flow-arrow { color: #475569; font-size: 14px; }
+
+  /* Screen grid */
+  .screens {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 32px;
+    justify-content: center;
+  }
+  .screen-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .screen-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #64748b;
+  }
+
+  /* Phone frame */
+  .phone {
+    width: 280px;
+    min-height: 520px;
+    background: #0f172a;
+    border: 2px solid #334155;
+    border-radius: 24px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    position: relative;
+  }
+
+  /* Status bar */
+  .status-bar {
+    background: #0f172a;
+    padding: 8px 16px 4px;
+    font-size: 10px;
+    color: #475569;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* Topbar */
+  .topbar {
+    background: #1e293b;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #334155;
+  }
+  .topbar-title { font-size: 14px; font-weight: 700; color: #f1f5f9; }
+  .topbar-sub { font-size: 11px; color: #64748b; }
+  .back-btn {
+    font-size: 13px;
+    color: #60a5fa;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .user-badge {
+    font-size: 11px;
+    background: #1d4ed8;
+    color: #bfdbfe;
+    padding: 3px 8px;
+    border-radius: 99px;
+    font-weight: 600;
+  }
+
+  /* Screen content */
+  .screen-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* Login */
+  .login-logo {
+    text-align: center;
+    padding: 32px 0 24px;
+  }
+  .login-logo .icon { font-size: 32px; display: block; margin-bottom: 8px; }
+  .login-logo .name { font-size: 18px; font-weight: 800; color: #f1f5f9; }
+  .login-logo .tag { font-size: 11px; color: #64748b; margin-top: 2px; }
+  .field-label { font-size: 11px; color: #94a3b8; margin-bottom: 4px; }
+  .field-input {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 13px;
+    color: #cbd5e1;
+    width: 100%;
+    margin-bottom: 12px;
+  }
+  .btn-primary {
+    background: #1d4ed8;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    width: 100%;
+    cursor: pointer;
+  }
+  .login-note {
+    text-align: center;
+    font-size: 11px;
+    color: #475569;
+    margin-top: 8px;
+  }
+
+  /* Table grid */
+  .table-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .table-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .table-card.occupied { border-color: #d97706; }
+  .table-card.attention { border-color: #ef4444; }
+  .table-card .tnum { font-size: 13px; font-weight: 700; color: #f1f5f9; }
+  .table-card .tstatus {
+    font-size: 10px;
+    margin-top: 4px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .table-card.occupied .tstatus { color: #f59e0b; }
+  .table-card.attention .tstatus { color: #f87171; }
+  .table-card .tmeta { font-size: 11px; color: #94a3b8; margin-top: 6px; }
+  .table-card .ttotal { font-size: 13px; font-weight: 700; color: #34d399; margin-top: 2px; }
+  .dot { display: inline-block; width: 6px; height: 6px; border-radius: 99px; margin-right: 4px; vertical-align: middle; }
+  .dot.green { background: #34d399; }
+  .dot.yellow { background: #f59e0b; }
+  .dot.red { background: #ef4444; }
+
+  /* Order view */
+  .section-header {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #475569;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #1e293b;
+    margin-bottom: 2px;
+  }
+  .order-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 7px 0;
+    border-bottom: 1px solid #1e293b;
+    font-size: 13px;
+  }
+  .order-line .item-name { color: #e2e8f0; flex: 1; }
+  .order-line .item-qty { color: #64748b; font-size: 11px; margin: 0 10px; }
+  .order-line .item-price { color: #94a3b8; font-size: 12px; white-space: nowrap; }
+  .order-total {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 700;
+    color: #f1f5f9;
+    padding: 10px 0 4px;
+  }
+  .spacer { flex: 1; }
+  .btn-add {
+    background: #1d4ed8;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 13px;
+    font-size: 14px;
+    font-weight: 600;
+    width: 100%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  /* Add items */
+  .search-box {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 13px;
+    color: #64748b;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .cat-tabs {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  .cat-tab {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 99px;
+    padding: 5px 11px;
+    font-size: 11px;
+    color: #94a3b8;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .cat-tab.active {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    color: #fff;
+    font-weight: 600;
+  }
+  .item-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    flex: 1;
+  }
+  .item-card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 10px;
+    cursor: pointer;
+    position: relative;
+  }
+  .item-card.selected { border-color: #1d4ed8; background: #172554; }
+  .item-card .iname { font-size: 12px; font-weight: 600; color: #e2e8f0; line-height: 1.3; }
+  .item-card .iprice { font-size: 12px; color: #60a5fa; margin-top: 6px; font-weight: 700; }
+  .item-card .badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: #1d4ed8;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    width: 18px;
+    height: 18px;
+    border-radius: 99px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .cart-bar {
+    background: #1e293b;
+    border-top: 1px solid #334155;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .cart-bar .cart-info { font-size: 12px; color: #94a3b8; }
+  .cart-bar .cart-total { font-size: 13px; font-weight: 700; color: #34d399; }
+  .btn-review {
+    background: #1d4ed8;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  /* Confirm modal */
+  .modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: flex-end;
+    border-radius: 22px;
+    overflow: hidden;
+  }
+  .modal-sheet {
+    background: #1e293b;
+    border-radius: 16px 16px 0 0;
+    padding: 20px 16px 24px;
+    width: 100%;
+    border-top: 1px solid #334155;
+  }
+  .modal-handle {
+    width: 36px;
+    height: 4px;
+    background: #334155;
+    border-radius: 99px;
+    margin: 0 auto 16px;
+  }
+  .modal-title { font-size: 15px; font-weight: 700; color: #f1f5f9; margin-bottom: 14px; }
+  .modal-line {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: #94a3b8;
+    padding: 5px 0;
+    border-bottom: 1px solid #0f172a;
+  }
+  .modal-line:last-of-type { border-bottom: none; }
+  .modal-total {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 700;
+    color: #f1f5f9;
+    padding: 10px 0 16px;
+    border-top: 1px solid #334155;
+    margin-top: 4px;
+  }
+  .modal-btns { display: flex; gap: 10px; }
+  .btn-cancel {
+    flex: 1;
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #94a3b8;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn-confirm {
+    flex: 2;
+    background: #16a34a;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* Success */
+  .success-screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 32px;
+  }
+  .success-icon {
+    width: 64px;
+    height: 64px;
+    background: #14532d;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    border: 2px solid #16a34a;
+  }
+  .success-title { font-size: 18px; font-weight: 800; color: #f1f5f9; }
+  .success-sub { font-size: 13px; color: #64748b; text-align: center; }
+
+  /* Notes section */
+  .notes-section {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 4px;
+  }
+  .notes-label { font-size: 10px; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .notes-input {
+    font-size: 12px;
+    color: #64748b;
+    width: 100%;
+  }
+</style>
+</head>
+<body>
+
+<h1>Backyard POS — Waiter Mobile View</h1>
+<p class="subtitle">Wireframe · Role: waiter · Portrait mobile · Planning phase only — not built yet</p>
+
+<div class="flow">
+  <span class="flow-step">1 · Login</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-step">2 · Floor View</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-step">3 · Table Order</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-step">4 · Add Items</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-step">5 · Confirm</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-step">6 · Sent ✓</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-step">back to 3</span>
+</div>
+
+<div class="screens">
+
+  <!-- SCREEN 1: LOGIN -->
+  <div class="screen-wrap">
+    <span class="screen-label">1 · Login</span>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●●</span></div>
+      <div class="screen-body" style="padding: 0 16px 16px;">
+        <div class="login-logo">
+          <span class="icon">🍺</span>
+          <div class="name">Backyard POS</div>
+          <div class="tag">Waiter Access</div>
+        </div>
+        <div class="field-label">Email</div>
+        <div class="field-input">maria@backyard.pos</div>
+        <div class="field-label">Password</div>
+        <div class="field-input" style="letter-spacing:4px; color:#475569;">••••••</div>
+        <button class="btn-primary">Sign In</button>
+        <div class="login-note">Waiter accounts only<br>Contact manager for access</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2: FLOOR VIEW -->
+  <div class="screen-wrap">
+    <span class="screen-label">2 · Floor View</span>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●●</span></div>
+      <div class="topbar">
+        <div>
+          <div class="topbar-title">Tables</div>
+          <div class="topbar-sub">Tap a table to open order</div>
+        </div>
+        <div class="user-badge">Maria</div>
+      </div>
+      <div class="screen-body">
+        <div class="table-grid">
+          <div class="table-card occupied">
+            <div class="tnum"><span class="dot yellow"></span>Table 1</div>
+            <div class="tstatus">Occupied</div>
+            <div class="tmeta">34 min</div>
+            <div class="ttotal">₱480</div>
+          </div>
+          <div class="table-card">
+            <div class="tnum"><span class="dot green"></span>Table 2</div>
+            <div class="tstatus">Available</div>
+            <div class="tmeta" style="color:#1e293b;">—</div>
+          </div>
+          <div class="table-card">
+            <div class="tnum"><span class="dot green"></span>Table 3</div>
+            <div class="tstatus">Available</div>
+            <div class="tmeta" style="color:#1e293b;">—</div>
+          </div>
+          <div class="table-card attention">
+            <div class="tnum"><span class="dot red"></span>Table 4</div>
+            <div class="tstatus">Attention</div>
+            <div class="tmeta">62 min</div>
+            <div class="ttotal">₱1,240</div>
+          </div>
+          <div class="table-card occupied">
+            <div class="tnum"><span class="dot yellow"></span>Table 5</div>
+            <div class="tstatus">Occupied</div>
+            <div class="tmeta">12 min</div>
+            <div class="ttotal">₱150</div>
+          </div>
+          <div class="table-card">
+            <div class="tnum"><span class="dot green"></span>Table 6</div>
+            <div class="tstatus">Available</div>
+            <div class="tmeta" style="color:#1e293b;">—</div>
+          </div>
+          <div class="table-card">
+            <div class="tnum"><span class="dot green"></span>Bar 1</div>
+            <div class="tstatus">Available</div>
+            <div class="tmeta" style="color:#1e293b;">—</div>
+          </div>
+          <div class="table-card occupied">
+            <div class="tnum"><span class="dot yellow"></span>Bar 2</div>
+            <div class="tstatus">Occupied</div>
+            <div class="tmeta">8 min</div>
+            <div class="ttotal">₱90</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 3: TABLE ORDER -->
+  <div class="screen-wrap">
+    <span class="screen-label">3 · Table Order</span>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●●</span></div>
+      <div class="topbar">
+        <div class="back-btn">← Tables</div>
+        <div class="topbar-title">Table 1</div>
+        <div style="width:48px;"></div>
+      </div>
+      <div class="screen-body">
+        <div class="section-header">Current Order · 34 min</div>
+        <div class="order-line">
+          <span class="item-name">Pork Sisig</span>
+          <span class="item-qty">x2</span>
+          <span class="item-price">₱280</span>
+        </div>
+        <div class="order-line">
+          <span class="item-name">San Mig Light</span>
+          <span class="item-qty">x3</span>
+          <span class="item-price">₱210</span>
+        </div>
+        <div class="order-line">
+          <span class="item-name">Garlic Rice</span>
+          <span class="item-qty">x2</span>
+          <span class="item-price">₱100</span>
+        </div>
+        <div class="order-total">
+          <span>Running Total</span>
+          <span style="color:#34d399;">₱590</span>
+        </div>
+        <div class="section-header" style="margin-top:4px;">Item Notes</div>
+        <div class="notes-section">
+          <div class="notes-label">Pork Sisig</div>
+          <div class="notes-input" style="color:#94a3b8; font-style:italic;">No chili for seat 2</div>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn-add">＋ Add Items</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 4: ADD ITEMS -->
+  <div class="screen-wrap">
+    <span class="screen-label">4 · Add Items</span>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●●</span></div>
+      <div class="topbar">
+        <div class="back-btn">← T1 Order</div>
+        <div class="topbar-title">Add Items</div>
+        <div style="width:48px;"></div>
+      </div>
+      <div class="screen-body" style="gap:8px;">
+        <div class="search-box">🔍 <span>Search menu...</span></div>
+        <div class="cat-tabs">
+          <div class="cat-tab active">All</div>
+          <div class="cat-tab">Food</div>
+          <div class="cat-tab">Beer</div>
+          <div class="cat-tab">Cocktails</div>
+          <div class="cat-tab">Non-Alc</div>
+          <div class="cat-tab">Charges</div>
+        </div>
+        <div class="item-grid">
+          <div class="item-card selected">
+            <div class="iname">Pork Sisig</div>
+            <div class="iprice">₱140</div>
+            <div class="badge">1</div>
+          </div>
+          <div class="item-card">
+            <div class="iname">Chicken Inasal</div>
+            <div class="iprice">₱130</div>
+          </div>
+          <div class="item-card selected">
+            <div class="iname">San Mig Light</div>
+            <div class="iprice">₱70</div>
+            <div class="badge">2</div>
+          </div>
+          <div class="item-card">
+            <div class="iname">Burger Steak</div>
+            <div class="iprice">₱155</div>
+          </div>
+          <div class="item-card">
+            <div class="iname">Red Horse 1L</div>
+            <div class="iprice">₱120</div>
+          </div>
+          <div class="item-card">
+            <div class="iname">Kare-Kare</div>
+            <div class="iprice">₱160</div>
+          </div>
+        </div>
+      </div>
+      <div class="cart-bar">
+        <div>
+          <div class="cart-info">3 items added</div>
+          <div class="cart-total">₱350</div>
+        </div>
+        <button class="btn-review">Review Order →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 5: CONFIRM -->
+  <div class="screen-wrap">
+    <span class="screen-label">5 · Confirm</span>
+    <div class="phone" style="position:relative;">
+      <div class="status-bar"><span>9:41</span><span>●●●</span></div>
+      <div class="topbar">
+        <div class="back-btn">← Add Items</div>
+        <div class="topbar-title">Add Items</div>
+        <div style="width:48px;"></div>
+      </div>
+      <div class="screen-body" style="opacity:0.3;">
+        <div class="item-grid">
+          <div class="item-card selected"><div class="iname">Pork Sisig</div><div class="iprice">₱140</div></div>
+          <div class="item-card selected"><div class="iname">San Mig Light</div><div class="iprice">₱70</div></div>
+        </div>
+      </div>
+      <div class="modal-overlay">
+        <div class="modal-sheet">
+          <div class="modal-handle"></div>
+          <div class="modal-title">Send this order to Table 1?</div>
+          <div class="modal-line"><span>Pork Sisig</span><span>x1 · ₱140</span></div>
+          <div class="modal-line"><span>San Mig Light</span><span>x2 · ₱140</span></div>
+          <div class="modal-total"><span>Adding to order</span><span style="color:#34d399;">₱280</span></div>
+          <div class="modal-btns">
+            <button class="btn-cancel">Cancel</button>
+            <button class="btn-confirm">Yes, Send Order</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 6: ORDER SENT -->
+  <div class="screen-wrap">
+    <span class="screen-label">6 · Order Sent</span>
+    <div class="phone">
+      <div class="status-bar"><span>9:41</span><span>●●●</span></div>
+      <div class="topbar" style="justify-content:center;">
+        <div class="topbar-title">Table 1</div>
+      </div>
+      <div class="success-screen">
+        <div class="success-icon">✓</div>
+        <div class="success-title">Order Sent!</div>
+        <div class="success-sub">Items added to Table 1.<br>Returning to order in 2s…</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Notes -->
+<div style="max-width:900px; margin: 56px auto 0; border-top: 1px solid #1e293b; padding-top: 32px;">
+  <div style="font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#475569; margin-bottom:16px;">Planning Notes</div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+    <div style="background:#1e293b; border-radius:8px; padding:16px; font-size:12px; line-height:1.7; color:#94a3b8;">
+      <div style="color:#f1f5f9; font-weight:600; margin-bottom:8px;">What waiters CAN do</div>
+      View all tables and their status<br>
+      Open any table's running order<br>
+      Add new items to any table<br>
+      Add item-level notes (e.g. "no chili")<br>
+      See running totals (read-only)
+    </div>
+    <div style="background:#1e293b; border-radius:8px; padding:16px; font-size:12px; line-height:1.7; color:#94a3b8;">
+      <div style="color:#f1f5f9; font-weight:600; margin-bottom:8px;">What waiters CANNOT do</div>
+      Void or cancel items (manager only)<br>
+      Process payments or close orders<br>
+      Access reports or budget<br>
+      See owner/manager tools<br>
+      Delete or modify past items
+    </div>
+    <div style="background:#1e293b; border-radius:8px; padding:16px; font-size:12px; line-height:1.7; color:#94a3b8;">
+      <div style="color:#f1f5f9; font-weight:600; margin-bottom:8px;">DB Changes Needed</div>
+      Add <code style="background:#0f172a;padding:1px 5px;border-radius:3px;">'waiter'</code> to users.role CHECK constraint<br>
+      Create waiter accounts (same pattern as owners)<br>
+      RLS: waiters same as current 'staff' permissions<br>
+      No schema changes to orders/items tables
+    </div>
+    <div style="background:#1e293b; border-radius:8px; padding:16px; font-size:12px; line-height:1.7; color:#94a3b8;">
+      <div style="color:#f1f5f9; font-weight:600; margin-bottom:8px;">Route / Tech Approach</div>
+      New Next.js route: <code style="background:#0f172a;padding:1px 5px;border-radius:3px;">/waiter</code><br>
+      Detect role on login → redirect to /waiter<br>
+      Reuses existing useOrder, useMenuItems hooks<br>
+      Mobile-only layout (no 1920px shell)<br>
+      Same Supabase project, same realtime
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

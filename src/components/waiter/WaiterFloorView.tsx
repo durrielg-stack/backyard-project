@@ -66,8 +66,9 @@ export default function WaiterFloorView({ waiterName, onTableSelect, onSignOut }
             title="Toggle theme"
             style={{
               background: T.surface2, border: `1px solid ${T.line2}`,
-              borderRadius: T.radiusLg, padding: '7px 10px',
-              color: T.textDim, fontSize: 15, cursor: 'pointer', lineHeight: 1,
+              borderRadius: T.radiusLg, padding: '10px 14px',
+              color: T.textDim, fontSize: 16, cursor: 'pointer', lineHeight: 1,
+              minHeight: 44, minWidth: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
             {mode === 'dark' ? '☀️' : '🌙'}
@@ -76,9 +77,10 @@ export default function WaiterFloorView({ waiterName, onTableSelect, onSignOut }
             onClick={onSignOut}
             style={{
               background: T.surface2, border: `1px solid ${T.line2}`,
-              borderRadius: T.radiusLg, padding: '7px 12px',
-              color: T.textMute, fontSize: 12, fontWeight: 600,
+              borderRadius: T.radiusLg, padding: '10px 16px',
+              color: T.textMute, fontSize: 13, fontWeight: 600,
               cursor: 'pointer', fontFamily: 'inherit',
+              minHeight: 44, display: 'flex', alignItems: 'center',
             }}
           >
             Sign Out
@@ -87,7 +89,11 @@ export default function WaiterFloorView({ waiterName, onTableSelect, onSignOut }
       </div>
 
       {/* Grid */}
-      <div style={{ padding: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      <div style={{
+        padding: 14, display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+        gap: 10,
+      }}>
         {tables.map(table => {
           void tick // triggers re-render for elapsed time refresh
           const order = orderByTable.get(table.id)
@@ -117,7 +123,10 @@ export default function WaiterFloorView({ waiterName, onTableSelect, onSignOut }
                   width: 7, height: 7, borderRadius: '50%',
                   background: dotColor, display: 'inline-block', flexShrink: 0,
                 }} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{table.label}</span>
+                <span style={{
+                  fontSize: 13, fontWeight: 700, color: T.text,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>{table.label}</span>
               </div>
               <div style={{ fontSize: 11, color: isOccupied ? dotColor : T.textMute, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 {statusLabel}
