@@ -65,17 +65,23 @@ export default function InventoryTab() {
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
       ) : (
         <>
+          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x', flexShrink: 0 }}>
+            <div style={{ minWidth: 680 }}>
           <div style={{
             display: 'grid', gridTemplateColumns: '1fr 120px 80px 80px 120px 160px',
             padding: '0 24px', height: 36, alignItems: 'center',
-            borderBottom: `1px solid ${T.line}`, background: T.surface2, flexShrink: 0,
+            borderBottom: `1px solid ${T.line}`, background: T.surface2,
           }}>
             {['Item','Category','Qty','Unit','Threshold','Adjust'].map(h => (
               <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
             ))}
           </div>
+            </div>
+          </div>
 
-          <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+          <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', touchAction: 'pan-y' }}>
+            <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x' }}>
+            <div style={{ minWidth: 680 }}>
             {rows.map((row, i) => {
               const isLow      = row.quantity <= row.lowStockThresh
               const isCritical = row.quantity === 0
@@ -107,17 +113,17 @@ export default function InventoryTab() {
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <button onClick={() => adjust(row, -1)} disabled={saving === row.id} style={{
-                      width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: T.chip, border: `1px solid ${T.line2}`, color: T.textDim,
                       borderRadius: T.radius, cursor: 'pointer', fontSize: 16, fontFamily: 'inherit',
                     }}>−</button>
                     <button onClick={() => adjust(row, 1)} disabled={saving === row.id} style={{
-                      width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: T.chip, border: `1px solid ${T.line2}`, color: T.textDim,
                       borderRadius: T.radius, cursor: 'pointer', fontSize: 16, fontFamily: 'inherit',
                     }}>+</button>
                     <button onClick={() => adjust(row, 10)} disabled={saving === row.id} style={{
-                      padding: '3px 10px', fontSize: 11, fontFamily: 'inherit',
+                      padding: '8px 10px', fontSize: 11, fontFamily: 'inherit',
                       background: T.chip, border: `1px solid ${T.line2}`, color: T.textDim,
                       borderRadius: T.radius, cursor: 'pointer',
                     }}>+10</button>
@@ -125,6 +131,8 @@ export default function InventoryTab() {
                 </div>
               )
             })}
+            </div>
+            </div>
           </div>
         </>
       )}

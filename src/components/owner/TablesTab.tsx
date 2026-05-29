@@ -68,7 +68,9 @@ export default function TablesTab({
       {loading ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
       ) : (
-        <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+        <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', touchAction: 'pan-y' }}>
+          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x' }}>
+          <div style={{ minWidth: 700 }}>
           <div style={{
             display: 'grid', gridTemplateColumns: '64px 1fr 80px 60px 80px 1fr 220px',
             padding: '0 24px', height: 36, alignItems: 'center',
@@ -134,6 +136,8 @@ export default function TablesTab({
               </div>
             )
           })}
+          </div>
+          </div>
         </div>
       )}
     </div>

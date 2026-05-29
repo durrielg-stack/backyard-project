@@ -177,10 +177,12 @@ export default function SalesTab() {
       />
 
       {/* ── Body ────────────────────────────────────────────────────────────── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflowY: 'auto' }}>
 
         {/* ── Category summary — always visible ───────────────────────────── */}
         <div style={{ flexShrink: 0, background: T.surface, borderBottom: `2px solid ${T.line2}` }}>
+          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x' }}>
+          <div style={{ minWidth: 480 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
@@ -210,12 +212,16 @@ export default function SalesTab() {
               </tr>
             </tbody>
           </table>
+          </div>
+          </div>
         </div>
 
         {/* ── Line items — always visible ──────────────────────────────────── */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           {/* Sticky header row */}
-          <table style={{ width: '100%', borderCollapse: 'collapse', flexShrink: 0 }}>
+          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x', flexShrink: 0 }}>
+          <div style={{ minWidth: 600 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
                 <th style={thStyle('left')}>Category</th>
@@ -229,6 +235,8 @@ export default function SalesTab() {
               </tr>
             </thead>
           </table>
+          </div>
+          </div>
 
           {loading ? (
             <div style={{
@@ -245,7 +253,9 @@ export default function SalesTab() {
               No sales on this date
             </div>
           ) : (
-            <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} className="bp-no-scrollbar">
+            <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, touchAction: 'pan-y' }} className="bp-no-scrollbar">
+              <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x' }}>
+              <div style={{ minWidth: 600 }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <tbody>
                   {lines.map((l, i) => (
@@ -262,6 +272,8 @@ export default function SalesTab() {
                   ))}
                 </tbody>
               </table>
+              </div>
+              </div>
             </div>
           )}
         </div>

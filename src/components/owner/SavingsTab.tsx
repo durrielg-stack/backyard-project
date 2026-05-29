@@ -116,7 +116,8 @@ export default function SavingsTab() {
       />
 
       {/* Running balance per partner */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
+      <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x', flexShrink: 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', borderBottom: `1px solid ${T.line}`, minWidth: 600 }}>
         {PARTNERS.map((p, i) => (
           <div key={p} style={{ padding: '14px 20px', borderRight: i < 5 ? `1px solid ${T.line}` : 'none' }}>
             <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>{p}</div>
@@ -124,6 +125,7 @@ export default function SavingsTab() {
             <div style={{ fontSize: 10, color: T.textMute, marginTop: 2 }}>running balance</div>
           </div>
         ))}
+      </div>
       </div>
 
       {/* Add form */}
@@ -154,7 +156,8 @@ export default function SavingsTab() {
               <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 8 }}>
                 Paid Out per Partner — each earns {fmtPeso(previewPer)} (auto-split equally)
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8 }}>
+              <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, minWidth: 480 }}>
                 {PARTNERS.map(p => (
                   <div key={p}>
                     <div style={{ fontSize: 11, fontWeight: 600, color: T.textDim, marginBottom: 4 }}>{p}</div>
@@ -162,12 +165,13 @@ export default function SavingsTab() {
                   </div>
                 ))}
               </div>
+              </div>
             </div>
           )}
         </div>
       )}
 
-      <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+      <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', touchAction: 'pan-y' }}>
         {loading ? (
           <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
         ) : rows.length === 0 ? (
@@ -191,6 +195,8 @@ export default function SavingsTab() {
 
               {isOpen && (
                 <div style={{ padding: '12px 24px 16px', background: T.surface2, borderTop: `1px solid ${T.line}` }}>
+                  <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x' }}>
+                  <div style={{ minWidth: 560 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: `140px repeat(${PARTNERS.length}, 1fr)`, gap: 0, marginBottom: 8 }}>
                     <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute }}></span>
                     {PARTNERS.map(p => (
@@ -212,6 +218,8 @@ export default function SavingsTab() {
                       const sp = r.splits.find(s => s.partner === p)
                       return <span key={p} style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 700, color: T.bad, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{sp ? fmtPeso(sp.paidOut) : '—'}</span>
                     })}
+                  </div>
+                  </div>
                   </div>
                   <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
                     <button onClick={() => deleteRemittance(r.id)} style={{ padding: '4px 12px', fontSize: 11, fontFamily: 'inherit', background: `${T.bad}18`, border: `1px solid ${T.bad}44`, color: T.bad, borderRadius: T.radius, cursor: 'pointer' }}>

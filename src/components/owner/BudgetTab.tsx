@@ -303,7 +303,9 @@ export default function BudgetTab() {
           {loading ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
           ) : (
-            <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+            <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', touchAction: 'pan-y' }}>
+            <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x' }}>
+            <div style={{ minWidth: 560 }}>
               {BUDGET_CATS.map((cat, i) => {
                 const starting = getStarting(cat.id)
                 const incoming = dayData.incoming[cat.id] ?? 0
@@ -319,7 +321,7 @@ export default function BudgetTab() {
                   </div>
                 )
               })}
-              {/* Totals row */}
+              {/* Totals row — close inner divs after this */}
               <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr 1fr 1fr 1fr', padding: '0 24px', height: 52, alignItems: 'center', background: T.surface2 }}>
                 <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: T.textMute }}>Total</span>
                 <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: totalStarting >= 0 ? T.ok : T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(totalStarting)}</span>
@@ -327,6 +329,8 @@ export default function BudgetTab() {
                 <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(totalExpenses)}</span>
                 <span style={{ fontFamily: T.mono, fontSize: 16, fontWeight: 700, color: totalEnding >= 0 ? T.ok : T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(totalEnding)}</span>
               </div>
+            </div>
+            </div>
             </div>
           )}
           <div style={{ padding: '10px 24px', borderTop: `1px solid ${T.line}`, flexShrink: 0, fontSize: 11, color: T.textMute }}>
@@ -337,7 +341,7 @@ export default function BudgetTab() {
 
       {/* ── LEDGER VIEW ───────────────────────────────────────────────────── */}
       {budgetView === 'ledger' && (
-        <div className="bp-no-scrollbar" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        <div className="bp-no-scrollbar" style={{ flex: 1, minHeight: 0, overflow: 'auto', touchAction: 'pan-x pan-y' }}>
           {ledgerRows.length === 0 ? (
             <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 13 }}>No data yet — bill out some orders to see data here.</div>
           ) : (() => {

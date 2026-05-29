@@ -203,17 +203,23 @@ export default function OwnerExpensesTab() {
         )
       })()}
 
+      <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x', flexShrink: 0 }}>
+        <div style={{ minWidth: 780 }}>
       <div style={{
         display: 'grid', gridTemplateColumns: '90px 100px 1fr 120px 100px 100px 80px 36px',
         padding: '0 24px', height: 36, alignItems: 'center',
-        borderBottom: `1px solid ${T.line}`, background: T.surface2, flexShrink: 0,
+        borderBottom: `1px solid ${T.line}`, background: T.surface2,
       }}>
         {['Time','Category','Description','Qty × Unit','Paid To','Receipt','Amount',''].map(h => (
           <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
         ))}
       </div>
+        </div>
+      </div>
 
-      <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+      <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', touchAction: 'pan-y' }}>
+        <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x' }}>
+        <div style={{ minWidth: 780 }}>
         {loading ? (
           <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
         ) : rows.length === 0 ? (
@@ -243,7 +249,7 @@ export default function OwnerExpensesTab() {
                 ₱{row.amount.toFixed(2)}
               </span>
               <button onClick={() => deleteExpense(row.id)} style={{
-                width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 background: 'transparent', border: `1px solid ${T.bad}33`,
                 color: T.bad, borderRadius: T.radius, cursor: 'pointer', fontSize: 14,
               }}>
@@ -252,6 +258,8 @@ export default function OwnerExpensesTab() {
             </div>
           )
         })}
+        </div>
+        </div>
       </div>
 
       {rows.length > 0 && (

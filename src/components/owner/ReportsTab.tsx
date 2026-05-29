@@ -258,7 +258,8 @@ export default function ReportsTab() {
           { label: 'Avg Turn Time',        value: avgTurnMin != null ? `${avgTurnMin}m` : '—', sub: 'open → close',                color: T.info },
         ]
         return (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
+          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x', flexShrink: 0 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', borderBottom: `1px solid ${T.line}`, minWidth: 720 }}>
             {kpis.map((k, i) => (
               <div key={k.label} style={{ padding: '14px 20px', borderRight: i < 5 ? `1px solid ${T.line}` : 'none' }}>
                 <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, marginBottom: 6 }}>{k.label}</div>
@@ -266,6 +267,7 @@ export default function ReportsTab() {
                 <div style={{ fontSize: 11, color: T.textMute, marginTop: 4 }}>{k.sub}</div>
               </div>
             ))}
+          </div>
           </div>
         )
       })()}
@@ -362,7 +364,7 @@ export default function ReportsTab() {
           </div>
 
           {rightTab === 'top' ? (
-            <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+            <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', touchAction: 'pan-y' }}>
               {topItems.length === 0 ? (
                 <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No data</div>
               ) : topItems.map((item, i) => {
@@ -396,7 +398,7 @@ export default function ReportsTab() {
               })}
             </div>
           ) : (
-            <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+            <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', touchAction: 'pan-y' }}>
               {voidedItems.length === 0 ? (
                 <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No voided items</div>
               ) : voidedItems.map((row, i) => (
@@ -419,7 +421,7 @@ export default function ReportsTab() {
       </div>
 
       {/* Category sections — fixed height, scrollable so they never squish the chart above */}
-      <div className="bp-no-scrollbar" style={{ height: '50%', flexShrink: 0, overflowY: 'auto', borderTop: `1px solid ${T.line}` }}>
+      <div className="bp-no-scrollbar" style={{ height: '50%', flexShrink: 0, overflowY: 'auto', touchAction: 'pan-y', borderTop: `1px solid ${T.line}` }}>
         {/* Category charts */}
         <div style={{ display: 'flex' }}>
           <div style={{ flex: 1, borderRight: `1px solid ${T.line}` }}>
@@ -446,11 +448,12 @@ export default function ReportsTab() {
         {catBreakdown.length > 0 && (
           <div style={{ borderTop: `1px solid ${T.line}` }}>
             <SectionHd title={`By Category · ${suffix}`} />
+            <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x' }}>
+            <div style={{ minWidth: 580 }}>
             <div style={{
               display: 'grid', gridTemplateColumns: '1fr 130px 130px 130px 90px',
               padding: '0 24px', height: 32, alignItems: 'center',
               background: T.surface2, borderBottom: `1px solid ${T.line}`,
-              position: 'sticky', top: 0, zIndex: 1,
             }}>
               {['Category','Gross','Cost','Net','Margin'].map(h => (
                 <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
@@ -475,6 +478,8 @@ export default function ReportsTab() {
                 </div>
               )
             })}
+            </div>
+            </div>
           </div>
         )}
       </div>

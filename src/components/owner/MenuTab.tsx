@@ -66,7 +66,7 @@ export default function MenuTab() {
         title="Menu"
         badge={`${items.filter(i => i.isAvailable).length}/${items.length} available`}
         action={
-          <div className="bp-no-scrollbar" style={{ display: 'flex', gap: 4, overflowX: 'auto', maxWidth: 480 }}>
+          <div className="bp-no-scrollbar" style={{ display: 'flex', gap: 4, overflowX: 'auto', touchAction: 'pan-x' }}>
             {cats.slice(0, 8).map(c => (
               <Pill key={c} label={c === 'all' ? 'All' : c} active={filterCat === c} onClick={() => setFilterCat(c)} />
             ))}
@@ -77,17 +77,23 @@ export default function MenuTab() {
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
       ) : (
         <>
+          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x', flexShrink: 0 }}>
+            <div style={{ minWidth: 560 }}>
           <div style={{
             display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px 120px',
             padding: '0 24px', height: 36, alignItems: 'center',
-            borderBottom: `1px solid ${T.line}`, background: T.surface2, flexShrink: 0,
+            borderBottom: `1px solid ${T.line}`, background: T.surface2,
           }}>
             {['Name','Category','Price','Cost','Available'].map(h => (
               <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
             ))}
           </div>
+            </div>
+          </div>
 
-          <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+          <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', touchAction: 'pan-y' }}>
+            <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x' }}>
+            <div style={{ minWidth: 560 }}>
             {filtered.map((item, i) => {
               const isEditing = editId === item.id
               const isSaving  = saving === item.id
@@ -143,7 +149,7 @@ export default function MenuTab() {
                       onClick={() => toggleAvail(item)}
                       disabled={isSaving}
                       style={{
-                        padding: '3px 12px', fontSize: 11, fontFamily: 'inherit', fontWeight: 600,
+                        padding: '8px 12px', fontSize: 11, fontFamily: 'inherit', fontWeight: 600,
                         background: item.isAvailable ? `${T.ok}22` : `${T.bad}18`,
                         border: `1px solid ${item.isAvailable ? T.ok : T.bad}44`,
                         color: item.isAvailable ? T.ok : T.bad,
@@ -156,6 +162,8 @@ export default function MenuTab() {
                 </div>
               )
             })}
+            </div>
+            </div>
           </div>
         </>
       )}
