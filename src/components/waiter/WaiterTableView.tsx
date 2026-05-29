@@ -28,7 +28,7 @@ export default function WaiterTableView({ tableId, waiterName, onAddItems, onBac
 
   return (
     <div style={{
-      background: T.bg, minHeight: '100dvh',
+      background: T.bg, height: '100dvh',
       fontFamily: T.sansBody, display: 'flex', flexDirection: 'column',
     }}>
       {/* Header */}
