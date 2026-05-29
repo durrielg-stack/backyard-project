@@ -47,10 +47,12 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: StaffPickerProps) {
     setLoading(true)
     setError(false)
     const sb = getClient()
-    const email = `${selected.name.toLowerCase().replace(/\s+/g, '.')}@backyard.pos`
-    const { error: authErr } = await sb.auth.signInWithPassword({ email, password })
+    const { data, error: rpcErr } = await sb.rpc('verify_staff_login', {
+      p_name: selected.name,
+      p_password: password,
+    })
     setLoading(false)
-    if (authErr) {
+    if (rpcErr || !data || data.length === 0) {
       setError(true)
       setPassword('')
       setTimeout(() => inputRef.current?.focus(), 50)
