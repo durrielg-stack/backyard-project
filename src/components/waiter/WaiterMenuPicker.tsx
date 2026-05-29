@@ -42,8 +42,12 @@ export default function WaiterMenuPicker({ tableId, waiterName, onBack, onSent }
   const [sent, setSent]         = useState(false)
 
   useEffect(() => {
+    document.documentElement.style.overflow = 'auto'
     document.body.style.overflow = 'auto'
-    return () => { document.body.style.overflow = '' }
+    return () => {
+      document.documentElement.style.overflow = ''
+      document.body.style.overflow = ''
+    }
   }, [])
 
   const pendingList = Array.from(pending.values())

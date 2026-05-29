@@ -20,8 +20,12 @@ export default function WaiterTableView({ tableId, waiterName, onAddItems, onBac
   const { lines, loading }  = useOrder(tableId, waiterName)
 
   useEffect(() => {
+    document.documentElement.style.overflow = 'auto'
     document.body.style.overflow = 'auto'
-    return () => { document.body.style.overflow = '' }
+    return () => {
+      document.documentElement.style.overflow = ''
+      document.body.style.overflow = ''
+    }
   }, [])
 
   const total = lines.reduce((sum, l) => sum + l.unitPrice * l.qty, 0)

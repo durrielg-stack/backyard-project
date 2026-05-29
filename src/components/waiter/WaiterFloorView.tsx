@@ -33,8 +33,12 @@ export default function WaiterFloorView({ waiterName, onTableSelect, onSignOut }
   }, [])
 
   useEffect(() => {
+    document.documentElement.style.overflow = 'auto'
     document.body.style.overflow = 'auto'
-    return () => { document.body.style.overflow = '' }
+    return () => {
+      document.documentElement.style.overflow = ''
+      document.body.style.overflow = ''
+    }
   }, [])
 
   // Build order lookup by table
