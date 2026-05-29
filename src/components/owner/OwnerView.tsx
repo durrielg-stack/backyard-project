@@ -429,14 +429,14 @@ function TablesTab({ liveTableStatuses }: { liveTableStatuses: TableWithStatus[]
       {loading ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
       ) : (
-        <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
-          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+        <div className="bp-no-scrollbar" style={{ flex: 1, overflow: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
           <div style={{ minWidth: 640 }}>
           {/* Header */}
           <div style={{
             display: 'grid', gridTemplateColumns: '64px 1fr 80px 60px 80px 1fr 220px',
             padding: '0 24px', height: 36, alignItems: 'center',
-            borderBottom: `1px solid ${T.line}`, background: T.surface2, flexShrink: 0,
+            borderBottom: `1px solid ${T.line}`, background: T.surface2,
+            position: 'sticky', top: 0, zIndex: 1,
           }}>
             {['Table','Section','Seats','Status','Open','Check','Actions'].map(h => (
               <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>
@@ -504,7 +504,6 @@ function TablesTab({ liveTableStatuses }: { liveTableStatuses: TableWithStatus[]
             )
           })}
           </div>
-          </div>
         </div>
       )}
     </div>
@@ -571,14 +570,14 @@ function MenuTab() {
       {loading ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
       ) : (
-        <>
-          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none', flexShrink: 0 }}>
+        <div className="bp-no-scrollbar" style={{ flex: 1, overflow: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
           <div style={{ minWidth: 480 }}>
           {/* Column header */}
           <div style={{
             display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px 120px',
             padding: '0 24px', height: 36, alignItems: 'center',
-            borderBottom: `1px solid ${T.line}`, background: T.surface2, flexShrink: 0,
+            borderBottom: `1px solid ${T.line}`, background: T.surface2,
+            position: 'sticky', top: 0, zIndex: 1,
           }}>
             {['Name','Category','Price','Cost','Available'].map(h => (
               <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>
@@ -586,12 +585,6 @@ function MenuTab() {
               </span>
             ))}
           </div>
-          </div>
-          </div>
-
-          <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
-          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
-          <div style={{ minWidth: 480 }}>
             {filtered.map((item, i) => {
               const isEditing = editId === item.id
               const isSaving  = saving === item.id
@@ -663,9 +656,7 @@ function MenuTab() {
               )
             })}
           </div>
-          </div>
-          </div>
-        </>
+        </div>
       )}
     </div>
   )
@@ -721,13 +712,13 @@ function InventoryTab() {
       {loading ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
       ) : (
-        <>
-          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none', flexShrink: 0 }}>
+        <div className="bp-no-scrollbar" style={{ flex: 1, overflow: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
           <div style={{ minWidth: 560 }}>
           <div style={{
             display: 'grid', gridTemplateColumns: '1fr 120px 80px 80px 120px 160px',
             padding: '0 24px', height: 36, alignItems: 'center',
-            borderBottom: `1px solid ${T.line}`, background: T.surface2, flexShrink: 0,
+            borderBottom: `1px solid ${T.line}`, background: T.surface2,
+            position: 'sticky', top: 0, zIndex: 1,
           }}>
             {['Item','Category','Qty','Unit','Threshold','Adjust'].map(h => (
               <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>
@@ -735,12 +726,6 @@ function InventoryTab() {
               </span>
             ))}
           </div>
-          </div>
-          </div>
-
-          <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
-          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
-          <div style={{ minWidth: 560 }}>
             {rows.map((row, i) => {
               const isLow = row.quantity <= row.lowStockThresh
               const isCritical = row.quantity === 0
@@ -791,9 +776,7 @@ function InventoryTab() {
               )
             })}
           </div>
-          </div>
-          </div>
-        </>
+        </div>
       )}
     </div>
   )
@@ -998,13 +981,14 @@ function ExpensesTab() {
         )
       })()}
 
-      <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none', flexShrink: 0 }}>
+      <div className="bp-no-scrollbar" style={{ flex: 1, overflow: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
       <div style={{ minWidth: 700 }}>
       {/* List header */}
       <div style={{
         display: 'grid', gridTemplateColumns: '90px 100px 1fr 120px 100px 100px 80px 36px',
         padding: '0 24px', height: 36, alignItems: 'center',
-        borderBottom: `1px solid ${T.line}`, background: T.surface2, flexShrink: 0,
+        borderBottom: `1px solid ${T.line}`, background: T.surface2,
+        position: 'sticky', top: 0, zIndex: 1,
       }}>
         {['Time','Category','Description','Qty × Unit','Paid To','Receipt','Amount',''].map(h => (
           <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>
@@ -1012,12 +996,6 @@ function ExpensesTab() {
           </span>
         ))}
       </div>
-      </div>
-      </div>
-
-      <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
-      <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
-      <div style={{ minWidth: 700 }}>
         {loading ? (
           <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
         ) : rows.length === 0 ? (
@@ -1058,7 +1036,6 @@ function ExpensesTab() {
             </div>
           )
         })}
-      </div>
       </div>
       </div>
 

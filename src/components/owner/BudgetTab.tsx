@@ -323,11 +323,10 @@ export default function BudgetTab() {
           {loading ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
           ) : (
-            <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', touchAction: 'pan-y' }}>
-            <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+            <div className="bp-no-scrollbar" style={{ flex: 1, overflow: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
             <div style={{ minWidth: 560 }}>
               {/* Column header */}
-              <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr 1fr 1fr 1fr', padding: '0 24px', height: 36, alignItems: 'center', borderBottom: `1px solid ${T.line}`, background: T.surface2, flexShrink: 0 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr 1fr 1fr 1fr', padding: '0 24px', height: 36, alignItems: 'center', borderBottom: `1px solid ${T.line}`, background: T.surface2, position: 'sticky', top: 0, zIndex: 1 }}>
                 {['Category', 'Starting', 'Sales', 'Expenses', 'Ending'].map(h => (
                   <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
                 ))}
@@ -355,7 +354,6 @@ export default function BudgetTab() {
                 <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(totalExpenses)}</span>
                 <span style={{ fontFamily: T.mono, fontSize: 16, fontWeight: 700, color: totalEnding >= 0 ? T.ok : T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(totalEnding)}</span>
               </div>
-            </div>
             </div>
             </div>
           )}
