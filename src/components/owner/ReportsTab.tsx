@@ -466,37 +466,33 @@ export default function ReportsTab() {
         {catBreakdown.length > 0 && (
           <div>
             <SectionHd title={`By Category · ${suffix}`} />
-            <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
-            <div style={{ minWidth: 580 }}>
-            <div style={{
-              display: 'grid', gridTemplateColumns: '1fr 130px 130px 130px 90px',
-              padding: '0 24px', height: 32, alignItems: 'center',
-              background: T.surface2, borderBottom: `1px solid ${T.line}`,
-            }}>
-              {['Category','Gross','Cost','Net','Margin'].map(h => (
-                <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
-              ))}
-            </div>
-            {catBreakdown.map((row, i) => {
-              const margin = row.gross > 0 ? (row.net / row.gross) * 100 : 0
-              return (
-                <div key={row.category} style={{
-                  display: 'grid', gridTemplateColumns: '1fr 130px 130px 130px 90px',
-                  padding: '0 24px', height: 40, alignItems: 'center',
-                  borderBottom: `1px solid ${T.line}`,
-                  background: i % 2 === 0 ? 'transparent' : T.surface,
-                }}>
-                  <span style={{ fontSize: 13, fontWeight: 500, color: T.text }}>{row.category}</span>
-                  <span style={{ fontFamily: T.mono, fontSize: 12, color: T.accent, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(row.gross)}</span>
-                  <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(row.cost)}</span>
-                  <span style={{ fontFamily: T.mono, fontSize: 12, color: T.ok, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(row.net)}</span>
-                  <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: margin >= 60 ? T.ok : margin >= 40 ? T.warn : T.bad }}>
-                    {margin.toFixed(1)}%
-                  </span>
-                </div>
-              )
-            })}
-            </div>
+            <div className="bp-no-scrollbar" style={{ overflow: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+              <table style={{ borderCollapse: 'collapse', minWidth: 580, width: '100%' }}>
+                <thead>
+                  <tr>
+                    <th style={{ padding: '8px 16px', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.textMute, textAlign: 'left', background: T.surface2, borderBottom: `1px solid ${T.line}`, position: 'sticky', top: 0, left: 0, zIndex: 4, minWidth: 160, whiteSpace: 'nowrap' }}>Category</th>
+                    <th style={{ padding: '8px 16px', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.textMute, textAlign: 'right', background: T.surface2, borderBottom: `1px solid ${T.line}`, position: 'sticky', top: 0, zIndex: 2, minWidth: 130, whiteSpace: 'nowrap' }}>Gross</th>
+                    <th style={{ padding: '8px 16px', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.textMute, textAlign: 'right', background: T.surface2, borderBottom: `1px solid ${T.line}`, position: 'sticky', top: 0, zIndex: 2, minWidth: 130, whiteSpace: 'nowrap' }}>Cost</th>
+                    <th style={{ padding: '8px 16px', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.textMute, textAlign: 'right', background: T.surface2, borderBottom: `1px solid ${T.line}`, position: 'sticky', top: 0, zIndex: 2, minWidth: 130, whiteSpace: 'nowrap' }}>Net</th>
+                    <th style={{ padding: '8px 16px', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.textMute, textAlign: 'right', background: T.surface2, borderBottom: `1px solid ${T.line}`, position: 'sticky', top: 0, zIndex: 2, minWidth: 90, whiteSpace: 'nowrap' }}>Margin</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {catBreakdown.map((row, i) => {
+                    const margin = row.gross > 0 ? (row.net / row.gross) * 100 : 0
+                    const rowBg = i % 2 === 0 ? T.bg : T.surface
+                    return (
+                      <tr key={row.category} style={{ background: rowBg }}>
+                        <td style={{ padding: '9px 16px', fontSize: 13, fontWeight: 500, color: T.text, whiteSpace: 'nowrap', position: 'sticky', left: 0, background: rowBg, zIndex: 1 }}>{row.category}</td>
+                        <td style={{ padding: '9px 16px', fontFamily: T.mono, fontSize: 12, color: T.accent, textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fmtPeso(row.gross)}</td>
+                        <td style={{ padding: '9px 16px', fontFamily: T.mono, fontSize: 12, color: T.textMute, textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fmtPeso(row.cost)}</td>
+                        <td style={{ padding: '9px 16px', fontFamily: T.mono, fontSize: 12, color: T.ok, textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fmtPeso(row.net)}</td>
+                        <td style={{ padding: '9px 16px', fontFamily: T.mono, fontSize: 12, fontWeight: 600, textAlign: 'right', whiteSpace: 'nowrap', color: margin >= 60 ? T.ok : margin >= 40 ? T.warn : T.bad }}>{margin.toFixed(1)}%</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
