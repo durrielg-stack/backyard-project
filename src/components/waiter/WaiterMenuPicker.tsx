@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useTheme } from '@/lib/ThemeContext'
 import { useMenuItems } from '@/hooks/useMenuItems'
 import { useOrder } from '@/hooks/useOrder'
@@ -40,6 +40,11 @@ export default function WaiterMenuPicker({ tableId, waiterName, onBack, onSent }
   const [showConfirm, setShowConfirm] = useState(false)
   const [sending, setSending]   = useState(false)
   const [sent, setSent]         = useState(false)
+
+  useEffect(() => {
+    document.body.style.overflow = 'auto'
+    return () => { document.body.style.overflow = '' }
+  }, [])
 
   const pendingList = Array.from(pending.values())
   const pendingTotal = pendingList.reduce((s, p) => s + p.item.price * p.qty, 0)

@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useTheme } from '@/lib/ThemeContext'
 import { useOrder } from '@/hooks/useOrder'
 
@@ -17,6 +18,11 @@ function fmtPeso(n: number) {
 export default function WaiterTableView({ tableId, waiterName, onAddItems, onBack }: Props) {
   const { T, mode, toggle } = useTheme()
   const { lines, loading }  = useOrder(tableId, waiterName)
+
+  useEffect(() => {
+    document.body.style.overflow = 'auto'
+    return () => { document.body.style.overflow = '' }
+  }, [])
 
   const total = lines.reduce((sum, l) => sum + l.unitPrice * l.qty, 0)
 

@@ -32,6 +32,11 @@ export default function WaiterFloorView({ waiterName, onTableSelect, onSignOut }
     return () => clearInterval(id)
   }, [])
 
+  useEffect(() => {
+    document.body.style.overflow = 'auto'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
   // Build order lookup by table
   const orderByTable = new Map(orders.map(o => [o.table_id, o]))
 
