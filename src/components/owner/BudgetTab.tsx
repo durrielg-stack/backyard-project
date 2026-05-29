@@ -409,10 +409,11 @@ export default function BudgetTab() {
                 {/* Data rows */}
                 {reversed.map((row, ri) => {
                   const isToday = row.date === todayStr
-                  const rowBg   = isToday ? `${T.accent}0d` : ri % 2 === 0 ? 'transparent' : T.surface
+                  const rowBg     = isToday ? `${T.accent}0d` : ri % 2 === 0 ? 'transparent' : T.surface
+                  const dateCellBg = isToday ? T.bg : ri % 2 === 0 ? T.bg : T.surface
                   return (
                     <div key={row.date} style={{ display: 'flex', borderBottom: `1px solid ${T.line}`, background: rowBg }}>
-                      <div style={{ width: DATE_W, flexShrink: 0, height: 42, display: 'flex', alignItems: 'center', paddingLeft: 14, position: 'sticky', left: 0, background: rowBg, zIndex: 1, borderRight: `1px solid ${T.line2}` }}>
+                      <div style={{ width: DATE_W, flexShrink: 0, height: 42, display: 'flex', alignItems: 'center', paddingLeft: 14, position: 'sticky', left: 0, background: dateCellBg, zIndex: 1, borderRight: `1px solid ${T.line2}` }}>
                         <div>
                           <div style={{ fontFamily: T.mono, fontSize: 12, color: isToday ? T.accent : T.textDim, fontWeight: isToday ? 700 : 400 }}>
                             {`${row.date.slice(5)}/${row.date.slice(2, 4)}`}
