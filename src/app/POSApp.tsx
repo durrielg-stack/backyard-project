@@ -47,7 +47,11 @@ export default function POSApp() {
   })
 
   const handleSelectStaff = useCallback((userId: string, name: string, initials: string, role: string) => {
-    if (role === 'waiter') { window.location.href = '/waiter'; return }
+    if (role === 'waiter') {
+      localStorage.setItem('bp_waiter', JSON.stringify({ userId, name }))
+      window.location.href = '/waiter'
+      return
+    }
     const s = { userId, name, initials, role }
     localStorage.setItem('bp_staff', JSON.stringify(s))
     setStaff(s)

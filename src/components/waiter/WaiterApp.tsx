@@ -1,9 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { getClient } from '@/lib/supabase'
+import { useState } from 'react'
 import { useTheme } from '@/lib/ThemeContext'
-import WaiterLogin from './WaiterLogin'
 import WaiterFloorView from './WaiterFloorView'
 import WaiterTableView from './WaiterTableView'
 import WaiterMenuPicker from './WaiterMenuPicker'
@@ -15,47 +13,46 @@ type Screen =
 
 interface WaiterSession { userId: string; name: string }
 
+function loadSession(): WaiterSession | null {
+  try {
+    const raw = localStorage.getItem('bp_waiter')
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+
 export default function WaiterApp() {
   const { T } = useTheme()
-  const [session, setSession]       = useState<WaiterSession | null>(null)
-  const [authLoading, setAuthLoading] = useState(true)
-  const [screen, setScreen]         = useState<Screen>({ kind: 'floor' })
+  const [session] = useState<WaiterSession | null>(() => loadSession())
+  const [screen, setScreen] = useState<Screen>({ kind: 'floor' })
 
-  useEffect(() => {
-    const sb = getClient()
-    sb.auth.getSession().then(async ({ data: { session: s } }) => {
-      if (s) {
-        const { data: user } = await sb
-          .from('users').select('name, role').eq('id', s.user.id).single()
-        if (user?.role === 'waiter') {
-          setSession({ userId: s.user.id, name: user.name })
-        }
-      }
-      setAuthLoading(false)
-    })
-  }, [])
-
-  function handleLogin(userId: string, name: string) {
-    setSession({ userId, name })
-    setScreen({ kind: 'floor' })
+  function handleSignOut() {
+    localStorage.removeItem('bp_waiter')
+    window.location.href = '/'
   }
 
-  async function handleSignOut() {
-    await getClient().auth.signOut()
-    setSession(null)
-    setScreen({ kind: 'floor' })
+  if (!session) {
+    return (
+      <div style={{
+        background: T.bg, height: '100dvh',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexDirection: 'column', gap: 16,
+      }}>
+        <div style={{ color: T.textMute, fontSize: 13, fontFamily: T.mono }}>
+          No active session.
+        </div>
+        <button
+          onClick={() => { window.location.href = '/' }}
+          style={{
+            background: T.accent, color: T.accentInk, border: 'none',
+            borderRadius: T.radius, padding: '10px 20px', fontSize: 13,
+            fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+          }}
+        >
+          Go to Sign In
+        </button>
+      </div>
+    )
   }
-
-  if (authLoading) return (
-    <div style={{
-      background: T.bg, height: '100dvh',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-    }}>
-      <div style={{ color: T.textMute, fontSize: 13, fontFamily: T.mono }}>Loading…</div>
-    </div>
-  )
-
-  if (!session) return <WaiterLogin onLogin={handleLogin} />
 
   if (screen.kind === 'floor') return (
     <WaiterFloorView
