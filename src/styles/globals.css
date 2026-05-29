@@ -85,6 +85,7 @@
 /* ── Horizontal scroll (allows vertical to bubble to parent) ─ */
 .bp-scroll-x {
   overscroll-behavior-x: contain;
+  overscroll-behavior-y: none;
   touch-action: pan-x pan-y;
 }
 

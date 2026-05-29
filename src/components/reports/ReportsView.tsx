@@ -48,7 +48,7 @@ function SalesKpiStrip({ suffix, revenue, cost, expenses, txCount, avgOrder, avg
   const bp = useBreakpoint()
   const isMobile = bp === 'mobile'
   return (
-    <div className="bp-no-scrollbar" style={{ display: isMobile ? 'flex' : 'grid', gridTemplateColumns: isMobile ? undefined : 'repeat(6, 1fr)', overflowX: isMobile ? 'auto' : undefined, touchAction: isMobile ? 'pan-x' : undefined, WebkitOverflowScrolling: 'touch', height: isMobile ? 'auto' : 88, borderBottom: `1px solid ${T.line}`, flexShrink: 0, background: T.bg }}>
+    <div className="bp-no-scrollbar" style={{ display: isMobile ? 'flex' : 'grid', gridTemplateColumns: isMobile ? undefined : 'repeat(6, 1fr)', overflowX: isMobile ? 'auto' : undefined, touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none', WebkitOverflowScrolling: 'touch', height: isMobile ? 'auto' : 88, borderBottom: `1px solid ${T.line}`, flexShrink: 0, background: T.bg }}>
       {kpis.map((k) => (
         <div key={k.label} style={{
           padding: '10px 18px',
@@ -79,7 +79,7 @@ function ExpensesKpiStrip({ expenses, expCatBreakdown }: {
   const bp2 = useBreakpoint()
   const isMobile2 = bp2 === 'mobile'
   return (
-    <div className="bp-no-scrollbar" style={{ display: isMobile2 ? 'flex' : 'grid', gridTemplateColumns: isMobile2 ? undefined : 'repeat(6, 1fr)', overflowX: isMobile2 ? 'auto' : undefined, touchAction: isMobile2 ? 'pan-x' : undefined, WebkitOverflowScrolling: 'touch', height: isMobile2 ? 'auto' : 88, borderBottom: `1px solid ${T.line}`, flexShrink: 0, background: T.surface }}>
+    <div className="bp-no-scrollbar" style={{ display: isMobile2 ? 'flex' : 'grid', gridTemplateColumns: isMobile2 ? undefined : 'repeat(6, 1fr)', overflowX: isMobile2 ? 'auto' : undefined, touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none', WebkitOverflowScrolling: 'touch', height: isMobile2 ? 'auto' : 88, borderBottom: `1px solid ${T.line}`, flexShrink: 0, background: T.surface }}>
       {CAT_ORDER.map((cat) => {
         const c   = catMap[cat] ?? { category: cat, amount: 0 }
         const val = c.amount

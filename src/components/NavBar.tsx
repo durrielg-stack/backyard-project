@@ -199,6 +199,7 @@ export default function NavBar({
       <div className="bp-no-scrollbar" style={{
         display: 'flex', alignItems: 'stretch', flex: 1, minWidth: 0,
         overflowX: 'auto', touchAction: 'pan-x pan-y',
+        overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none',
         gap: 0,
       }}>
         {/* Sales (floor) */}
