@@ -368,56 +368,58 @@ export default function ExpensesView() {
         )
       })()}
 
-      {/* List header */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: '90px 80px 100px 1fr 160px 80px 36px',
-        padding: '0 24px', height: 36, alignItems: 'center',
-        borderBottom: `1px solid ${T.line}`, background: T.surface2, flexShrink: 0,
-      }}>
-        {['Time','Date','Category','Name','Qty × Unit','Amount',''].map(h => (
-          <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
-        ))}
-      </div>
-
-      <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
-        {loading ? (
-          <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
-        ) : rows.length === 0 ? (
-          <div style={{ padding: '32px 24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>
-            No expenses logged for this period
+      {/* List header + rows — single scroll container so they move together horizontally */}
+      <div className="bp-no-scrollbar" style={{ flex: 1, overflow: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+        <div style={{ minWidth: 820, display: 'flex', flexDirection: 'column' }}>
+          <div style={{
+            display: 'grid', gridTemplateColumns: '90px 80px 120px 1fr 180px 100px 36px',
+            padding: '0 24px', height: 36, alignItems: 'center',
+            borderBottom: `1px solid ${T.line}`, background: T.surface2,
+            position: 'sticky', top: 0, zIndex: 1,
+          }}>
+            {['Time','Date','Category','Name','Qty × Unit','Amount',''].map(h => (
+              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
+            ))}
           </div>
-        ) : rows.map((row, i) => {
-          const dt      = new Date(row.createdAt)
-          const time    = `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`
-          const qtyPart = row.qty % 1 === 0 ? String(row.qty) : row.qty.toFixed(3)
-          const unitPart = row.unit ? ` ${row.unit}` : ''
-          const pricePart = row.unitPrice != null ? ` × ₱${row.unitPrice.toFixed(2)}` : ''
-          const qtyUnit = row.unitPrice != null || row.unit
-            ? `${qtyPart}${unitPart}${pricePart}`
-            : '—'
-          return (
-            <div key={row.id} style={{
-              display: 'grid', gridTemplateColumns: '90px 80px 100px 1fr 160px 80px 36px',
-              padding: '0 24px', height: 44, alignItems: 'center',
-              borderBottom: `1px solid ${T.line}`,
-              background: i % 2 === 0 ? 'transparent' : T.surface,
-            }}>
-              <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute, fontVariantNumeric: 'tabular-nums' }}>{time}</span>
-              <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute }}>{row.expenseDate.slice(5)}</span>
-              <span style={{ fontSize: 11, fontWeight: 600, color: catColor(T)[row.category] ?? T.textDim }}>{row.category}</span>
-              <span style={{ fontSize: 13, color: T.text }}>{row.description}</span>
-              <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute }}>{qtyUnit}</span>
-              <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: T.bad, fontVariantNumeric: 'tabular-nums' }}>
-                ₱{row.amount.toFixed(2)}
-              </span>
-              {row.expenseDate === today && (
-                <button onClick={() => deleteExpense(row.id)} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: `1px solid ${T.bad}33`, color: T.bad, borderRadius: T.radius, cursor: 'pointer', fontSize: 14 }}>
-                  ×
-                </button>
-              )}
+          {loading ? (
+            <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
+          ) : rows.length === 0 ? (
+            <div style={{ padding: '32px 24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>
+              No expenses logged for this period
             </div>
-          )
-        })}
+          ) : rows.map((row, i) => {
+            const dt      = new Date(row.createdAt)
+            const time    = `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`
+            const qtyPart = row.qty % 1 === 0 ? String(row.qty) : row.qty.toFixed(3)
+            const unitPart = row.unit ? ` ${row.unit}` : ''
+            const pricePart = row.unitPrice != null ? ` × ₱${row.unitPrice.toFixed(2)}` : ''
+            const qtyUnit = row.unitPrice != null || row.unit
+              ? `${qtyPart}${unitPart}${pricePart}`
+              : '—'
+            return (
+              <div key={row.id} style={{
+                display: 'grid', gridTemplateColumns: '90px 80px 120px 1fr 180px 100px 36px',
+                padding: '0 24px', height: 44, alignItems: 'center',
+                borderBottom: `1px solid ${T.line}`,
+                background: i % 2 === 0 ? 'transparent' : T.surface,
+              }}>
+                <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute, fontVariantNumeric: 'tabular-nums' }}>{time}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute }}>{row.expenseDate.slice(5)}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: catColor(T)[row.category] ?? T.textDim }}>{row.category}</span>
+                <span style={{ fontSize: 13, color: T.text }}>{row.description}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute }}>{qtyUnit}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: T.bad, fontVariantNumeric: 'tabular-nums' }}>
+                  ₱{row.amount.toFixed(2)}
+                </span>
+                {row.expenseDate === today && (
+                  <button onClick={() => deleteExpense(row.id)} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: `1px solid ${T.bad}33`, color: T.bad, borderRadius: T.radius, cursor: 'pointer', fontSize: 14 }}>
+                    ×
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       {/* Footer total */}
