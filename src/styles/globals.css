@@ -71,6 +71,11 @@
   body [data-print-receipt] { display: block !important; }
 }
 
+/* ── Waiter portrait-only lock ───────────────────────────── */
+@media (orientation: landscape) and (max-height: 600px) {
+  .bp-landscape-block { display: flex !important; }
+}
+
 /* ── Base reset ──────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 
