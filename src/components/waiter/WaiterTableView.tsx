@@ -1,0 +1,121 @@
+'use client'
+
+import { useTheme } from '@/lib/ThemeContext'
+import { useOrder } from '@/hooks/useOrder'
+
+interface Props {
+  tableId: string
+  waiterName: string
+  onAddItems: () => void
+  onBack: () => void
+}
+
+function fmtPeso(n: number) {
+  return '₱' + n.toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+}
+
+export default function WaiterTableView({ tableId, waiterName, onAddItems, onBack }: Props) {
+  const { T, mode, toggle } = useTheme()
+  const { lines, loading }  = useOrder(tableId, waiterName)
+
+  const total = lines.reduce((sum, l) => sum + l.unitPrice * l.qty, 0)
+
+  return (
+    <div style={{
+      background: T.bg, minHeight: '100dvh',
+      fontFamily: T.sansBody, display: 'flex', flexDirection: 'column',
+    }}>
+      {/* Header */}
+      <div style={{
+        background: T.surface, borderBottom: `1px solid ${T.line}`,
+        padding: '10px 16px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        position: 'sticky', top: 0, zIndex: 10,
+      }}>
+        <button
+          onClick={onBack}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: T.info, fontSize: 14, fontFamily: 'inherit', padding: '4px 0',
+          }}
+        >
+          ← Tables
+        </button>
+        <div style={{ fontSize: 15, fontWeight: 700, color: T.text }}>{tableId}</div>
+        <button
+          onClick={toggle}
+          style={{
+            background: T.surface2, border: `1px solid ${T.line2}`,
+            borderRadius: T.radiusLg, padding: '6px 10px',
+            color: T.textDim, fontSize: 15, cursor: 'pointer', lineHeight: 1,
+          }}
+        >
+          {mode === 'dark' ? '☀️' : '🌙'}
+        </button>
+      </div>
+
+      {/* Order lines */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
+        {loading ? (
+          <div style={{ color: T.textMute, fontSize: 13, fontFamily: T.mono, padding: '24px 0', textAlign: 'center' }}>
+            Loading order…
+          </div>
+        ) : lines.length === 0 ? (
+          <div style={{ color: T.textMute, fontSize: 13, padding: '32px 0', textAlign: 'center' }}>
+            No items yet — tap Add Items to start.
+          </div>
+        ) : (
+          <>
+            <div style={{
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+              color: T.textMute, paddingBottom: 8, borderBottom: `1px solid ${T.line}`, marginBottom: 4,
+            }}>
+              Current Order
+            </div>
+            {lines.map(line => (
+              <div key={line.lineId} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                padding: '10px 0', borderBottom: `1px solid ${T.line}`,
+              }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, color: T.text }}>{line.itemName}</div>
+                  {line.note && (
+                    <div style={{ fontSize: 11, color: T.textMute, marginTop: 2, fontStyle: 'italic' }}>
+                      {line.note}
+                    </div>
+                  )}
+                </div>
+                <div style={{ fontSize: 12, color: T.textDim, margin: '0 12px' }}>×{line.qty}</div>
+                <div style={{ fontSize: 13, color: T.textDim, fontFamily: T.mono }}>
+                  {fmtPeso(line.unitPrice * line.qty)}
+                </div>
+              </div>
+            ))}
+            <div style={{
+              display: 'flex', justifyContent: 'space-between',
+              padding: '12px 0', fontSize: 14, fontWeight: 700, color: T.text,
+            }}>
+              <span>Running Total</span>
+              <span style={{ color: T.ok }}>{fmtPeso(total)}</span>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Add Items button */}
+      <div style={{ padding: '12px 16px', borderTop: `1px solid ${T.line}`, background: T.surface }}>
+        <button
+          onClick={onAddItems}
+          style={{
+            width: '100%', padding: '15px', fontSize: 15, fontWeight: 700,
+            background: T.accent, color: T.accentInk,
+            border: 'none', borderRadius: T.radius, cursor: 'pointer',
+            fontFamily: 'inherit',
+          }}
+        >
+          + Add Items
+        </button>
+      </div>
+    </div>
+  )
+}

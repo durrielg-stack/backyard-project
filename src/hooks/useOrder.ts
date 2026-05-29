@@ -27,9 +27,11 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
   const [error, setError]       = useState<string | null>(null)
   const lineCount               = useRef(1)
   const linesRef                = useRef<CartLine[]>([])
+  const orderIdRef              = useRef<number | null>(null)
 
-  // Keep linesRef in sync so callbacks with stale closures always see current lines
+  // Keep refs in sync so callbacks with stale closures always see current values
   useEffect(() => { linesRef.current = lines }, [lines])
+  useEffect(() => { orderIdRef.current = orderId }, [orderId])
 
   // ── Load open order + items on mount ────────────────────────────────────
   useEffect(() => {
@@ -86,7 +88,8 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
 
   // ── Ensure open order exists, return its id ──────────────────────────────
   const ensureOrder = useCallback(async (): Promise<number | null> => {
-    if (orderId) return orderId
+    const existing = orderIdRef.current
+    if (existing) return existing
     const sb = getClient()
 
     const { data: order, error } = await sb
@@ -98,11 +101,12 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
     if (error) { setError(error.message); return null }
 
     const oid = order.id as number
+    orderIdRef.current = oid   // update ref immediately so concurrent addItem calls see it
     setOrderId(oid)
     // Mark table occupied in DB (realtime propagates to other devices)
     await sb.from('restaurant_tables').update({ status: 'occupied' }).eq('id', tableId)
     return oid
-  }, [orderId, tableId])
+  }, [tableId, staff])
 
   // ── Add item ─────────────────────────────────────────────────────────────
   const addItem = useCallback(async (

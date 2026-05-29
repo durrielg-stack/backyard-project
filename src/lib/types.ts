@@ -131,6 +131,12 @@ export interface TableWithStatus {
 export interface Database {
   public: {
     Tables: {
+      users: {
+        Row: { id: string; name: string; role: string; is_active: boolean | null; created_at: string | null }
+        Insert: { id: string; name: string; role: string; is_active?: boolean | null; created_at?: string | null }
+        Update: { name?: string; role?: string; is_active?: boolean | null }
+        Relationships: []
+      }
       restaurant_tables: {
         Row: { id: string; label: string; section: string; capacity: number; status: DbTableStatus; pos_x: number | null; pos_y: number | null; created_at: string }
         Insert: { id: string; label: string; section: string; capacity: number; status: DbTableStatus; pos_x?: number | null; pos_y?: number | null; created_at?: string }
