@@ -11,6 +11,7 @@ import { dayBounds, weekBounds, monthBounds, localDateStr, parseLocalDate, shift
 // ── Types local to ReportsTab ─────────────────────────────────────────────────
 
 interface TopItem { name: string; qty: number; rev: number; cost: number }
+interface VoidedItem { id: number; time: string; tableId: string; itemName: string; qty: number; amount: number; reason: string | null }
 
 // ── ReportsTab ────────────────────────────────────────────────────────────────
 
@@ -19,6 +20,7 @@ export default function ReportsTab() {
   const nav = useDateNav()
 
   const [chartMode, setChartMode] = useState<'bar' | 'line'>('bar')
+  const [rightTab, setRightTab] = useState<'top' | 'voided'>('top')
 
   const [gross,      setGross]      = useState(0)
   const [cost,       setCost]       = useState(0)
@@ -31,6 +33,7 @@ export default function ReportsTab() {
   const [expCat,     setExpCat]     = useState<{ category: string; amount: number }[]>([])
   const [voidedCount,  setVoidedCount]  = useState(0)
   const [voidedAmount, setVoidedAmount] = useState(0)
+  const [voidedItems,  setVoidedItems]  = useState<VoidedItem[]>([])
   const [avgTurnMin,   setAvgTurnMin]   = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -144,12 +147,30 @@ export default function ReportsTab() {
     for (const p of (pmts ?? [])) { mm[p.method] = (mm[p.method]??0) + p.amount }
     setMethodMap(mm)
 
-    const { data: voidedItems } = orderIds.length > 0
-      ? await sb.from('order_items').select('qty, unit_price').eq('status', 'voided').in('order_id', orderIds)
+    const { data: voidedData } = orderIds.length > 0
+      ? await sb.from('order_items')
+          .select('id, qty, unit_price, void_reason, order_id, menu_items(name), orders!inner(table_id, opened_at)')
+          .eq('status', 'voided')
+          .in('order_id', orderIds)
+          .order('id', { ascending: false })
       : { data: [] }
-    const vi: any[] = voidedItems ?? []
+    const vi: any[] = voidedData ?? []
     setVoidedCount(vi.length)
     setVoidedAmount(vi.reduce((s: number, r: any) => s + r.qty * r.unit_price, 0))
+    setVoidedItems(vi.map((row: any) => {
+      const order = Array.isArray(row.orders) ? row.orders[0] : row.orders
+      const mi    = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
+      const dt    = new Date(order?.opened_at ?? 0)
+      return {
+        id:       row.id,
+        time:     `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`,
+        tableId:  order?.table_id ?? '—',
+        itemName: mi?.name ?? '—',
+        qty:      row.qty,
+        amount:   row.qty * row.unit_price,
+        reason:   row.void_reason ?? null,
+      }
+    }))
 
     const { data: closedOrders } = orderIds.length > 0
       ? await sb.from('orders').select('opened_at, closed_at').eq('status', 'closed').in('id', orderIds).not('closed_at', 'is', null)
@@ -320,42 +341,80 @@ export default function ReportsTab() {
           </div>
         </div>
 
-        {/* Top items */}
+        {/* Top items / Voided items toggle panel */}
         <div style={{ width: 300, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
-          <SectionHd title="Top Items" badge={suffix} />
-          <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
-            {topItems.length === 0 ? (
-              <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No data</div>
-            ) : topItems.map((item, i) => {
-              const maxRev = topItems[0].rev
-              const margin = item.rev > 0 ? ((item.rev - item.cost) / item.rev) * 100 : null
-              return (
-                <div key={item.name} style={{ padding: '10px 16px', borderBottom: `1px solid ${T.line}` }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                    <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute, width: 16 }}>{String(i+1).padStart(2,'0')}</span>
-                    <span style={{ fontSize: 12, fontWeight: 500, color: T.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
-                    <span style={{ fontFamily: T.mono, fontSize: 11, color: T.accent, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(item.rev)}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                    <div style={{ flex: 1, height: 3, background: T.line2, borderRadius: 2 }}>
-                      <div style={{ width: `${(item.rev / maxRev) * 100}%`, height: '100%', background: `${T.accent}66`, borderRadius: 2 }} />
-                    </div>
-                    <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute }}>{item.qty}×</span>
-                  </div>
-                  {item.cost > 0 && (
-                    <div style={{ display: 'flex', gap: 8, paddingLeft: 24 }}>
-                      <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute }}>cost {fmtPeso(item.cost)}</span>
-                      {margin !== null && (
-                        <span style={{ fontFamily: T.mono, fontSize: 10, fontWeight: 600, color: margin >= 60 ? T.ok : margin >= 40 ? T.warn : T.bad }}>
-                          {margin.toFixed(0)}% margin
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
+          {/* Tab header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 12px', height: 36, borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
+            {([['top', `Top Items`], ['voided', `Voided (${voidedCount})`]] as const).map(([t, label]) => (
+              <button
+                key={t}
+                onClick={() => setRightTab(t)}
+                style={{
+                  padding: '3px 10px', fontSize: 10, fontWeight: 700,
+                  borderRadius: 99, cursor: 'pointer', fontFamily: 'inherit',
+                  letterSpacing: '0.06em', textTransform: 'uppercase',
+                  border: `1px solid ${rightTab === t ? (t === 'voided' ? T.bad : T.accent) : T.line2}`,
+                  background: rightTab === t ? (t === 'voided' ? `${T.bad}18` : `${T.accent}18`) : 'transparent',
+                  color: rightTab === t ? (t === 'voided' ? T.bad : T.accent) : T.textMute,
+                }}
+              >{label}</button>
+            ))}
           </div>
+
+          {rightTab === 'top' ? (
+            <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+              {topItems.length === 0 ? (
+                <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No data</div>
+              ) : topItems.map((item, i) => {
+                const maxRev = topItems[0].rev
+                const margin = item.rev > 0 ? ((item.rev - item.cost) / item.rev) * 100 : null
+                return (
+                  <div key={item.name} style={{ padding: '10px 16px', borderBottom: `1px solid ${T.line}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                      <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute, width: 16 }}>{String(i+1).padStart(2,'0')}</span>
+                      <span style={{ fontSize: 12, fontWeight: 500, color: T.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
+                      <span style={{ fontFamily: T.mono, fontSize: 11, color: T.accent, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(item.rev)}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                      <div style={{ flex: 1, height: 3, background: T.line2, borderRadius: 2 }}>
+                        <div style={{ width: `${(item.rev / maxRev) * 100}%`, height: '100%', background: `${T.accent}66`, borderRadius: 2 }} />
+                      </div>
+                      <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute }}>{item.qty}×</span>
+                    </div>
+                    {item.cost > 0 && (
+                      <div style={{ display: 'flex', gap: 8, paddingLeft: 24 }}>
+                        <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute }}>cost {fmtPeso(item.cost)}</span>
+                        {margin !== null && (
+                          <span style={{ fontFamily: T.mono, fontSize: 10, fontWeight: 600, color: margin >= 60 ? T.ok : margin >= 40 ? T.warn : T.bad }}>
+                            {margin.toFixed(0)}% margin
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
+              {voidedItems.length === 0 ? (
+                <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No voided items</div>
+              ) : voidedItems.map((row, i) => (
+                <div key={row.id} style={{ padding: '10px 16px', borderBottom: `1px solid ${T.line}`, background: i % 2 === 0 ? 'transparent' : T.surface }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                    <span style={{ fontSize: 12, fontWeight: 500, color: T.text, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: 8 }}>{row.itemName}</span>
+                    <span style={{ fontFamily: T.mono, fontSize: 11, fontWeight: 700, color: T.bad, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{fmtPeso(row.amount)}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute }}>{row.time}</span>
+                    <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textDim }}>{row.tableId}</span>
+                    <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute }}>×{row.qty}</span>
+                    {row.reason && <span style={{ fontSize: 10, color: T.textMute, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {row.reason}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
