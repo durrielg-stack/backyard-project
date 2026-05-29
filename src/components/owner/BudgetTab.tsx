@@ -304,7 +304,7 @@ export default function BudgetTab() {
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
           ) : (
             <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', touchAction: 'pan-y' }}>
-            <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x' }}>
+            <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y' }}>
             <div style={{ minWidth: 560 }}>
               {BUDGET_CATS.map((cat, i) => {
                 const starting = getStarting(cat.id)

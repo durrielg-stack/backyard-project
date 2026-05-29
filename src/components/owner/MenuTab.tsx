@@ -66,7 +66,7 @@ export default function MenuTab() {
         title="Menu"
         badge={`${items.filter(i => i.isAvailable).length}/${items.length} available`}
         action={
-          <div className="bp-no-scrollbar" style={{ display: 'flex', gap: 4, overflowX: 'auto', touchAction: 'pan-x' }}>
+          <div className="bp-no-scrollbar" style={{ display: 'flex', gap: 4, overflowX: 'auto', touchAction: 'pan-x pan-y' }}>
             {cats.slice(0, 8).map(c => (
               <Pill key={c} label={c === 'all' ? 'All' : c} active={filterCat === c} onClick={() => setFilterCat(c)} />
             ))}
@@ -77,7 +77,7 @@ export default function MenuTab() {
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
       ) : (
         <>
-          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x', flexShrink: 0 }}>
+          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', flexShrink: 0 }}>
             <div style={{ minWidth: 560 }}>
           <div style={{
             display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px 120px',
@@ -92,7 +92,7 @@ export default function MenuTab() {
           </div>
 
           <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', touchAction: 'pan-y' }}>
-            <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x' }}>
+            <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y' }}>
             <div style={{ minWidth: 560 }}>
             {filtered.map((item, i) => {
               const isEditing = editId === item.id

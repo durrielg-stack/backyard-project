@@ -1331,7 +1331,7 @@ export default function OwnerView({ tables }: OwnerViewProps) {
         <div style={{ flex: 1 }} />
 
         {/* Tab strip */}
-        <div className="bp-no-scrollbar" style={{ display: 'flex', gap: 2, overflowX: 'auto', touchAction: 'pan-x' }}>
+        <div className="bp-no-scrollbar" style={{ display: 'flex', gap: 2, overflowX: 'auto', touchAction: 'pan-x pan-y' }}>
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)} style={{
               padding: '10px 16px', fontSize: 12, fontFamily: 'inherit', fontWeight: tab === t.id ? 700 : 400,

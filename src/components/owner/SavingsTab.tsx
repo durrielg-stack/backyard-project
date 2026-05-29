@@ -116,7 +116,7 @@ export default function SavingsTab() {
       />
 
       {/* Running balance per partner */}
-      <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x', flexShrink: 0 }}>
+      <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', flexShrink: 0 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', borderBottom: `1px solid ${T.line}`, minWidth: 600 }}>
         {PARTNERS.map((p, i) => (
           <div key={p} style={{ padding: '14px 20px', borderRight: i < 5 ? `1px solid ${T.line}` : 'none' }}>
@@ -156,7 +156,7 @@ export default function SavingsTab() {
               <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 8 }}>
                 Paid Out per Partner — each earns {fmtPeso(previewPer)} (auto-split equally)
               </div>
-              <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x' }}>
+              <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y' }}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, minWidth: 480 }}>
                 {PARTNERS.map(p => (
                   <div key={p}>
@@ -195,7 +195,7 @@ export default function SavingsTab() {
 
               {isOpen && (
                 <div style={{ padding: '12px 24px 16px', background: T.surface2, borderTop: `1px solid ${T.line}` }}>
-                  <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x' }}>
+                  <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y' }}>
                   <div style={{ minWidth: 560 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: `140px repeat(${PARTNERS.length}, 1fr)`, gap: 0, marginBottom: 8 }}>
                     <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute }}></span>

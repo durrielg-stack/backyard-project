@@ -258,7 +258,7 @@ export default function ReportsTab() {
           { label: 'Avg Turn Time',        value: avgTurnMin != null ? `${avgTurnMin}m` : '—', sub: 'open → close',                color: T.info },
         ]
         return (
-          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x', flexShrink: 0 }}>
+          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', flexShrink: 0 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', borderBottom: `1px solid ${T.line}`, minWidth: 720 }}>
             {kpis.map((k, i) => (
               <div key={k.label} style={{ padding: '14px 20px', borderRight: i < 5 ? `1px solid ${T.line}` : 'none' }}>
@@ -448,7 +448,7 @@ export default function ReportsTab() {
         {catBreakdown.length > 0 && (
           <div style={{ borderTop: `1px solid ${T.line}` }}>
             <SectionHd title={`By Category · ${suffix}`} />
-            <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x' }}>
+            <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y' }}>
             <div style={{ minWidth: 580 }}>
             <div style={{
               display: 'grid', gridTemplateColumns: '1fr 130px 130px 130px 90px',

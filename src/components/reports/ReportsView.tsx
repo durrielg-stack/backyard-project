@@ -157,7 +157,7 @@ function BarChart({ bars, barColor, chartHeight = 140 }: { bars: RevenueBar[]; b
 
   if (isMobile) {
     return (
-      <div className="bp-no-scrollbar" style={{ overflowX: 'auto', overflowY: 'hidden', touchAction: 'pan-x' }}>
+      <div className="bp-no-scrollbar" style={{ overflowX: 'auto', overflowY: 'hidden', touchAction: 'pan-x pan-y' }}>
         <div style={{ minWidth: minChartWidth || '100%', width: minChartWidth > 0 ? `max(100%, ${minChartWidth}px)` : '100%' }}>
           {chartContent}
         </div>
@@ -206,7 +206,7 @@ function TransactionsPanel({ transactions }: { transactions: TransactionRow[] })
   return (
     <div style={{ flex: isMobile ? undefined : 1, display: 'flex', flexDirection: 'column', minHeight: isMobile ? undefined : 0, borderRight: `1px solid ${T.line}` }}>
       <PanelHd title="Sales Transactions" badge={`${transactions.length}`} />
-      <div className="bp-no-scrollbar" style={{ flex: isMobile ? undefined : 1, overflowY: isMobile ? 'visible' : 'auto', overflowX: 'auto', touchAction: 'pan-x', WebkitOverflowScrolling: 'touch' }}>
+      <div className="bp-no-scrollbar" style={{ flex: isMobile ? undefined : 1, overflowY: isMobile ? 'visible' : 'auto', overflowX: 'auto', touchAction: 'pan-x pan-y', WebkitOverflowScrolling: 'touch' }}>
         <div style={{ minWidth: 420 }}>
         <div style={{ display: 'grid', gridTemplateColumns: TX_COLS, padding: '0 14px', height: 30, alignItems: 'center', borderBottom: `1px solid ${T.line}`, flexShrink: 0, position: 'sticky', top: 0, background: T.surface2, zIndex: 1 }}>
           {TX_HDRS.map(h => <span key={h} style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>)}
@@ -251,7 +251,7 @@ function ExpensesListPanel({ expenseRows }: { expenseRows: ExpenseRow[] }) {
   return (
     <div style={{ flex: isMobile ? undefined : 1, display: 'flex', flexDirection: 'column', minHeight: isMobile ? undefined : 0 }}>
       <PanelHd title="Expenses Transactions" badge={`${expenseRows.length}`} badgeColor={T.bad} />
-      <div className="bp-no-scrollbar" style={{ flex: isMobile ? undefined : 1, overflowY: isMobile ? 'visible' : 'auto', overflowX: 'auto', touchAction: 'pan-x', WebkitOverflowScrolling: 'touch' }}>
+      <div className="bp-no-scrollbar" style={{ flex: isMobile ? undefined : 1, overflowY: isMobile ? 'visible' : 'auto', overflowX: 'auto', touchAction: 'pan-x pan-y', WebkitOverflowScrolling: 'touch' }}>
         <div style={{ minWidth: 300 }}>
         <div style={{ display: 'grid', gridTemplateColumns: EX_COLS, padding: '0 14px', height: 30, alignItems: 'center', borderBottom: `1px solid ${T.line}`, flexShrink: 0, position: 'sticky', top: 0, background: T.surface2, zIndex: 1 }}>
           {EX_HDRS.map(h => <span key={h} style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>)}
@@ -356,7 +356,7 @@ export default function ReportsView({ tables: _tables }: { tables: TableWithStat
       {/* ── Date range nav — sticky at top ───────────────────────────────── */}
       <div className="bp-no-scrollbar" style={{
         minHeight: 44, padding: '8px 20px', display: 'flex', alignItems: 'center', gap: 8,
-        overflowX: 'auto', touchAction: 'pan-x',
+        overflowX: 'auto', touchAction: 'pan-x pan-y',
         borderBottom: `1px solid ${T.line}`, flexShrink: 0, background: T.bg,
       }}>
         <DateRangeNav
