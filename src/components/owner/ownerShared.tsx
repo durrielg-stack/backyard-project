@@ -202,7 +202,7 @@ export function GroupedBarChart({ bars, height = 220, mode = 'bar' }: { bars: Mu
     return <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No data</div>
   }
   const SERIES = [
-    { key: 'gross',    color: T.accent  },
+    { key: 'gross',    color: T.info    },
     { key: 'cost',     color: T.textDim },
     { key: 'net',      color: T.ok      },
     { key: 'expenses', color: T.bad     },

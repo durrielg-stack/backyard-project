@@ -419,7 +419,7 @@ export default function ReportsTab() {
       </div>
 
       {/* Category sections — fixed height, scrollable so they never squish the chart above */}
-      <div className="bp-no-scrollbar" style={{ height: 240, flexShrink: 0, overflowY: 'auto', borderTop: `1px solid ${T.line}` }}>
+      <div className="bp-no-scrollbar" style={{ height: '50%', flexShrink: 0, overflowY: 'auto', borderTop: `1px solid ${T.line}` }}>
         {/* Category charts */}
         <div style={{ display: 'flex' }}>
           <div style={{ flex: 1, borderRight: `1px solid ${T.line}` }}>
