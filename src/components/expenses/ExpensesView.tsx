@@ -7,6 +7,7 @@ import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { getClient } from '@/lib/supabase'
 import DateRangeNav, { useDateNav } from '@/components/shared/DateRangeNav'
 import { localDateStr, dayBounds, weekBounds, monthBounds } from '@/lib/dateNav'
+import { useSortable } from '@/lib/useSortable'
 
 
 const EXPENSE_CATS = ['OPEX', 'Food', 'Beer', 'Cocktails/Hard', 'Non-Alcohol', 'Cigarettes'] as const
@@ -105,6 +106,7 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
   const isMobile = bp === 'mobile'
   const isOwner = role === 'owner'
   const [rows,       setRows]       = useState<ExpenseRow[]>([])
+  const { sorted: sortedRows, toggle: sortToggle, icon: sortIcon } = useSortable(rows, 'expenseDate' as keyof ExpenseRow, 'desc')
   const [presets,    setPresets]    = useState<Preset[]>([])
   const [loading,    setLoading]    = useState(true)
   const [showForm,   setShowForm]   = useState(false)
@@ -392,7 +394,19 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
             borderBottom: `1px solid ${T.line}`, background: T.surface2,
             position: 'sticky', top: 0, zIndex: 1,
           }}>
-            {['Time','Date','Category','Name','Qty × Unit','Amount',''].map(h => (
+            {([
+              ['Time',       null],
+              ['Date',       'expenseDate'],
+              ['Category',   'category'],
+              ['Name',       'description'],
+              ['Qty × Unit', null],
+              ['Amount',     'amount'],
+              ['',           null],
+            ] as [string, keyof ExpenseRow | null][]).map(([h, k]) => k ? (
+              <button key={h} onClick={() => sortToggle(k)} style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, display: 'flex', alignItems: 'center', gap: 3, textAlign: 'left' }}>
+                {h}<span style={{ fontSize: 8, opacity: 0.7 }}>{sortIcon(k)}</span>
+              </button>
+            ) : (
               <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
             ))}
           </div>
@@ -402,7 +416,7 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
             <div style={{ padding: '32px 24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>
               No expenses logged for this period
             </div>
-          ) : rows.map((row, i) => {
+          ) : sortedRows.map((row, i) => {
             const dt      = new Date(row.createdAt)
             const time    = `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`
             const qtyPart = row.qty % 1 === 0 ? String(row.qty) : row.qty.toFixed(3)

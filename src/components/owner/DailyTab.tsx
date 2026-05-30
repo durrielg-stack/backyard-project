@@ -9,6 +9,7 @@ import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { BUDGET_CATS, SALES_CAT_MAP, EXP_CAT_MAP, emptyBycat } from './BudgetTab'
 import { computeDailyOpex } from './OpexTab'
 import type { OpexItem, MonthConfig } from './OpexTab'
+import { useSortable } from '@/lib/useSortable'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -61,6 +62,7 @@ export default function DailyTab({ staffName }: { staffName: string }) {
   const todayStr = currentShiftDate()
 
   const [rows,    setRows]    = useState<DaySummaryRow[]>([])
+  const { sorted: sortedRows, toggle: sortToggle, icon: sortIcon } = useSortable(rows, 'date' as keyof DaySummaryRow, 'desc')
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState<string | null>(null)
 
@@ -89,7 +91,7 @@ export default function DailyTab({ staffName }: { staffName: string }) {
     ] = await Promise.all([
       sb.from('daily_summary_seed').select('*').order('created_at', { ascending: false }).limit(1),
       sb.from('payments').select('amount, processed_at'),
-      sb.from('daily_expenses').select('expense_date, amount'),
+      sb.from('daily_expenses').select('expense_date, category, amount'),
       sb.from('partner_remittances').select('remittance_date, total_amount'),
       sb.from('daily_adjustments').select('*').order('adj_date'),
       sb.from('budget_seed').select('*').order('seed_date', { ascending: false }).limit(6),
@@ -341,8 +343,23 @@ export default function DailyTab({ staffName }: { staffName: string }) {
             padding: '0 16px', height: 36, alignItems: 'center',
             borderBottom: `1px solid ${T.line}`, background: T.surface2,
           }}>
-            {['Date','Starting','Expenses','Sales','Savings','Ending','Budget','vs Cash','Cash Flow',''].map(h => (
-              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, textAlign: h === 'Date' ? 'left' : 'right' }}>{h}</span>
+            {([
+              ['Date',      'date',      'left'],
+              ['Starting',  'starting',  'right'],
+              ['Expenses',  'expenses',  'right'],
+              ['Sales',     'sales',     'right'],
+              ['Savings',   'savings',   'right'],
+              ['Ending',    'ending',    'right'],
+              ['Budget',    'budgetEnd', 'right'],
+              ['vs Cash',   'vsCash',    'right'],
+              ['Cash Flow', 'cashFlow',  'right'],
+              ['',          null,        'right'],
+            ] as [string, keyof DaySummaryRow | null, string][]).map(([h, k, align]) => k ? (
+              <button key={h} onClick={() => sortToggle(k)} style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, display: 'flex', alignItems: 'center', gap: 3, justifyContent: align === 'right' ? 'flex-end' : 'flex-start', width: '100%' }}>
+                {h}<span style={{ fontSize: 8, opacity: 0.7 }}>{sortIcon(k)}</span>
+              </button>
+            ) : (
+              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, textAlign: 'right' }}>{h}</span>
             ))}
           </div>
         </div>
@@ -356,7 +373,7 @@ export default function DailyTab({ staffName }: { staffName: string }) {
           <div style={{ padding: '32px 24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No data yet — set opening balance to begin.</div>
         ) : (
           <div style={{ minWidth: MIN_W }}>
-            {rows.map((row, i) => {
+            {sortedRows.map((row, i) => {
               const isToday = row.date === todayStr
               const hasAdj  = row.adjDetails.length > 0
               const isOpen  = expanded === row.date

@@ -4,6 +4,7 @@ import { useTheme } from '@/lib/ThemeContext'
 import { useState, useCallback, useEffect } from 'react'
 import { getClient } from '@/lib/supabase'
 import { SectionHd } from './ownerShared'
+import { useSortable } from '@/lib/useSortable'
 
 interface InvRow {
   id:             number
@@ -53,7 +54,8 @@ export default function InventoryTab() {
     setSaving(null)
   }
 
-  const lowCount = rows.filter(r => r.quantity <= r.lowStockThresh).length
+  const { sorted: sortedRows, toggle: sortToggle, icon: sortIcon } = useSortable(rows, 'name' as keyof InvRow)
+  const lowCount = sortedRows.filter(r => r.quantity <= r.lowStockThresh).length
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -72,7 +74,18 @@ export default function InventoryTab() {
             padding: '0 24px', height: 36, alignItems: 'center',
             borderBottom: `1px solid ${T.line}`, background: T.surface2,
           }}>
-            {['Item','Category','Qty','Unit','Threshold','Adjust'].map(h => (
+            {([
+              ['Item',      'name'],
+              ['Category',  'category'],
+              ['Qty',       'quantity'],
+              ['Unit',      'unit'],
+              ['Threshold', 'lowStockThresh'],
+              ['Adjust',    null],
+            ] as [string, keyof InvRow | null][]).map(([h, k]) => k ? (
+              <button key={h} onClick={() => sortToggle(k)} style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, display: 'flex', alignItems: 'center', gap: 3, textAlign: 'left' }}>
+                {h}<span style={{ fontSize: 8, opacity: 0.7 }}>{sortIcon(k)}</span>
+              </button>
+            ) : (
               <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
             ))}
           </div>
@@ -82,7 +95,7 @@ export default function InventoryTab() {
           <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', touchAction: 'pan-y' }}>
             <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y' }}>
             <div style={{ minWidth: 680 }}>
-            {rows.map((row, i) => {
+            {sortedRows.map((row, i) => {
               const isLow      = row.quantity <= row.lowStockThresh
               const isCritical = row.quantity === 0
               return (

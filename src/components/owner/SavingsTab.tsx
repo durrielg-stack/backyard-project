@@ -4,6 +4,7 @@ import { useTheme } from '@/lib/ThemeContext'
 import { useState, useCallback, useEffect } from 'react'
 import { getClient } from '@/lib/supabase'
 import { SectionHd, fmtPeso } from './ownerShared'
+import { useSortable } from '@/lib/useSortable'
 
 const PARTNERS = ['Albert', 'Arvin', 'Benok', 'Bimbo', 'Durriel', 'Ramon'] as const
 
@@ -29,6 +30,7 @@ export default function SavingsTab() {
   const { T } = useTheme()
 
   const [rows,     setRows]     = useState<Remittance[]>([])
+  const { sorted: sortedRows, toggle: sortToggle, icon: sortIcon } = useSortable(rows, 'date' as keyof Remittance, 'desc')
   const [loading,  setLoading]  = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [saving,   setSaving]   = useState(false)
@@ -171,12 +173,28 @@ export default function SavingsTab() {
         </div>
       )}
 
+      <div style={{ display: 'grid', gridTemplateColumns: '120px 160px 1fr 160px 36px', padding: '0 24px', height: 36, alignItems: 'center', borderBottom: `1px solid ${T.line}`, background: T.surface2, flexShrink: 0 }}>
+        {([
+          ['Date',     'date'],
+          ['Total',    'total'],
+          ['Notes',    null],
+          ['Paid Out', null],
+          ['',         null],
+        ] as [string, keyof Remittance | null][]).map(([h, k]) => k ? (
+          <button key={h} onClick={() => sortToggle(k)} style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, display: 'flex', alignItems: 'center', gap: 3 }}>
+            {h}<span style={{ fontSize: 8, opacity: 0.7 }}>{sortIcon(k)}</span>
+          </button>
+        ) : (
+          <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
+        ))}
+      </div>
+
       <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', touchAction: 'pan-y' }}>
         {loading ? (
           <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
         ) : rows.length === 0 ? (
           <div style={{ padding: '32px 24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No remittances recorded yet</div>
-        ) : rows.map((r, i) => {
+        ) : sortedRows.map((r, i) => {
           const isOpen = expanded === r.id
           return (
             <div key={r.id} style={{ borderBottom: `1px solid ${T.line}` }}>

@@ -4,6 +4,7 @@ import { useTheme } from '@/lib/ThemeContext'
 import { useState, useCallback, useEffect } from 'react'
 import { getClient } from '@/lib/supabase'
 import { SectionHd, Pill } from './ownerShared'
+import { useSortable } from '@/lib/useSortable'
 
 interface MenuRow {
   id:          string
@@ -58,7 +59,8 @@ export default function MenuTab() {
   }
 
   const cats     = ['all', ...Array.from(new Set(items.map(i => i.category)))]
-  const filtered = filterCat === 'all' ? items : items.filter(i => i.category === filterCat)
+  const baseList = filterCat === 'all' ? items : items.filter(i => i.category === filterCat)
+  const { sorted: filtered, toggle: sortToggle, icon: sortIcon } = useSortable(baseList, 'name' as keyof MenuRow)
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -84,8 +86,16 @@ export default function MenuTab() {
             padding: '0 24px', height: 36, alignItems: 'center',
             borderBottom: `1px solid ${T.line}`, background: T.surface2,
           }}>
-            {['Name','Category','Price','Cost','Available'].map(h => (
-              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
+            {([
+              ['Name',      'name'],
+              ['Category',  'category'],
+              ['Price',     'price'],
+              ['Cost',      'cost'],
+              ['Available', 'isAvailable'],
+            ] as [string, keyof MenuRow][]).map(([h, k]) => (
+              <button key={h} onClick={() => sortToggle(k)} style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, display: 'flex', alignItems: 'center', gap: 3, textAlign: 'left' }}>
+                {h}<span style={{ fontSize: 8, opacity: 0.7 }}>{sortIcon(k)}</span>
+              </button>
             ))}
           </div>
             </div>
