@@ -199,7 +199,7 @@ export default function DailyTab({ staffName }: { staffName: string }) {
       catchupDates.pop() // exclude the first daily date (handled in main loop)
       for (const d of catchupDates) {
         const cogs    = cogsByDate[d] ?? 0
-        const dayOpex = computeDailyOpex(opexItems, opexConfigs[d.slice(0, 7)] ?? null)
+        const dayOpex = Math.ceil(computeDailyOpex(opexItems, opexConfigs[d.slice(0, 7)] ?? null))
         const bExp    = budgetExpByDate[d] ?? 0
         runningBudget += cogs + dayOpex - bExp
       }
@@ -216,7 +216,7 @@ export default function DailyTab({ staffName }: { staffName: string }) {
 
       // Budget running total for this day
       const cogs    = cogsByDate[date] ?? 0
-      const dayOpex = computeDailyOpex(opexItems, opexConfigs[date.slice(0, 7)] ?? null)
+      const dayOpex = Math.ceil(computeDailyOpex(opexItems, opexConfigs[date.slice(0, 7)] ?? null))
       const bExp    = budgetExpByDate[date] ?? 0
       runningBudget += cogs + dayOpex - bExp
       const budgetEnd = runningBudget

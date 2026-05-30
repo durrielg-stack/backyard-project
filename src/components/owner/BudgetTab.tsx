@@ -92,7 +92,7 @@ function buildLedger(
     const dailyOpex = computeDailyOpex(opexItems, dayCfg)
 
     // Merge: product categories get COGS, opex category gets daily allocation
-    const incoming: Record<string, number> = { ...cogsBycat, opex: dailyOpex }
+    const incoming: Record<string, number> = { ...cogsBycat, opex: Math.ceil(dailyOpex) }
     const expenses = allExpenses[date] ?? emptyBycat()
     const ending   = emptyBycat()
 
@@ -263,7 +263,7 @@ export default function BudgetTab() {
       if (iErr) console.error('[BudgetTab] day items error', iErr)
       accumulateItems(items ?? [], todayIncoming)
     }
-    todayIncoming.opex = dayOpex
+    todayIncoming.opex = Math.ceil(dayOpex)
 
     // Today's expenses
     const { data: expRows, error: expErr } = await sb
@@ -294,7 +294,7 @@ export default function BudgetTab() {
     const priorDates: string[] = [...new Set<string>((priorOrders ?? []).map((o: any) => localDateStr(new Date(o.opened_at as string))))]
     for (const priorDate of priorDates) {
       const priorCfg = opexConfigs[priorDate.slice(0, 7)] ?? null
-      priorIncoming.opex = (priorIncoming.opex ?? 0) + computeDailyOpex(opexItems, priorCfg)
+      priorIncoming.opex = (priorIncoming.opex ?? 0) + Math.ceil(computeDailyOpex(opexItems, priorCfg))
     }
 
     const { data: priorExp, error: peErr } = await sb
