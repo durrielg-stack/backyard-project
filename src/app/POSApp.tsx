@@ -228,7 +228,7 @@ export default function POSApp() {
         )}
 
         {view === 'owner' && staff.role === 'owner' && (
-          <OwnerView tables={tablesWithStatus} />
+          <OwnerView tables={tablesWithStatus} staffName={staff.name} />
         )}
 
         {typeof view === 'object' && view.kind === 'order' && (() => {

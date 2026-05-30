@@ -6,6 +6,7 @@ import { getClient } from '@/lib/supabase'
 import type { TableWithStatus } from '@/lib/types'
 import BudgetTab from './BudgetTab'
 import OpexTab from './OpexTab'
+import DailyTab from './DailyTab'
 import ReportsTab from './ReportsTab'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 
@@ -1306,10 +1307,11 @@ function SavingsTab() {
 
 // ── OwnerView ─────────────────────────────────────────────────────────────────
 
-type OwnerTab = 'reports' | 'tables' | 'menu' | 'inventory' | 'budget' | 'savings' | 'opex'
+type OwnerTab = 'reports' | 'tables' | 'menu' | 'inventory' | 'budget' | 'savings' | 'opex' | 'daily'
 
 const TABS: { id: OwnerTab; label: string }[] = [
   { id: 'reports',   label: 'Reports'   },
+  { id: 'daily',     label: 'Daily'     },
   { id: 'budget',    label: 'Budget'    },
   { id: 'opex',      label: 'OPEX'      },
   { id: 'savings',   label: 'Savings'   },
@@ -1319,10 +1321,11 @@ const TABS: { id: OwnerTab; label: string }[] = [
 ]
 
 interface OwnerViewProps {
-  tables: TableWithStatus[]
+  tables:    TableWithStatus[]
+  staffName: string
 }
 
-export default function OwnerView({ tables }: OwnerViewProps) {
+export default function OwnerView({ tables, staffName }: OwnerViewProps) {
   const { T } = useTheme()
   const bp = useBreakpoint()
   const isMobile = bp === 'mobile'
@@ -1407,6 +1410,7 @@ export default function OwnerView({ tables }: OwnerViewProps) {
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {tab === 'reports'   && <ReportsTab />}
 
+        {tab === 'daily'     && <DailyTab staffName={staffName} />}
         {tab === 'budget'    && <BudgetTab />}
         {tab === 'opex'      && <OpexTab />}
         {tab === 'savings'   && <SavingsTab />}

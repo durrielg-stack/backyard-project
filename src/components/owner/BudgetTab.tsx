@@ -11,7 +11,7 @@ import type { OpexItem, MonthConfig } from './OpexTab'
 
 // ── Category config ───────────────────────────────────────────────────────────
 
-export const BUDGET_CATS: { id: string; label: string }[] = [
+export const BUDGET_CATS: { id: string; label: string }[] = [ // eslint-disable-line
   { id: 'food',        label: 'Food'           },
   { id: 'beer',        label: 'Beer'           },
   { id: 'cocktails',   label: 'Cocktails/Hard' },
@@ -21,7 +21,7 @@ export const BUDGET_CATS: { id: string; label: string }[] = [
 ]
 
 // Map menu_items.category → budget cat id
-const SALES_CAT_MAP: Record<string, string> = {
+export const SALES_CAT_MAP: Record<string, string> = {
   Chicken: 'food', Meals: 'food', Noodles: 'food', Pork: 'food',
   Seafood: 'food', Starters: 'food', Extra: 'food',
   Beer: 'beer', 'Palit Bote': 'beer',
@@ -31,7 +31,7 @@ const SALES_CAT_MAP: Record<string, string> = {
 }
 
 // Map daily_expenses.category → budget cat id
-const EXP_CAT_MAP: Record<string, string> = {
+export const EXP_CAT_MAP: Record<string, string> = {
   OPEX: 'opex', Food: 'food', Beer: 'beer',
   'Cocktails/Hard': 'cocktails', 'Non-Alcohol': 'non_alcohol',
   Cigarettes: 'cigarettes',
@@ -62,7 +62,7 @@ interface LedgerRow {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function emptyBycat(): Record<string, number> {
+export function emptyBycat(): Record<string, number> {
   return Object.fromEntries(BUDGET_CATS.map(c => [c.id, 0]))
 }
 
