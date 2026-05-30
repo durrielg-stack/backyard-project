@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
 import { getClient } from '@/lib/supabase'
 
 type PublicStatus = 'available' | 'occupied' | 'reserved' | 'closed'
@@ -95,13 +94,11 @@ export default function TablesPage() {
         position: 'sticky', top: 0, zIndex: 10,
         flexShrink: 0,
       }}>
-        <Image
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
           src="/logo-white.png"
           alt="The Backyard Project"
-          width={120}
-          height={48}
-          style={{ objectFit: 'contain', objectPosition: 'left center' }}
-          priority
+          style={{ height: 48, width: 'auto', objectFit: 'contain' }}
         />
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 18, fontWeight: 600, color: '#f5f5f5', letterSpacing: '-0.02em' }}>
