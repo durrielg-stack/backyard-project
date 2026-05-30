@@ -4,29 +4,39 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { getClient } from '@/lib/supabase'
 
-type PublicStatus = 'available' | 'occupied' | 'reserved'
+type PublicStatus = 'available' | 'occupied' | 'reserved' | 'closed'
 
 interface TableRow {
   id:     string
   status: string
 }
 
-function mapStatus(raw: string): PublicStatus {
+function mapStatus(raw: string): Exclude<PublicStatus, 'closed'> {
   if (raw === 'reserved') return 'reserved'
   if (raw === 'available') return 'available'
   return 'occupied'
+}
+
+// Closed: midnight–4 PM Manila time, or all day Tuesday
+function isClosedNow(date: Date): boolean {
+  const manila = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Manila' }))
+  if (manila.getDay() === 2) return true          // Tuesday
+  if (manila.getHours() < 16) return true         // 12 AM – 4 PM
+  return false
 }
 
 const STATUS_LABEL: Record<PublicStatus, string> = {
   available: 'Available',
   occupied:  'Occupied',
   reserved:  'Reserved',
+  closed:    'Closed',
 }
 
 const STATUS_COLOR: Record<PublicStatus, { bg: string; text: string; dot: string }> = {
   available: { bg: '#0f2d1a', text: '#4ade80', dot: '#22c55e' },
   occupied:  { bg: '#2d1010', text: '#f87171', dot: '#ef4444' },
   reserved:  { bg: '#0f1a2d', text: '#60a5fa', dot: '#3b82f6' },
+  closed:    { bg: '#2d1f08', text: '#fbbf24', dot: '#f59e0b' },
 }
 
 export default function TablesPage() {
@@ -59,6 +69,7 @@ export default function TablesPage() {
     return () => clearInterval(id)
   }, [])
 
+  const closed    = isClosedNow(now)
   const available = tables.filter(t => mapStatus(t.status) === 'available').length
   const total     = tables.length
 
@@ -110,9 +121,15 @@ export default function TablesPage() {
           <div style={{ fontSize: 13, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#555', marginBottom: 4 }}>
             Table Availability
           </div>
-          <div style={{ fontSize: 28, fontWeight: 700, color: available > 0 ? '#4ade80' : '#f87171', letterSpacing: '-0.02em' }}>
-            {available} <span style={{ fontSize: 16, color: '#555', fontWeight: 400 }}>of {total} available</span>
-          </div>
+          {closed ? (
+            <div style={{ fontSize: 28, fontWeight: 700, color: '#fbbf24', letterSpacing: '-0.02em' }}>
+              We&rsquo;re Closed <span style={{ fontSize: 16, color: '#555', fontWeight: 400 }}>· opens at 4 PM</span>
+            </div>
+          ) : (
+            <div style={{ fontSize: 28, fontWeight: 700, color: available > 0 ? '#4ade80' : '#f87171', letterSpacing: '-0.02em' }}>
+              {available} <span style={{ fontSize: 16, color: '#555', fontWeight: 400 }}>of {total} available</span>
+            </div>
+          )}
         </div>
 
         {/* Live indicator */}
@@ -137,7 +154,7 @@ export default function TablesPage() {
         alignContent: 'start',
       }}>
         {tables.map(t => {
-          const status = mapStatus(t.status)
+          const status: PublicStatus = closed ? 'closed' : mapStatus(t.status)
           const c      = STATUS_COLOR[status]
           return (
             <div key={t.id} style={{
@@ -176,7 +193,7 @@ export default function TablesPage() {
         display: 'flex', gap: 24, justifyContent: 'center',
         flexShrink: 0,
       }}>
-        {(['available', 'occupied', 'reserved'] as PublicStatus[]).map(s => {
+        {(closed ? ['closed' as PublicStatus] : ['available', 'occupied', 'reserved'] as PublicStatus[]).map(s => {
           const c = STATUS_COLOR[s]
           return (
             <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
