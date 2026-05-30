@@ -18,6 +18,7 @@ type GroupId = (typeof GROUPS)[number]['id']
 
 interface Props {
   tableId: string
+  waiterId: string
   waiterName: string
   onBack: () => void
   onSent: () => void
@@ -29,10 +30,10 @@ function fmtPeso(n: number) {
   return '₱' + n.toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 }
 
-export default function WaiterMenuPicker({ tableId, waiterName, onBack, onSent }: Props) {
+export default function WaiterMenuPicker({ tableId, waiterId, waiterName, onBack, onSent }: Props) {
   const { T, mode, toggle }   = useTheme()
   const { items, loading }    = useMenuItems()
-  const { addItem }           = useOrder(tableId, waiterName)
+  const { addItem }           = useOrder(tableId, waiterId)
 
   const [query, setQuery]       = useState('')
   const [group, setGroup]       = useState<GroupId>('all')

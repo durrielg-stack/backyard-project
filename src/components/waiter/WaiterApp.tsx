@@ -92,6 +92,7 @@ export default function WaiterApp() {
     content = (
       <WaiterTableView
         tableId={screen.tableId}
+        waiterId={session.userId}
         waiterName={session.name}
         onAddItems={() => setScreen({ kind: 'addItems', tableId: screen.tableId })}
         onBack={() => setScreen({ kind: 'floor' })}
@@ -101,6 +102,7 @@ export default function WaiterApp() {
     content = (
       <WaiterMenuPicker
         tableId={screen.tableId}
+        waiterId={session.userId}
         waiterName={session.name}
         onBack={() => setScreen({ kind: 'table', tableId: screen.tableId })}
         onSent={() => setScreen({ kind: 'table', tableId: screen.tableId })}
