@@ -99,10 +99,11 @@ function SuggestionsPortal({ open, anchorRef, suggestions, activeIdx, onPick }: 
   )
 }
 
-export default function ExpensesView() {
+export default function ExpensesView({ role = 'manager' }: { role?: string }) {
   const { T } = useTheme()
   const bp = useBreakpoint()
   const isMobile = bp === 'mobile'
+  const isOwner = role === 'owner'
   const [rows,       setRows]       = useState<ExpenseRow[]>([])
   const [presets,    setPresets]    = useState<Preset[]>([])
   const [loading,    setLoading]    = useState(true)
@@ -111,6 +112,7 @@ export default function ExpensesView() {
   const nav = useDateNav()
 
   // Form state
+  const [fDate,       setFDate]       = useState(() => localDateStr(new Date()))
   const [fCat,        setFCat]        = useState<string>('OPEX')
   const [fDesc,       setFDesc]       = useState('')
   const [fQty,        setFQty]        = useState('1')
@@ -200,11 +202,13 @@ export default function ExpensesView() {
     const amt  = up != null ? qty * up : parseFloat(fAmt)
     if (!fDesc.trim() || isNaN(amt) || amt <= 0) return
     setSaving(true)
+    const expDate = isOwner ? fDate : today
     await sb.from('daily_expenses').insert({
-      expense_date: today, category: fCat, description: fDesc.trim(),
+      expense_date: expDate, category: fCat, description: fDesc.trim(),
       amount: amt, qty, unit: fUnit.trim() || null, unit_price: up,
     })
     setFDesc(''); setFQty('1'); setFUnit(''); setFUnitPrice(''); setFAmt('')
+    if (isOwner) setFDate(today)
     setShowForm(false)
     // re-fetch current range after adding
     let start: string, end: string
@@ -292,9 +296,20 @@ export default function ExpensesView() {
           <div className="bp-no-scrollbar" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', background: T.surface2, borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
           <div style={{
             padding: '16px 24px',
-            display: 'grid', gridTemplateColumns: '140px 1fr 70px 90px 110px 120px auto',
-            gap: 8, alignItems: 'end', minWidth: 680,
+            display: 'grid', gridTemplateColumns: `${isOwner ? '120px ' : ''}140px 1fr 70px 90px 110px 120px auto`,
+            gap: 8, alignItems: 'end', minWidth: isOwner ? 800 : 680,
           }}>
+            {/* Date — owner only */}
+            {isOwner && (
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Date</div>
+                <input
+                  type="date" value={fDate} max={today}
+                  onChange={e => e.target.value && setFDate(e.target.value)}
+                  style={{ width: '100%', fontFamily: T.mono, fontSize: 12, background: fDate !== today ? `${T.warn}18` : T.surface, border: `1px solid ${fDate !== today ? T.warn : T.line2}`, color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box' as const }}
+                />
+              </div>
+            )}
             {/* Category */}
             <div>
               <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Category</div>
@@ -411,7 +426,7 @@ export default function ExpensesView() {
                 <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: T.bad, fontVariantNumeric: 'tabular-nums' }}>
                   ₱{row.amount.toFixed(2)}
                 </span>
-                {row.expenseDate === today && (
+                {(isOwner || row.expenseDate === today) && (
                   <button onClick={() => deleteExpense(row.id)} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: `1px solid ${T.bad}33`, color: T.bad, borderRadius: T.radius, cursor: 'pointer', fontSize: 14 }}>
                     ×
                   </button>

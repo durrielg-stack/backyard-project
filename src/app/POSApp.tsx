@@ -219,7 +219,7 @@ export default function POSApp() {
         )}
         {view === 'floor' && <MessengerBadge />}
 
-        {view === 'expenses' && (staff.role === 'owner' || staff.role === 'manager') && <ExpensesView />}
+        {view === 'expenses' && (staff.role === 'owner' || staff.role === 'manager') && <ExpensesView role={staff.role} />}
 
         {view === 'sales' && (staff.role === 'owner' || staff.role === 'manager') && <SalesView />}
 
