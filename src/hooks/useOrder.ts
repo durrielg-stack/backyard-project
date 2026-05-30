@@ -151,6 +151,7 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
           modifiers:    mods,
           status:       'pending',
           seat:         seat || null,
+          fired_at:     new Date().toISOString(),
         })
         .select('id')
         .single()

@@ -66,7 +66,8 @@ export function useTickets(tick: number): {
         orders(id, table_id, opened_at, status, opened_by),
         menu_items(name, category)
       `)
-      .in('status', ['pending', 'preparing', 'ready']) as { data: any[] | null; error: any }
+      .in('status', ['pending', 'preparing', 'ready'])
+      .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()) as { data: any[] | null; error: any }
 
     if (error || !data) return
 
