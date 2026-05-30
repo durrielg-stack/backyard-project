@@ -87,18 +87,19 @@ export default function TablesPage() {
 
       {/* Top bar */}
       <header style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 32px', height: 72,
+        display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center',
+        padding: '0 32px', height: 88,
         borderBottom: '1px solid #1f1f1f',
         background: '#0a0a0a',
         position: 'sticky', top: 0, zIndex: 10,
         flexShrink: 0,
       }}>
+        <div />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/logo-white.png"
           alt="The Backyard Project"
-          style={{ height: 48, width: 'auto', objectFit: 'contain' }}
+          style={{ height: 68, width: 'auto', objectFit: 'contain', display: 'block' }}
         />
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 18, fontWeight: 600, color: '#f5f5f5', letterSpacing: '-0.02em' }}>
