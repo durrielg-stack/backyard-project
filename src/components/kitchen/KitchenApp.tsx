@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useTheme } from '@/lib/ThemeContext'
-import KitchenLogin from './KitchenLogin'
 import KitchenView from './KitchenView'
 
 interface KitchenSession { userId: string; name: string }
@@ -19,7 +18,6 @@ export default function KitchenApp() {
   const [session, setSession] = useState<KitchenSession | null>(null)
   const [ready, setReady] = useState(false)
 
-  // Read localStorage client-side only (avoid SSR mismatch)
   useEffect(() => {
     setSession(loadSession())
     setReady(true)
@@ -32,18 +30,11 @@ export default function KitchenApp() {
     } catch { /* ignore */ }
   }, [])
 
-  function handleLogin(userId: string, name: string) {
-    const s = { userId, name }
-    localStorage.setItem('bp_kitchen', JSON.stringify(s))
-    setSession(s)
-  }
-
   function handleSignOut() {
     localStorage.removeItem('bp_kitchen')
-    setSession(null)
+    window.location.href = '/'
   }
 
-  // Landscape blocker CSS
   const landscapeOverlay = (
     <div
       style={{ display: 'none', position: 'fixed', inset: 0, zIndex: 9999, background: T.bg, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}
@@ -58,12 +49,8 @@ export default function KitchenApp() {
   if (!ready) return null
 
   if (!session) {
-    return (
-      <>
-        {landscapeOverlay}
-        <KitchenLogin onLogin={handleLogin} />
-      </>
-    )
+    window.location.href = '/'
+    return null
   }
 
   return (
