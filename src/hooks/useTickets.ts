@@ -16,12 +16,11 @@ function getStation(category: string): 'kitchen' | 'bar' {
 }
 
 // Per-category thresholds in seconds
-// aging: when the item turns amber   late: when it turns red / needs attention
+// aging (amber): drinks 5 min, food 10 min
+// late  (red):   drinks 10 min, food 20 min
 function getThresholds(category: string): { agingSec: number; lateSec: number } {
-  if (category === 'Beer')                                  return { agingSec: 180,  lateSec: 300  }
-  if (category === 'Cocktails' || category === 'Hard Drinks') return { agingSec: 300,  lateSec: 600  }
-  if (BAR_CATS.has(category))                               return { agingSec: 300,  lateSec: 600  }
-  return { agingSec: 600, lateSec: 900 } // food / kitchen
+  if (BAR_CATS.has(category)) return { agingSec: 300, lateSec: 600 }
+  return { agingSec: 600, lateSec: 1200 }
 }
 
 // ── Internal raw item snapshot ───────────────────────────────────────────────
