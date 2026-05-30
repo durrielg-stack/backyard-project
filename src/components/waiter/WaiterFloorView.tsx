@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useTheme } from '@/lib/ThemeContext'
 import { useTables } from '@/hooks/useTables'
 import { useOpenOrders } from '@/hooks/useOpenOrders'
+import { useTickets } from '@/hooks/useTickets'
 
 interface Props {
   waiterName: string
@@ -17,15 +18,13 @@ function elapsed(openedAt: string): string {
   return `${Math.floor(min / 60)}h ${min % 60}m`
 }
 
-function openMin(openedAt: string): number {
-  return Math.floor((Date.now() - new Date(openedAt).getTime()) / 60_000)
-}
 
 export default function WaiterFloorView({ waiterName, onTableSelect, onSignOut }: Props) {
   const { T, mode, toggle } = useTheme()
   const { tables }          = useTables()
   const { orders, totals }  = useOpenOrders()
   const [tick, setTick]     = useState(0)
+  const { tickets }         = useTickets(tick)
 
   useEffect(() => {
     const id = setInterval(() => setTick(t => t + 1), 30_000)
@@ -48,6 +47,14 @@ export default function WaiterFloorView({ waiterName, onTableSelect, onSignOut }
 
   // Build order lookup by table
   const orderByTable = new Map(orders.map(o => [o.table_id, o]))
+
+  // Worst KDS ticket status per table (mirrors useAutoStatus logic)
+  const STATUS_RANK = { firing: 0, aging: 1, late: 2 } as const
+  const worstTicket = new Map<string, 'firing' | 'aging' | 'late'>()
+  for (const t of tickets) {
+    const prev = worstTicket.get(t.tableId)
+    if (!prev || STATUS_RANK[t.status] > STATUS_RANK[prev]) worstTicket.set(t.tableId, t.status)
+  }
 
   return (
     <div className="bp-waiter-root" style={{
@@ -101,15 +108,17 @@ export default function WaiterFloorView({ waiterName, onTableSelect, onSignOut }
       }}>
         {tables.map(table => {
           void tick // triggers re-render for elapsed time refresh
-          const order = orderByTable.get(table.id)
-          const total = totals.get(table.id) ?? 0
-          const min   = order ? openMin(order.opened_at) : 0
-          const isAttention = order && min >= 60
+          const order       = orderByTable.get(table.id)
+          const total       = totals.get(table.id) ?? 0
+          const ticketStatus = worstTicket.get(table.id)
           const isOccupied  = !!order
 
-          const borderColor = isAttention ? T.bad : isOccupied ? T.warn : T.line
-          const dotColor    = isAttention ? T.bad : isOccupied ? T.warn : T.ok
-          const statusLabel = isAttention ? 'Attention' : isOccupied ? 'Occupied' : 'Available'
+          const isAttention = ticketStatus === 'late'
+          const isAging     = ticketStatus === 'aging'
+
+          const borderColor = isAttention ? T.bad : isAging ? T.warn : isOccupied ? T.ok : T.line
+          const dotColor    = isAttention ? T.bad : isAging ? T.warn : isOccupied ? T.ok : T.ok
+          const statusLabel = isAttention ? 'Attention' : isAging ? 'Aging' : isOccupied ? 'Occupied' : 'Available'
 
           return (
             <button
