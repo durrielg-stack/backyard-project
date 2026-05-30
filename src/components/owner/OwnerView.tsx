@@ -5,6 +5,7 @@ import { useTheme } from '@/lib/ThemeContext'
 import { getClient } from '@/lib/supabase'
 import type { TableWithStatus } from '@/lib/types'
 import BudgetTab from './BudgetTab'
+import OpexTab from './OpexTab'
 import ReportsTab from './ReportsTab'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 
@@ -1305,11 +1306,12 @@ function SavingsTab() {
 
 // ── OwnerView ─────────────────────────────────────────────────────────────────
 
-type OwnerTab = 'reports' | 'tables' | 'menu' | 'inventory' | 'budget' | 'savings'
+type OwnerTab = 'reports' | 'tables' | 'menu' | 'inventory' | 'budget' | 'savings' | 'opex'
 
 const TABS: { id: OwnerTab; label: string }[] = [
   { id: 'reports',   label: 'Reports'   },
   { id: 'budget',    label: 'Budget'    },
+  { id: 'opex',      label: 'OPEX'      },
   { id: 'savings',   label: 'Savings'   },
   { id: 'tables',    label: 'Tables'    },
   { id: 'menu',      label: 'Menu'      },
@@ -1406,6 +1408,7 @@ export default function OwnerView({ tables }: OwnerViewProps) {
         {tab === 'reports'   && <ReportsTab />}
 
         {tab === 'budget'    && <BudgetTab />}
+        {tab === 'opex'      && <OpexTab />}
         {tab === 'savings'   && <SavingsTab />}
         {tab === 'tables'    && <TablesTab liveTableStatuses={tables} />}
         {tab === 'menu'      && <MenuTab />}

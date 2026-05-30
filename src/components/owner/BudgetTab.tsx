@@ -6,6 +6,8 @@ import { getClient } from '@/lib/supabase'
 import { SectionHd, fmtPeso } from './ownerShared'
 import { localDateStr, parseLocalDate, dayBounds, currentShiftDate } from '@/lib/dateNav'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
+import { computeDailyOpex } from './OpexTab'
+import type { OpexItem, MonthConfig } from './OpexTab'
 
 // ── Category config ───────────────────────────────────────────────────────────
 
@@ -22,7 +24,7 @@ export const BUDGET_CATS: { id: string; label: string }[] = [
 const SALES_CAT_MAP: Record<string, string> = {
   Chicken: 'food', Meals: 'food', Noodles: 'food', Pork: 'food',
   Seafood: 'food', Starters: 'food', Extra: 'food',
-  Beer: 'beer',
+  Beer: 'beer', 'Palit Bote': 'beer',
   Cocktails: 'cocktails', 'Hard Drinks': 'cocktails',
   'Non-Alcohol': 'non_alcohol',
   Cigarettes: 'cigarettes',
@@ -34,6 +36,10 @@ const EXP_CAT_MAP: Record<string, string> = {
   'Cocktails/Hard': 'cocktails', 'Non-Alcohol': 'non_alcohol',
   Cigarettes: 'cigarettes',
 }
+// Reverse: budget cat id → DB category string (for budget_seed inserts)
+const CAT_ID_TO_DB: Record<string, string> = Object.fromEntries(
+  Object.entries(EXP_CAT_MAP).map(([db, id]) => [id, db])
+)
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -61,22 +67,38 @@ function emptyBycat(): Record<string, number> {
 }
 
 function buildLedger(
-  allIncoming: Record<string, Record<string, number>>,  // date → catId → amount
+  allIncoming: Record<string, Record<string, number>>,  // date → catId → amount (COGS)
   allExpenses: Record<string, Record<string, number>>,  // date → catId → amount
+  seed: { date: string; balances: Record<string, number> } | null,
+  opexItems: OpexItem[],
+  opexConfigs: Record<string, MonthConfig>,             // 'YYYY-MM' → config
 ): LedgerRow[] {
-  const dates = Array.from(new Set([...Object.keys(allIncoming), ...Object.keys(allExpenses)])).sort()
+  const allDates = Array.from(new Set([...Object.keys(allIncoming), ...Object.keys(allExpenses)])).sort()
+  // Only include dates from seed date onwards
+  const seedDate = seed?.date ?? '1970-01-01'
+  const dates = allDates.filter(d => d >= seedDate)
   const ledger: LedgerRow[] = []
-  const running = emptyBycat()
+  const running = seed ? { ...seed.balances } : emptyBycat()
 
   for (const date of dates) {
     const starting = { ...running }
-    const incoming = allIncoming[date] ?? emptyBycat()
+
+    // COGS incoming per category
+    const cogsBycat = allIncoming[date] ?? emptyBycat()
+
+    // OPEX daily allocation for this date's month
+    const monthKey = date.slice(0, 7) // 'YYYY-MM'
+    const dayCfg = opexConfigs[monthKey] ?? null
+    const dailyOpex = computeDailyOpex(opexItems, dayCfg)
+
+    // Merge: product categories get COGS, opex category gets daily allocation
+    const incoming: Record<string, number> = { ...cogsBycat, opex: dailyOpex }
     const expenses = allExpenses[date] ?? emptyBycat()
     const ending   = emptyBycat()
 
     for (const c of BUDGET_CATS) {
-      ending[c.id]   = starting[c.id] + (incoming[c.id] ?? 0) - (expenses[c.id] ?? 0)
-      running[c.id]  = ending[c.id]
+      ending[c.id]  = starting[c.id] + (incoming[c.id] ?? 0) - (expenses[c.id] ?? 0)
+      running[c.id] = ending[c.id]
     }
 
     ledger.push({
@@ -106,7 +128,7 @@ export default function BudgetTab() {
   const GROUPS_L = [
     { key: 'starting', label: 'Starting', color: T.textDim },
     { key: 'expenses', label: 'Expenses', color: T.bad     },
-    { key: 'incoming', label: 'Sales',    color: T.ok      },
+    { key: 'incoming', label: 'COGS+OPEX', color: T.ok     },
     { key: 'ending',   label: 'Ending',   color: T.accent  },
   ] as const
 
@@ -117,19 +139,66 @@ export default function BudgetTab() {
   const [ledgerRows, setLedgerRows] = useState<LedgerRow[]>([])
   const [loading,    setLoading]    = useState(true)
 
+  // Seed state
+  const [seed,       setSeed]       = useState<{ date: string; balances: Record<string, number> } | null>(null)
+  const [showSeedForm, setShowSeedForm] = useState(false)
+  const [seedDate,   setSeedDate]   = useState(() => '2026-06-01')
+  const [seedInputs, setSeedInputs] = useState<Record<string, string>>(() => Object.fromEntries(BUDGET_CATS.map(c => [c.id, '0'])))
+  const [seedSaving, setSeedSaving] = useState(false)
+
+  // OPEX data for daily allocation
+  const [opexItems,   setOpexItems]   = useState<OpexItem[]>([])
+  const [opexConfigs, setOpexConfigs] = useState<Record<string, MonthConfig>>({})
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = getClient() as any
 
-  // ── Shared: accumulate order_items into a catId→amount map ──────────────
+  // ── Shared: accumulate order_items COGS into a catId→amount map ─────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function accumulateItems(rows: any[], out: Record<string, number>) {
     for (const row of rows) {
       const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
       const cat = SALES_CAT_MAP[mi?.category ?? '']
       if (!cat) continue
-      out[cat] = (out[cat] ?? 0) + (row.qty as number) * (row.unit_price as number)
+      // Use cost (COGS), not unit_price (selling price)
+      out[cat] = (out[cat] ?? 0) + (row.qty as number) * ((mi?.cost ?? 0) as number)
     }
   }
+
+  // ── Load seed + OPEX data ────────────────────────────────────────────────
+  const fetchSeedAndOpex = useCallback(async () => {
+    const [{ data: seedRows }, { data: opexItemRows }, { data: opexCfgRows }] = await Promise.all([
+      sb.from('budget_seed').select('*').order('seed_date', { ascending: false }).limit(6),
+      sb.from('opex_items').select('*').eq('is_active', true),
+      sb.from('opex_monthly_config').select('*'),
+    ])
+
+    // Build seed from most recent batch (all rows with the same seed_date)
+    if (seedRows && seedRows.length > 0) {
+      const latestDate = seedRows[0].seed_date
+      const balances: Record<string, number> = emptyBycat()
+      for (const r of seedRows) {
+        if (r.seed_date !== latestDate) continue
+        const catId = EXP_CAT_MAP[r.category]
+        if (catId) balances[catId] = r.balance
+      }
+      setSeed({ date: latestDate, balances })
+    }
+
+    // OPEX items
+    setOpexItems((opexItemRows ?? []).map((r: any) => ({
+      id: r.id, name: r.name, type: r.type, amount: r.amount,
+      bandDay: r.band_day ?? null, notes: r.notes ?? null, isActive: r.is_active,
+    })))
+
+    // OPEX configs keyed by 'YYYY-MM'
+    const cfgMap: Record<string, MonthConfig> = {}
+    for (const r of (opexCfgRows ?? [])) {
+      const key = `${r.year}-${String(r.month).padStart(2, '0')}`
+      cfgMap[key] = { id: r.id, year: r.year, month: r.month, workingDays: r.working_days, fridays: r.fridays, saturdays: r.saturdays }
+    }
+    setOpexConfigs(cfgMap)
+  }, [sb])
 
   // ── Fetch all-time data for ledger ───────────────────────────────────────
   const fetchLedger = useCallback(async () => {
@@ -139,12 +208,12 @@ export default function BudgetTab() {
     const orderDateMap: Record<number, string> = {}
     for (const o of (allOrders ?? [])) orderDateMap[o.id] = localDateStr(new Date(o.opened_at))
 
-    // Step 2: all order_items
+    // Step 2: all order_items — select cost from menu_items for COGS
     const orderIds = Object.keys(orderDateMap).map(Number)
     const allIncoming: Record<string, Record<string, number>> = {}
     if (orderIds.length > 0) {
       const { data: items, error: itemsErr } = await sb
-        .from('order_items').select('order_id, qty, unit_price, menu_items(category)')
+        .from('order_items').select('order_id, qty, menu_items(category, cost)')
         .in('order_id', orderIds).neq('status', 'voided')
       if (itemsErr) console.error('[BudgetTab/ledger] items error', itemsErr)
       for (const row of (items ?? [])) {
@@ -167,13 +236,19 @@ export default function BudgetTab() {
       allExpenses[r.expense_date][cat] = (allExpenses[r.expense_date][cat] ?? 0) + r.amount
     }
 
-    setLedgerRows(buildLedger(allIncoming, allExpenses))
-  }, [sb])
+    setLedgerRows(buildLedger(allIncoming, allExpenses, seed, opexItems, opexConfigs))
+  }, [sb, seed, opexItems, opexConfigs])
 
   // ── Fetch data for a single day view ─────────────────────────────────────
   const fetchDay = useCallback(async (d: string) => {
     setLoading(true)
     const { start, end } = dayBounds(d)
+    const seedStart = seed?.date ?? '1970-01-01'
+
+    // OPEX daily allocation for selected date
+    const monthKey = d.slice(0, 7)
+    const dayCfg = opexConfigs[monthKey] ?? null
+    const dayOpex = computeDailyOpex(opexItems, dayCfg)
 
     // Today's orders
     const { data: dayOrders, error: dOrdErr } = await sb
@@ -183,11 +258,12 @@ export default function BudgetTab() {
     const todayIncoming = emptyBycat()
     if (dayIds.length > 0) {
       const { data: items, error: iErr } = await sb
-        .from('order_items').select('order_id, qty, unit_price, menu_items(category)')
+        .from('order_items').select('order_id, qty, menu_items(category, cost)')
         .in('order_id', dayIds).neq('status', 'voided')
       if (iErr) console.error('[BudgetTab] day items error', iErr)
       accumulateItems(items ?? [], todayIncoming)
     }
+    todayIncoming.opex = dayOpex
 
     // Today's expenses
     const { data: expRows, error: expErr } = await sb
@@ -200,22 +276,29 @@ export default function BudgetTab() {
       todayExpenses[cat] = (todayExpenses[cat] ?? 0) + r.amount
     }
 
-    // Cumulative prior days
+    // Cumulative prior days (from seed date onwards)
     const { data: priorOrders, error: pOrdErr } = await sb
-      .from('orders').select('id').lt('opened_at', start)
+      .from('orders').select('id, opened_at').lt('opened_at', start).gte('opened_at', new Date(seedStart).toISOString())
     if (pOrdErr) console.error('[BudgetTab] prior orders error', pOrdErr)
     const priorIds = (priorOrders ?? []).map((o: any) => o.id as number)
-    const priorIncoming = emptyBycat()
+    const priorIncoming = seed ? { ...seed.balances } : emptyBycat()
     if (priorIds.length > 0) {
       const { data: priorItems, error: piErr } = await sb
-        .from('order_items').select('order_id, qty, unit_price, menu_items(category)')
+        .from('order_items').select('order_id, qty, menu_items(category, cost)')
         .in('order_id', priorIds).neq('status', 'voided')
       if (piErr) console.error('[BudgetTab] prior items error', piErr)
       accumulateItems(priorItems ?? [], priorIncoming)
     }
 
+    // Add cumulative OPEX allocation — one allocation per unique operating day
+    const priorDates: string[] = [...new Set<string>((priorOrders ?? []).map((o: any) => localDateStr(new Date(o.opened_at as string))))]
+    for (const priorDate of priorDates) {
+      const priorCfg = opexConfigs[priorDate.slice(0, 7)] ?? null
+      priorIncoming.opex = (priorIncoming.opex ?? 0) + computeDailyOpex(opexItems, priorCfg)
+    }
+
     const { data: priorExp, error: peErr } = await sb
-      .from('daily_expenses').select('category, amount').lt('expense_date', d)
+      .from('daily_expenses').select('category, amount').lt('expense_date', d).gte('expense_date', seedStart)
     if (peErr) console.error('[BudgetTab] prior expenses error', peErr)
     const priorExpenses = emptyBycat()
     for (const r of (priorExp ?? [])) {
@@ -227,10 +310,26 @@ export default function BudgetTab() {
     setDayData({ incoming: todayIncoming, expenses: todayExpenses })
     setPrevData({ incoming: priorIncoming, expenses: priorExpenses })
     setLoading(false)
-  }, [sb])
+  }, [sb, seed, opexItems, opexConfigs])
 
+  useEffect(() => { fetchSeedAndOpex() }, [fetchSeedAndOpex])
   useEffect(() => { fetchDay(date) }, [fetchDay, date])
   useEffect(() => { fetchLedger() }, [fetchLedger])
+
+  async function saveSeed() {
+    setSeedSaving(true)
+    // Delete any existing seed rows, then insert new ones
+    await sb.from('budget_seed').delete().neq('id', 0)
+    const rows = BUDGET_CATS.map(c => ({
+      seed_date: seedDate,
+      category:  CAT_ID_TO_DB[c.id],
+      balance:   parseFloat(seedInputs[c.id] ?? '0') || 0,
+    }))
+    await sb.from('budget_seed').insert(rows)
+    setShowSeedForm(false)
+    await fetchSeedAndOpex()
+    setSeedSaving(false)
+  }
 
   function shiftDate(days: number) {
     const d = parseLocalDate(date); d.setDate(d.getDate() + days)
@@ -317,6 +416,43 @@ export default function BudgetTab() {
         />
       )}
 
+      {/* ── SEED SETUP BANNER ─────────────────────────────────────────────── */}
+      {!seed && !showSeedForm && (
+        <div style={{ padding: '16px 24px', background: `${T.warn}18`, borderBottom: `1px solid ${T.warn}44`, display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+          <span style={{ fontSize: 13, color: T.warn, flex: 1 }}>Set opening balances to start tracking your budget from June 1.</span>
+          <button onClick={() => setShowSeedForm(true)} style={{ padding: '6px 16px', fontSize: 12, fontFamily: 'inherit', fontWeight: 700, background: T.warn, color: '#000', border: 'none', borderRadius: T.radius, cursor: 'pointer' }}>
+            Set Opening Balance
+          </button>
+        </div>
+      )}
+
+      {/* ── SEED FORM ─────────────────────────────────────────────────────── */}
+      {showSeedForm && (
+        <div style={{ padding: '16px 24px', background: T.surface2, borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: T.text, marginBottom: 12 }}>Opening Balances</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10, marginBottom: 12 }}>
+            {BUDGET_CATS.map(c => (
+              <div key={c.id}>
+                <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>{c.label}</div>
+                <input
+                  value={seedInputs[c.id] ?? '0'}
+                  onChange={e => setSeedInputs(prev => ({ ...prev, [c.id]: e.target.value }))}
+                  type="number" step="0.01"
+                  style={{ width: '100%', fontFamily: T.mono, fontSize: 13, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box' }}
+                />
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ fontSize: 11, color: T.textMute }}>Seed date:</div>
+            <input type="date" value={seedDate} onChange={e => setSeedDate(e.target.value)} style={{ fontFamily: T.mono, fontSize: 12, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '4px 8px', outline: 'none' }} />
+            <div style={{ flex: 1 }} />
+            <button onClick={() => setShowSeedForm(false)} style={{ padding: '6px 14px', fontSize: 12, fontFamily: 'inherit', background: T.chip, color: T.textDim, border: `1px solid ${T.line2}`, borderRadius: T.radius, cursor: 'pointer' }}>Cancel</button>
+            <button onClick={saveSeed} disabled={seedSaving} style={{ padding: '6px 16px', fontSize: 12, fontFamily: 'inherit', fontWeight: 700, background: T.accent, color: T.accentInk, border: 'none', borderRadius: T.radius, cursor: 'pointer' }}>Save</button>
+          </div>
+        </div>
+      )}
+
       {/* ── DAY VIEW ──────────────────────────────────────────────────────── */}
       {budgetView === 'day' && (
         <>
@@ -327,7 +463,7 @@ export default function BudgetTab() {
             <div style={{ minWidth: 560 }}>
               {/* Column header */}
               <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr 1fr 1fr 1fr', padding: '0 24px', height: 36, alignItems: 'center', borderBottom: `1px solid ${T.line}`, background: T.surface2, position: 'sticky', top: 0, zIndex: 1 }}>
-                {['Category', 'Starting', 'Sales', 'Expenses', 'Ending'].map(h => (
+                {['Category', 'Starting', 'COGS+OPEX', 'Expenses', 'Ending'].map(h => (
                   <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
                 ))}
               </div>
@@ -358,7 +494,7 @@ export default function BudgetTab() {
             </div>
           )}
           <div style={{ padding: '10px 24px', borderTop: `1px solid ${T.line}`, flexShrink: 0, fontSize: 11, color: T.textMute }}>
-            Sales and expenses pulled automatically from transactions · Starting balance carried from all prior days
+            COGS pulled from item cost × qty sold · OPEX allocation from calculator · Expenses from daily logs · Starting balance rolls from seed
           </div>
         </>
       )}
