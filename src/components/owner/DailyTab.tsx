@@ -88,7 +88,7 @@ export default function DailyTab({ staffName }: { staffName: string }) {
       { data: allOrders },
     ] = await Promise.all([
       sb.from('daily_summary_seed').select('*').order('created_at', { ascending: false }).limit(1),
-      sb.from('payments').select('amount, created_at'),
+      sb.from('payments').select('amount, processed_at'),
       sb.from('daily_expenses').select('expense_date, amount'),
       sb.from('partner_remittances').select('remittance_date, total_amount'),
       sb.from('daily_adjustments').select('*').order('adj_date'),
@@ -106,7 +106,7 @@ export default function DailyTab({ staffName }: { staffName: string }) {
     // Sales: sum payments by local date
     const salesByDate: Record<string, number> = {}
     for (const r of (payRows ?? [])) {
-      const d = localDateStr(new Date(r.created_at as string))
+      const d = localDateStr(new Date(r.processed_at as string))
       salesByDate[d] = (salesByDate[d] ?? 0) + (r.amount as number)
     }
 
