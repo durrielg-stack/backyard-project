@@ -110,14 +110,17 @@ export function useTickets(tick: number): {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'order_items' },
-        () => {
-          // Full refetch on any change — data volume is small (active items only)
-          fetchAll()
-        }
+        () => fetchAll()
       )
       .subscribe()
 
-    return () => { sb.removeChannel(channel) }
+    function onVisible() { if (document.visibilityState === 'visible') fetchAll() }
+    document.addEventListener('visibilitychange', onVisible)
+
+    return () => {
+      sb.removeChannel(channel)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [fetchAll])
 
   // ── Derive KdsTicket[] from rawItems + current time ──────────────────────────

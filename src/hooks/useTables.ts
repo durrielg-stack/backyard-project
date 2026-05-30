@@ -54,7 +54,14 @@ export function useTables() {
       })
       .subscribe()
 
-    return () => { sb.removeChannel(channel) }
+    // Refetch when tab/app returns to foreground (mobile WebSocket reconnect)
+    function onVisible() { if (document.visibilityState === 'visible') load() }
+    document.addEventListener('visibilitychange', onVisible)
+
+    return () => {
+      sb.removeChannel(channel)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [])
 
   // Only manual operator action: mark a table reserved (or clear it).

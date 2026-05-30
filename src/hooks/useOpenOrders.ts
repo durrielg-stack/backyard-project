@@ -70,7 +70,14 @@ export function useOpenOrders() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, load)
       .subscribe()
 
-    return () => { sb.removeChannel(channel) }
+    // Refetch when tab/app returns to foreground (mobile WebSocket reconnect)
+    function onVisible() { if (document.visibilityState === 'visible') load() }
+    document.addEventListener('visibilitychange', onVisible)
+
+    return () => {
+      sb.removeChannel(channel)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [])
 
   return { orders, totals, loading, error }
