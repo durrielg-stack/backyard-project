@@ -1,9 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useTheme } from '@/lib/ThemeContext'
 import { useOrder } from '@/hooks/useOrder'
-import { useTickets } from '@/hooks/useTickets'
 
 interface Props {
   tableId: string
@@ -17,24 +16,9 @@ function fmtPeso(n: number) {
   return '₱' + n.toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 }
 
-function fmtElapsed(sec: number): string {
-  const m = Math.floor(sec / 60)
-  const s = sec % 60
-  return `${m}:${String(s).padStart(2, '0')}`
-}
-
 export default function WaiterTableView({ tableId, waiterId, waiterName, onAddItems, onBack }: Props) {
   const { T, mode, toggle } = useTheme()
   const { lines, loading }  = useOrder(tableId, waiterId)
-  const [tick, setTick]     = useState(0)
-  const { tickets, bump }   = useTickets(tick)
-
-  useEffect(() => {
-    const id = setInterval(() => setTick(t => t + 1), 1000)
-    return () => clearInterval(id)
-  }, [])
-
-  const readyItems = tickets.filter(t => t.tableId === tableId)
 
   useEffect(() => {
     function enableScroll() {
@@ -87,56 +71,6 @@ export default function WaiterTableView({ tableId, waiterId, waiterName, onAddIt
           {mode === 'dark' ? '☀️' : '🌙'}
         </button>
       </div>
-
-      {/* Ready to deliver */}
-      {readyItems.length > 0 && (
-        <div style={{ padding: '12px 16px 0', flexShrink: 0 }}>
-          <div style={{
-            fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-            color: T.ok, marginBottom: 8,
-          }}>
-            Ready to Serve · {readyItems.length}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {readyItems.map(ticket => {
-              const color = ticket.status === 'late' ? T.bad : ticket.status === 'aging' ? T.warn : T.ok
-              return (
-                <div
-                  key={ticket.itemId}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    background: T.surface, border: `1px solid ${color}`,
-                    borderRadius: T.radius, padding: '10px 12px',
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: T.text, lineHeight: 1.2 }}>
-                      {ticket.qty > 1 && <span style={{ color: T.textMute, marginRight: 4 }}>×{ticket.qty}</span>}
-                      {ticket.itemName}
-                    </div>
-                    <div style={{ fontSize: 11, fontFamily: T.mono, color, marginTop: 2 }}>
-                      {fmtElapsed(ticket.elapsedSec)}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => bump(ticket.itemId)}
-                    style={{
-                      padding: '10px 16px', fontSize: 13, fontWeight: 700,
-                      background: T.ok, color: '#fff',
-                      border: 'none', borderRadius: T.radius,
-                      cursor: 'pointer', fontFamily: 'inherit',
-                      flexShrink: 0, minHeight: 44,
-                    }}
-                  >
-                    Served
-                  </button>
-                </div>
-              )
-            })}
-          </div>
-          <div style={{ height: 1, background: T.line, margin: '12px 0 0' }} />
-        </div>
-      )}
 
       {/* Order lines */}
       <div className="bp-scroll-y" style={{ flex: 1, overflowY: 'auto', padding: '14px 16px' }}>
