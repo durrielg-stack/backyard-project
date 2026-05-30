@@ -238,6 +238,13 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
     if (!orderId) return false
     const sb = getClient()
 
+    // Guard: reject if order is already closed (prevents duplicate payments)
+    const { data: currentOrder } = await sb.from('orders').select('status').eq('id', orderId).single()
+    if (currentOrder?.status === 'closed') {
+      setError('Order already paid')
+      return false
+    }
+
     // Build notes string
     const noteParts: string[] = []
     if (tip > 0)      noteParts.push(`Tip: ₱${tip.toFixed(2)}`)
