@@ -17,6 +17,9 @@ const STAFF: StaffUser[] = [
   { id: '49dfc6c2-910c-46bd-9fe0-7032c03f45a7', name: 'Booba',   role: 'manager', password: 'booba'   },
   { id: '9567524a-52e7-4f33-ae2e-20af6558f714', name: 'RJ',      role: 'waiter',  password: 'rj'      },
   { id: '0bc47a89-05d1-45ec-b369-b01f453e0a67', name: 'Angeli',  role: 'waiter',  password: 'angeli'  },
+  { id: '8b9aa87d-df79-4786-9710-d3719b865fb7', name: 'Ed',      role: 'kitchen', password: 'ed'      },
+  { id: 'de2fbd61-762d-49e4-879f-6a7b9854d312', name: 'Dang',    role: 'kitchen', password: 'dang'    },
+  { id: 'a3617c4f-5fc5-44e9-8b55-0edb6bf38cf3', name: 'Cenon',   role: 'kitchen', password: 'cenon'   },
 ]
 
 type Category = 'owners' | 'staff'

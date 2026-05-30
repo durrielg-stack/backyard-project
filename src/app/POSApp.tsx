@@ -52,6 +52,11 @@ export default function POSApp() {
       window.location.href = '/waiter'
       return
     }
+    if (role === 'kitchen') {
+      localStorage.setItem('bp_kitchen', JSON.stringify({ userId, name }))
+      window.location.href = '/kitchen'
+      return
+    }
     const s = { userId, name, initials, role }
     localStorage.setItem('bp_staff', JSON.stringify(s))
     setStaff(s)

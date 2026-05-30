@@ -55,22 +55,12 @@ function KdsTicketRow({ ticket, onBump }: {
           <span style={{ fontSize: 12, color: T.textDim }}>· {ticket.tableId}</span>
           <span style={{ fontSize: 12, color: T.textMute }}>· {ticket.server}</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          {ticket.qty > 1 && (
-            <span style={{
-              fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: T.accent,
-              flexShrink: 0,
-            }}>
-              ×{ticket.qty}
-            </span>
-          )}
-          <span style={{
-            fontSize: 13, color: T.text, fontWeight: 500,
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
-            {ticket.itemName}
-          </span>
-        </div>
+        <span style={{
+          fontSize: 13, color: T.text, fontWeight: 500,
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block',
+        }}>
+          {ticket.itemName}
+        </span>
       </div>
 
       {/* Served button */}
@@ -153,7 +143,11 @@ export default function KdsPanel({
             No open tickets
           </div>
         ) : (
-          visible.map(t => <KdsTicketRow key={t.id} ticket={t} onBump={onBump} />)
+          visible.flatMap(t =>
+            Array.from({ length: t.qty }, (_, i) => (
+              <KdsTicketRow key={`${t.itemId}-${i}`} ticket={t} onBump={onBump} />
+            ))
+          )
         )}
       </div>
     </div>
