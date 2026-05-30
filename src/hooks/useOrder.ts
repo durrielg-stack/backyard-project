@@ -199,9 +199,19 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
       }).eq('id', line.dbId)
       if (error) { setError(error.message); return }
     }
-    setLines(prev => prev.filter(l => l.lineId !== lineId))
+
+    const remaining = lines.filter(l => l.lineId !== lineId)
+    setLines(remaining)
     await sb.rpc('restore_inventory', { p_menu_item_id: line.itemId, p_qty: line.qty })
-  }, [lines])
+
+    // Auto-close order and free table when last item is voided
+    if (remaining.length === 0 && orderIdRef.current) {
+      await sb.from('orders').update({ status: 'closed', closed_at: new Date().toISOString() }).eq('id', orderIdRef.current)
+      await sb.from('restaurant_tables').update({ status: 'available' }).eq('id', tableId)
+      orderIdRef.current = null
+      setOrderId(null)
+    }
+  }, [lines, tableId])
 
   // ── Set note on a line ───────────────────────────────────────────────────
   const setNote = useCallback(async (lineId: string, note: string) => {
