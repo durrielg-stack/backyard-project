@@ -26,7 +26,7 @@ const STATUS_LABEL: Record<PublicStatus, string> = {
 const STATUS_COLOR: Record<PublicStatus, { bg: string; text: string; dot: string }> = {
   available: { bg: '#0f2d1a', text: '#4ade80', dot: '#22c55e' },
   occupied:  { bg: '#2d1010', text: '#f87171', dot: '#ef4444' },
-  reserved:  { bg: '#2d2010', text: '#fbbf24', dot: '#f59e0b' },
+  reserved:  { bg: '#0f1a2d', text: '#60a5fa', dot: '#3b82f6' },
 }
 
 export default function TablesPage() {
