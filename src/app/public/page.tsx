@@ -545,11 +545,14 @@ export default function TablesPage() {
   /* Supabase realtime */
   useEffect(() => {
     const sb = getClient()
+    const PREFIX_ORDER: Record<string, number> = { T: 0, B: 1, OT: 2, W: 3 }
     const sortById = (rows: TableRow[]) =>
       [...rows].sort((a, b) => {
         const [, ap, an] = a.id.match(/^([A-Za-z]+)(\d+)$/) ?? ['', a.id, '0']
         const [, bp, bn] = b.id.match(/^([A-Za-z]+)(\d+)$/) ?? ['', b.id, '0']
-        return ap !== bp ? ap.localeCompare(bp) : parseInt(an, 10) - parseInt(bn, 10)
+        const ao = PREFIX_ORDER[ap] ?? 99
+        const bo = PREFIX_ORDER[bp] ?? 99
+        return ao !== bo ? ao - bo : parseInt(an, 10) - parseInt(bn, 10)
       })
 
     sb.from('restaurant_tables').select('id, label, status')
