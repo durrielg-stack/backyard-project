@@ -35,7 +35,7 @@ function SalesKpiStrip({ suffix, revenue, cost, expenses, txCount, avgOrder, avg
 }) {
   const { T } = useTheme()
   const net      = revenue - cost
-  const cashflow = net - expenses
+  const cashflow = revenue - expenses
 
   const kpis = [
     { label: `Sales · ${suffix}`,     value: fp(revenue),                               note: `${txCount} orders`,                                              color: T.accent },
