@@ -463,13 +463,18 @@ function LocationSection() {
             </div>
           </div>
         </div>
-        <a className="byp-visit-map" href={MAPS_URL} target="_blank" rel="noreferrer" aria-label="Open in Google Maps">
-          <div className="byp-map-skin">
-            <div className="byp-map-lines" />
-            <div className="byp-map-pin"><IcPin width={28} height={28} /></div>
-            <div className="byp-map-cta">Open in Google Maps <IcArrow width={14} height={14} /></div>
-          </div>
-        </a>
+        <div className="byp-visit-map">
+          <iframe
+            src="https://www.google.com/maps?q=Mabini+St+Ext,+Mu%C3%B1oz,+3119+Nueva+Ecija,+Philippines&output=embed&z=16"
+            title="The Backyard Project location"
+            allowFullScreen
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+          <a className="byp-map-cta" href={MAPS_URL} target="_blank" rel="noreferrer">
+            Open in Google Maps <IcArrow width={14} height={14} />
+          </a>
+        </div>
       </div>
     </section>
   )

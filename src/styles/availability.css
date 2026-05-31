@@ -803,39 +803,18 @@ html.byp-hero-past .byp-hero-logo {
 
 /* map card */
 .byp-visit-map {
-  display: block;
   border-radius: 18px;
   overflow: hidden;
   border: 1px solid var(--line);
   background: var(--panel);
   aspect-ratio: 1 / 1;
   position: relative;
-  transition: transform 160ms, box-shadow 160ms;
-  cursor: pointer;
 }
-.byp-visit-map:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,.5); }
-.byp-map-skin {
+.byp-visit-map iframe {
   width: 100%;
   height: 100%;
-  position: relative;
-  overflow: hidden;
-  background: #1a1510;
-}
-.byp-map-lines {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(201,130,78,.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(201,130,78,.07) 1px, transparent 1px);
-  background-size: 40px 40px;
-}
-.byp-map-pin {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -60%);
-  color: var(--copper);
-  filter: drop-shadow(0 4px 12px rgba(201,130,78,.5));
+  border: 0;
+  display: block;
 }
 .byp-map-cta {
   position: absolute;
@@ -854,7 +833,9 @@ html.byp-hero-past .byp-hero-logo {
   font-weight: 500;
   color: var(--dim);
   white-space: nowrap;
+  transition: color 150ms;
 }
+.byp-map-cta:hover { color: var(--text); }
 
 /* ============================
    FOOTER
