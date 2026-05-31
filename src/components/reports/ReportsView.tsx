@@ -34,21 +34,23 @@ function SalesKpiStrip({ suffix, revenue, cost, expenses, txCount, avgOrder, avg
   avgTurnMin: number | null
 }) {
   const { T } = useTheme()
-  const net = revenue - cost - expenses
+  const net      = revenue - cost
+  const cashflow = net - expenses
 
   const kpis = [
-    { label: `Sales · ${suffix}`,    value: fp(revenue),                             note: `${txCount} orders`,                                           color: T.accent },
-    { label: `Cost · ${suffix}`,     value: fp(cost),                                note: 'COGS',                                                        color: T.textDim },
-    { label: `Net · ${suffix}`,      value: fp(net),                                 note: revenue > 0 ? `${((net/revenue)*100).toFixed(1)}% margin` : '—', color: net >= 0 ? T.ok : T.bad },
-    { label: `Expenses · ${suffix}`, value: fp(expenses),                            note: 'logged',                                                      color: T.bad },
-    { label: 'Avg Order',            value: avgOrder > 0 ? fp(avgOrder) : '—',       note: `${txCount} closed`,                                           color: T.textDim },
-    { label: 'Avg Turn Time',        value: avgTurnMin != null ? `${avgTurnMin}m` : '—', note: 'open → close',                                            color: T.info },
+    { label: `Sales · ${suffix}`,     value: fp(revenue),                               note: `${txCount} orders`,                                              color: T.accent },
+    { label: `Cost · ${suffix}`,      value: fp(cost),                                  note: 'COGS',                                                           color: T.textDim },
+    { label: `Net · ${suffix}`,       value: fp(net),                                   note: revenue > 0 ? `${((net/revenue)*100).toFixed(1)}% margin` : '—',  color: net >= 0 ? T.ok : T.bad },
+    { label: `Expenses · ${suffix}`,  value: fp(expenses),                              note: 'logged',                                                         color: T.bad },
+    { label: `Cashflow · ${suffix}`,  value: fp(cashflow),                              note: net > 0 ? `${((cashflow/net)*100).toFixed(1)}% of net` : '—',     color: cashflow >= 0 ? T.ok : T.bad },
+    { label: 'Avg Order',             value: avgOrder > 0 ? fp(avgOrder) : '—',         note: `${txCount} closed`,                                              color: T.textDim },
+    { label: 'Avg Turn Time',         value: avgTurnMin != null ? `${avgTurnMin}m` : '—', note: 'open → close',                                                 color: T.info },
   ]
 
   const bp = useBreakpoint()
   const isMobile = bp === 'mobile'
   return (
-    <div className="bp-no-scrollbar" style={{ display: isMobile ? 'flex' : 'grid', gridTemplateColumns: isMobile ? undefined : 'repeat(6, 1fr)', overflowX: isMobile ? 'auto' : undefined, touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none', WebkitOverflowScrolling: 'touch', height: isMobile ? 'auto' : 88, borderBottom: `1px solid ${T.line}`, flexShrink: 0, background: T.bg }}>
+    <div className="bp-no-scrollbar" style={{ display: isMobile ? 'flex' : 'grid', gridTemplateColumns: isMobile ? undefined : 'repeat(7, 1fr)', overflowX: isMobile ? 'auto' : undefined, touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none', WebkitOverflowScrolling: 'touch', height: isMobile ? 'auto' : 88, borderBottom: `1px solid ${T.line}`, flexShrink: 0, background: T.bg }}>
       {kpis.map((k) => (
         <div key={k.label} style={{
           padding: '10px 18px',
