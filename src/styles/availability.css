@@ -121,7 +121,7 @@ body:has(.byp-page) {
   align-items: center;
   justify-content: space-between;
 }
-.byp-header-logo { display: flex; align-items: center; }
+.byp-header-logo { display: flex; align-items: center; gap: 10px; }
 .byp-header-logo img {
   height: 50px;
   width: auto;
@@ -133,6 +133,27 @@ body:has(.byp-page) {
 .byp-header.is-solid .byp-header-logo img {
   opacity: 1;
   transform: translateY(0);
+}
+.byp-header-wordmark {
+  font-family: var(--font-oswald), sans-serif;
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 300ms ease, transform 300ms ease;
+  white-space: nowrap;
+}
+.byp-header.is-solid .byp-header-wordmark {
+  opacity: 1;
+  transform: translateY(0);
+}
+.byp-header-wordmark-short { display: none; }
+@media (max-width: 599px) {
+  .byp-header-wordmark-full  { display: none; }
+  .byp-header-wordmark-short { display: inline; }
 }
 
 .byp-head-pill {

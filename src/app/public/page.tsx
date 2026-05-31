@@ -439,6 +439,10 @@ function SiteHeader({ summary }: { summary: Summary }) {
         <a className="byp-header-logo" href="#top">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/byp-logo-topbar.png" alt="The Backyard Project" />
+          <span className="byp-header-wordmark">
+            <span className="byp-header-wordmark-full">The Backyard Project</span>
+            <span className="byp-header-wordmark-short">TBP</span>
+          </span>
         </a>
         <a className={'byp-head-pill st-' + summary.tone} href="#tables">
           <span className="byp-dot" style={{ color: 'currentColor' }} />
