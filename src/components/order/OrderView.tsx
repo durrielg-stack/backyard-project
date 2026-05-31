@@ -26,15 +26,16 @@ type ModalState =
   | { kind: 'move' }
 
 interface OrderViewProps {
-  tableId:    string
-  table:      TableWithStatus
-  tables:     TableWithStatus[]
-  staff:      string
-  onBack:     () => void
-  onCartSync: (tableId: string, lines: CartLine[]) => void
+  tableId:           string
+  table:             TableWithStatus
+  tables:            TableWithStatus[]
+  staff:             string
+  onBack:            () => void
+  onCartSync:        (tableId: string, lines: CartLine[]) => void
+  onSetTableStatus:  (tableId: string, status: 'available' | 'occupied' | 'reserved') => Promise<void>
 }
 
-export default function OrderView({ tableId, table, tables, staff, onBack, onCartSync }: OrderViewProps) {
+export default function OrderView({ tableId, table, tables, staff, onBack, onCartSync, onSetTableStatus }: OrderViewProps) {
   const { T } = useTheme()
   const {
     orderId, lines, loading, error, clearError,
@@ -233,6 +234,7 @@ export default function OrderView({ tableId, table, tables, staff, onBack, onCar
             onToggleBulk={handleToggleBulk}
             onBulkVoid={handleBulkVoidOpen}
             onMove={lines.length > 0 ? () => setModal({ kind: 'move' }) : undefined}
+            onSetStatus={s => onSetTableStatus(tableId, s)}
           />
         </div>
       </div>

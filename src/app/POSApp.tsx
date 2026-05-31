@@ -78,7 +78,7 @@ export default function POSApp() {
   useEffect(() => { setNow(new Date()) }, [tick])
 
   // ── Data ──────────────────────────────────────────────────────────────────
-  const { tables }         = useTables()
+  const { tables, setStatus: setTableStatus } = useTables()
   const { orders, totals: dbTotals } = useOpenOrders()
   const { byId: menuById } = useMenuItems()
 
@@ -242,6 +242,7 @@ export default function POSApp() {
               staff={staff.userId}
               onBack={goFloor}
               onCartSync={syncCart}
+              onSetTableStatus={setTableStatus}
             />
           )
         })()}

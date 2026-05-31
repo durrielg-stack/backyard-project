@@ -64,16 +64,20 @@ export function useTables() {
     }
   }, [])
 
-  // Only manual operator action: mark a table reserved (or clear it).
-  // All other statuses are derived — never written from the client.
-  async function setReserved(tableId: string, reserved: boolean) {
+  // Only manual operator actions: set a table's base status.
+  // occupied/reserved persist in DB; auto-status overrides when an order is open.
+  async function setStatus(tableId: string, status: 'available' | 'occupied' | 'reserved') {
     const sb = getClient()
     const { error } = await sb
       .from('restaurant_tables')
-      .update({ status: (reserved ? 'reserved' : 'available') as DbTableStatus })
+      .update({ status: status as DbTableStatus })
       .eq('id', tableId)
     if (error) setError(error.message)
   }
 
-  return { tables, loading, error, setReserved }
+  async function setReserved(tableId: string, reserved: boolean) {
+    return setStatus(tableId, reserved ? 'reserved' : 'available')
+  }
+
+  return { tables, loading, error, setReserved, setStatus }
 }

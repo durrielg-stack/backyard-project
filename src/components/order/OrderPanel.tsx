@@ -1,12 +1,14 @@
 'use client'
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { statusColor, statusLabel } from '@/lib/theme'
 import { useTheme } from '@/lib/ThemeContext'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import type { CartLine, TableWithStatus } from '@/lib/types'
 import OrderLine   from './OrderLine'
 import OrderFooter from './OrderFooter'
+
+type ManualStatus = 'available' | 'occupied' | 'reserved'
 
 interface OrderPanelProps {
   table:              TableWithStatus
@@ -35,6 +37,7 @@ interface OrderPanelProps {
   onToggleBulk:       (lineId: string) => void
   onBulkVoid:         () => void
   onMove?:            () => void
+  onSetStatus?:       (status: ManualStatus) => Promise<void>
 }
 
 export default function OrderPanel({
@@ -43,12 +46,27 @@ export default function OrderPanel({
   selectedLine, setSelectedLine, selectedSeat, setSelectedSeat,
   onUpdateQty, onVoid, onSetNote, onBillItem,
   onBack, onSplit, onCharge,
-  bulkMode, bulkSelected, onToggleBulkMode, onToggleBulk, onBulkVoid, onMove,
+  bulkMode, bulkSelected, onToggleBulkMode, onToggleBulk, onBulkVoid, onMove, onSetStatus,
 }: OrderPanelProps) {
   const { T } = useTheme()
   const listRef = useRef<HTMLDivElement>(null)
+  const statusMenuRef = useRef<HTMLDivElement>(null)
   const bp = useBreakpoint()
   const isMobile = bp === 'mobile'
+
+  const [statusOpen, setStatusOpen] = useState(false)
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!statusOpen) return
+    function onDown(e: MouseEvent) {
+      if (statusMenuRef.current && !statusMenuRef.current.contains(e.target as Node)) {
+        setStatusOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [statusOpen])
 
   // Auto-scroll to bottom when a line is appended
   useEffect(() => {
@@ -131,19 +149,70 @@ export default function OrderPanel({
 
         <div style={{ flex: 1 }} />
 
-        {/* Status badge — bp-attn halo when attention */}
-        <span style={{
-          fontSize: 11, fontWeight: 600, letterSpacing: '0.06em',
-          textTransform: 'uppercase',
-          color:      statusC,
-          background: statusC + '18',
-          border:     `1px solid ${statusC}44`,
-          padding: '4px 10px', borderRadius: T.radius,
-          animation: isAttn ? 'bp-attn 2.4s ease-in-out infinite' : 'none',
-          flexShrink: 0,
-        }}>
-          {statusLabel(table.status)}
-        </span>
+        {/* Status badge — clickable to manually override */}
+        <div ref={statusMenuRef} style={{ position: 'relative', flexShrink: 0 }}>
+          <button
+            onClick={() => onSetStatus && setStatusOpen(p => !p)}
+            style={{
+              fontSize: 11, fontWeight: 600, letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              color:      statusC,
+              background: statusC + '18',
+              border:     `1px solid ${statusC}44`,
+              padding: '4px 10px', borderRadius: T.radius,
+              animation: isAttn ? 'bp-attn 2.4s ease-in-out infinite' : 'none',
+              cursor: onSetStatus ? 'pointer' : 'default',
+              fontFamily: 'inherit',
+              transition: 'background 0.12s ease, border-color 0.12s ease',
+            }}
+          >
+            {statusLabel(table.status)}
+            {onSetStatus && <span style={{ marginLeft: 5, opacity: 0.6 }}>▾</span>}
+          </button>
+
+          {statusOpen && onSetStatus && (
+            <div style={{
+              position: 'absolute', top: 'calc(100% + 6px)', right: 0,
+              background: T.surface, border: `1px solid ${T.line}`,
+              borderRadius: T.radius, boxShadow: '0 8px 24px rgba(0,0,0,.35)',
+              overflow: 'hidden', zIndex: 50, minWidth: 140,
+            }}>
+              {([
+                ['available', 'Available'],
+                ['occupied',  'Occupied'],
+                ['reserved',  'Reserved'],
+              ] as [ManualStatus, string][]).map(([s, label]) => {
+                const c = statusColor(s)
+                const isCurrent = table.status === s || (table.status === 'aging' && s === 'occupied') || (table.status === 'attention' && s === 'occupied')
+                return (
+                  <button
+                    key={s}
+                    onClick={async () => {
+                      setStatusOpen(false)
+                      await onSetStatus(s)
+                    }}
+                    style={{
+                      width: '100%', padding: '9px 14px',
+                      display: 'flex', alignItems: 'center', gap: 9,
+                      background: isCurrent ? c + '18' : 'transparent',
+                      border: 'none', cursor: 'pointer',
+                      fontFamily: 'inherit', textAlign: 'left',
+                      transition: 'background 0.1s ease',
+                    }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = c + '18' }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = isCurrent ? c + '18' : 'transparent' }}
+                  >
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: c, flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, fontWeight: isCurrent ? 600 : 400, color: isCurrent ? c : T.textDim, letterSpacing: '0.04em' }}>
+                      {label}
+                    </span>
+                    {isCurrent && <span style={{ marginLeft: 'auto', fontSize: 10, color: c }}>✓</span>}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
 
         {/* Move to Table */}
         {onMove && (

@@ -57,10 +57,11 @@ export function useAutoStatus(
       const ticketStatus = worstTicket.get(table.id)
 
       let status: TableWithStatus['status']
-      if      (ticketStatus === 'late')   status = 'attention'
-      else if (ticketStatus === 'aging')  status = 'aging'
-      else if (hasActivity)               status = 'occupied'
-      else                                status = 'available'
+      if      (ticketStatus === 'late')             status = 'attention'
+      else if (ticketStatus === 'aging')            status = 'aging'
+      else if (hasActivity)                         status = 'occupied'
+      else if (table.status === 'occupied')         status = 'occupied'  // manual override: no open order but staff marked occupied
+      else                                          status = 'available'
 
       const cartStart = cartStartTimes.get(table.id)
       const startMs   = cartStart ?? (order ? new Date(order.opened_at).getTime() : null)
