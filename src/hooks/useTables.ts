@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react'
 import { getClient } from '@/lib/supabase'
 import type { RestaurantTable, DbTableStatus } from '@/lib/types'
 
-// Section display order: T (indoor) → B (bar) → OT (outdoor) → W (walkup/temp)
-const PREFIX_ORDER: Record<string, number> = { T: 0, B: 1, OT: 2, W: 3 }
+const PREFIX_ORDER: Record<string, number> = { T: 0, A: 1, B: 2, OT: 3 }
 
 function sortTables<R extends { id: string }>(rows: R[]): R[] {
   return rows.slice().sort((a, b) => {

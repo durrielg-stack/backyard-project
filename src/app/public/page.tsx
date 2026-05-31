@@ -925,7 +925,7 @@ export default function TablesPage() {
   /* Supabase realtime */
   useEffect(() => {
     const sb = getClient()
-    const PREFIX_ORDER: Record<string, number> = { T: 0, B: 1, OT: 2, W: 3 }
+    const PREFIX_ORDER: Record<string, number> = { T: 0, A: 1, B: 2, OT: 3 }
     const sortById = (rows: TableRow[]) =>
       [...rows].sort((a, b) => {
         const [, ap, an] = a.id.match(/^([A-Za-z]+)(\d+)$/) ?? ['', a.id, '0']
