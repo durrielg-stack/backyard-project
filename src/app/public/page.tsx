@@ -465,10 +465,12 @@ function Hero({ summary, currentMsg, totalTables, preOpen }: { summary: Summary;
       <div className="byp-hero-grid">
         <div className="byp-hero-copy">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="byp-hero-logo" src="/byp-logo.png" alt="The Backyard Project · bar + kitchen" />
-          <h1 className="byp-hero-title">
+          <div className="byp-hero-logo-row">
+            <img className="byp-hero-logo" src="/byp-logo.png" alt="The Backyard Project · bar + kitchen" />
+            <h1 className="byp-hero-title">
             Check who&rsquo;s<br/>got a table<br/><span className="byp-amp">right now</span>
           </h1>
+          </div>
           <p className="byp-hero-sub">
             Real-time seating at The Backyard Project. We refresh the floor every few seconds, so you know before you go.
           </p>
