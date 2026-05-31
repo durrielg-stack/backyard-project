@@ -401,9 +401,15 @@ function GallerySection() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/hero.jpg" alt="The Backyard Project" />
         </div>
-        {[1, 2, 3, 4].map(n => (
-          <div className="byp-gal" key={n}>
-            <div className="byp-gal-placeholder">+ Add a photo</div>
+        {[
+          { src: '/gallery-string-lights.jpg', alt: 'String lights and drinks at The Backyard Project' },
+          { src: '/gallery-cocktails.jpg', alt: 'Signature cocktails at The Backyard Project' },
+          { src: '/gallery-kitchen.jpg', alt: 'Fresh food from the kitchen' },
+          { src: '/gallery-sunset.jpg', alt: 'The backyard at sunset' },
+        ].map(({ src, alt }) => (
+          <div className="byp-gal" key={src}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={src} alt={alt} />
           </div>
         ))}
       </div>
