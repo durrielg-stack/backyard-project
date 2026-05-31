@@ -169,7 +169,7 @@ function Hero({ summary }: { summary: Summary }) {
           <img className="byp-hero-logo" src="/byp-logo.png" alt="The Backyard Project · bar + kitchen" />
           <div className="byp-eyebrow">Live table availability</div>
           <h1 className="byp-hero-title">
-            Check who&rsquo;s<br/>got a table<span className="byp-amp"> — right now</span>
+            Check who&rsquo;s<br/>got a table<br/><span className="byp-amp">right now</span>
           </h1>
           <p className="byp-hero-sub">
             Real-time seating at The Backyard Project. We refresh the floor every few seconds, so you know before you go.
