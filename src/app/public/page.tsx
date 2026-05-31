@@ -243,6 +243,38 @@ const MSG: Record<AvailState, string[]> = {
   ],
 }
 
+/* ---- pre-open color interpolation ---- */
+const COLOR_RED   = '#D56454'
+const COLOR_AMBER = '#C9824E'
+const COLOR_GREEN = '#6FBE85'
+
+function hexToRgb(hex: string): [number, number, number] {
+  return [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)]
+}
+
+function lerpColor(a: string, b: string, t: number): string {
+  const [ar,ag,ab] = hexToRgb(a)
+  const [br,bg,bb] = hexToRgb(b)
+  return `rgb(${Math.round(ar+(br-ar)*t)},${Math.round(ag+(bg-ag)*t)},${Math.round(ab+(bb-ab)*t)})`
+}
+
+type PreOpenState = { color: string; label: 'preparing' | 'opening-soon' } | null
+
+function getPreOpenAccent(now: Date): PreOpenState {
+  const manila = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' }))
+  if (manila.getDay() === 2) return null
+  const hour = manila.getHours()
+  const min  = manila.getMinutes()
+  const sec  = manila.getSeconds()
+  if (hour < 14 || hour >= 16) return null
+  const secsSince2pm = (hour - 14) * 3600 + min * 60 + sec
+  const progress = Math.min(1, secsSince2pm / 7200)
+  const color = progress <= 0.5
+    ? lerpColor(COLOR_RED, COLOR_AMBER, progress * 2)
+    : lerpColor(COLOR_AMBER, COLOR_GREEN, (progress - 0.5) * 2)
+  return { color, label: hour < 15 ? 'preparing' : 'opening-soon' }
+}
+
 function getAvailState(now: Date, isOpen: boolean, free: number): AvailState {
   const manila = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' }))
   const day  = manila.getDay()
@@ -422,7 +454,7 @@ function SiteHeader({ summary }: { summary: Summary }) {
 /* ============================================================
    HERO
    ============================================================ */
-function Hero({ summary, currentMsg, totalTables }: { summary: Summary; currentMsg: string; totalTables: number }) {
+function Hero({ summary, currentMsg, totalTables, preOpen }: { summary: Summary; currentMsg: string; totalTables: number; preOpen: PreOpenState }) {
   return (
     <section className="byp-hero" id="top">
       <div className="byp-hero-glow" />
@@ -449,7 +481,7 @@ function Hero({ summary, currentMsg, totalTables }: { summary: Summary; currentM
           </div>
         </div>
         <div className="byp-hero-cards">
-          <SummaryCard summary={summary} message={currentMsg} />
+          <SummaryCard summary={summary} message={currentMsg} preOpen={preOpen} />
           <BusyMeter openNow={summary.open} totalTables={totalTables} />
         </div>
       </div>
@@ -460,24 +492,45 @@ function Hero({ summary, currentMsg, totalTables }: { summary: Summary; currentM
 /* ============================================================
    SUMMARY CARD
    ============================================================ */
-function SummaryCard({ summary, message }: { summary: Summary; message: string }) {
+function SummaryCard({ summary, message, preOpen }: { summary: Summary; message: string; preOpen: PreOpenState }) {
+  const cardStyle = preOpen ? { '--card-accent': preOpen.color } as React.CSSProperties : {}
+
+  let statusContent: React.ReactNode
+  if (summary.open) {
+    statusContent = (
+      <div className="byp-sum-number-row">
+        <span className="byp-sum-number">{summary.free}</span>
+        <span className="byp-sum-unit">{summary.free === 1 ? 'table' : 'tables'}<br/>available</span>
+      </div>
+    )
+  } else if (preOpen?.label === 'preparing') {
+    statusContent = (
+      <div className="byp-sum-number-row">
+        <span className="byp-sum-number is-closed">Preparing</span>
+      </div>
+    )
+  } else if (preOpen?.label === 'opening-soon') {
+    statusContent = (
+      <div className="byp-sum-number-row">
+        <span className="byp-sum-number is-closed">Opening<br/>Soon</span>
+      </div>
+    )
+  } else {
+    statusContent = (
+      <div className="byp-sum-number-row">
+        <span className="byp-sum-number is-closed">Closed</span>
+      </div>
+    )
+  }
+
   return (
-    <div className={'byp-sum-card st-' + summary.tone}>
+    <div className={'byp-sum-card st-' + summary.tone} style={cardStyle}>
       <div className="byp-sum-left">
         <div className="byp-sum-eyebrow">
           <span className="byp-dot" style={{ color: 'currentColor' }} />
           <span className="byp-eyebrow" style={{ color: 'inherit' }}>Live availability</span>
         </div>
-        {summary.open ? (
-          <div className="byp-sum-number-row">
-            <span className="byp-sum-number">{summary.free}</span>
-            <span className="byp-sum-unit">{summary.free === 1 ? 'table' : 'tables'}<br/>available</span>
-          </div>
-        ) : (
-          <div className="byp-sum-number-row">
-            <span className="byp-sum-number is-closed">Closed</span>
-          </div>
-        )}
+        {statusContent}
         <div className="byp-sum-headline">{message}</div>
       </div>
       <div className="byp-sum-right">
@@ -917,6 +970,8 @@ export default function TablesPage() {
     [tables, closed, updatedAt]
   )
 
+  const preOpen = useMemo(() => getPreOpenAccent(now), [now])
+
   const currentMsg = useMemo(() => {
     const state = getAvailState(now, summary.open, summary.free)
     const pool = MSG[state]
@@ -926,7 +981,7 @@ export default function TablesPage() {
   return (
     <div className="byp-page">
       <SiteHeader summary={summary} />
-      <Hero summary={summary} currentMsg={currentMsg} totalTables={rawTables.length} />
+      <Hero summary={summary} currentMsg={currentMsg} totalTables={rawTables.length} preOpen={preOpen} />
 
       <TablesSection tables={tables} />
       <MenuSection onZoom={onZoom} />

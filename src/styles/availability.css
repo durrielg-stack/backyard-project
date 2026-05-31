@@ -278,11 +278,11 @@ html.byp-hero-past .byp-hero-logo {
   pointer-events: none;
   transition: background 600ms;
 }
-.byp-sum-card.st-open::before   { background: var(--av); }
-.byp-sum-card.st-busy::before   { background: var(--copper); }
-.byp-sum-card.st-almost::before { background: var(--cl); }
-.byp-sum-card.st-full::before   { background: var(--oc); }
-.byp-sum-card.st-closed::before { background: var(--oc); }
+.byp-sum-card.st-open::before   { background: var(--card-accent, var(--av)); }
+.byp-sum-card.st-busy::before   { background: var(--card-accent, var(--copper)); }
+.byp-sum-card.st-almost::before { background: var(--card-accent, var(--cl)); }
+.byp-sum-card.st-full::before   { background: var(--card-accent, var(--oc)); }
+.byp-sum-card.st-closed::before { background: var(--card-accent, var(--oc)); }
 
 .byp-sum-left { min-width: 0; flex: 1; }
 .byp-sum-eyebrow {
@@ -293,11 +293,11 @@ html.byp-hero-past .byp-hero-logo {
 }
 .byp-sum-eyebrow .byp-eyebrow { color: inherit; }
 
-.byp-sum-card.st-open   .byp-sum-eyebrow { color: var(--av); }
-.byp-sum-card.st-busy   .byp-sum-eyebrow { color: var(--copper); }
-.byp-sum-card.st-almost .byp-sum-eyebrow { color: var(--cl); }
-.byp-sum-card.st-full   .byp-sum-eyebrow { color: var(--oc); }
-.byp-sum-card.st-closed .byp-sum-eyebrow { color: var(--oc); }
+.byp-sum-card.st-open   .byp-sum-eyebrow { color: var(--card-accent, var(--av)); }
+.byp-sum-card.st-busy   .byp-sum-eyebrow { color: var(--card-accent, var(--copper)); }
+.byp-sum-card.st-almost .byp-sum-eyebrow { color: var(--card-accent, var(--cl)); }
+.byp-sum-card.st-full   .byp-sum-eyebrow { color: var(--card-accent, var(--oc)); }
+.byp-sum-card.st-closed .byp-sum-eyebrow { color: var(--card-accent, var(--oc)); }
 
 .byp-sum-number-row {
   display: flex;
@@ -313,11 +313,11 @@ html.byp-hero-past .byp-hero-logo {
   letter-spacing: -.01em;
   transition: color 600ms;
 }
-.byp-sum-card.st-open   .byp-sum-number { color: var(--av); }
-.byp-sum-card.st-busy   .byp-sum-number { color: var(--copper); }
-.byp-sum-card.st-almost .byp-sum-number { color: var(--cl); }
-.byp-sum-card.st-full   .byp-sum-number { color: var(--oc); }
-.byp-sum-card.st-closed .byp-sum-number { color: var(--oc); }
+.byp-sum-card.st-open   .byp-sum-number { color: var(--card-accent, var(--av)); }
+.byp-sum-card.st-busy   .byp-sum-number { color: var(--card-accent, var(--copper)); }
+.byp-sum-card.st-almost .byp-sum-number { color: var(--card-accent, var(--cl)); }
+.byp-sum-card.st-full   .byp-sum-number { color: var(--card-accent, var(--oc)); }
+.byp-sum-card.st-closed .byp-sum-number { color: var(--card-accent, var(--oc)); }
 
 .byp-sum-number.is-closed {
   font-size: clamp(2.4rem, 7vw, 4rem);
