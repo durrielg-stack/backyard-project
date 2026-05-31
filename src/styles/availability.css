@@ -86,12 +86,12 @@ body:has(.byp-page) {
   border-radius: 50%;
   background: currentColor;
   flex-shrink: 0;
-  animation: byp-dot-pulse 2.1s ease-out infinite;
+  animation: byp-dot-pulse 2.4s ease-in-out infinite;
 }
 @keyframes byp-dot-pulse {
-  0%   { box-shadow: 0 0 0 0 currentColor; opacity: .65; }
-  70%  { box-shadow: 0 0 0 6px transparent; opacity: .65; }
-  100% { box-shadow: 0 0 0 0 transparent; opacity: .65; }
+  0%   { opacity: 1;    transform: scale(1);    box-shadow: 0 0 0 0   currentColor; }
+  50%  { opacity: 0.3;  transform: scale(0.65); box-shadow: 0 0 0 6px transparent;  }
+  100% { opacity: 1;    transform: scale(1);    box-shadow: 0 0 0 0   transparent;  }
 }
 
 /* ============================
@@ -293,11 +293,11 @@ html.byp-hero-past .byp-hero-logo {
 }
 .byp-sum-eyebrow .byp-eyebrow { color: inherit; }
 
-.byp-sum-card.st-open   .byp-sum-eyebrow { color: var(--card-accent, var(--av)); }
-.byp-sum-card.st-busy   .byp-sum-eyebrow { color: var(--card-accent, var(--copper)); }
-.byp-sum-card.st-almost .byp-sum-eyebrow { color: var(--card-accent, var(--cl)); }
-.byp-sum-card.st-full   .byp-sum-eyebrow { color: var(--card-accent, var(--oc)); }
-.byp-sum-card.st-closed .byp-sum-eyebrow { color: var(--card-accent, var(--oc)); }
+.byp-sum-card.st-open   .byp-sum-eyebrow { color: var(--av); }
+.byp-sum-card.st-busy   .byp-sum-eyebrow { color: var(--copper); }
+.byp-sum-card.st-almost .byp-sum-eyebrow { color: var(--cl); }
+.byp-sum-card.st-full   .byp-sum-eyebrow { color: var(--oc); }
+.byp-sum-card.st-closed .byp-sum-eyebrow { color: var(--oc); }
 
 .byp-sum-number-row {
   display: flex;
@@ -907,7 +907,7 @@ html.byp-hero-past .byp-hero-logo {
    REDUCED MOTION
    ============================ */
 @media (prefers-reduced-motion: reduce) {
-  .byp-dot, .byp-led.av, .byp-tile.av .byp-tile-led { animation: none; }
+  .byp-led.av, .byp-tile.av .byp-tile-led { animation: none; }
   .byp-tile.flash { animation: none; }
   * { transition-duration: 0ms !important; }
 }
