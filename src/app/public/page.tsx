@@ -250,7 +250,7 @@ function getAvailState(now: Date, isOpen: boolean, free: number): AvailState {
   if (day === 2) return 'tuesday'
   if (day === 3 && hour < 16) return 'wednesday_early'
   if (!isOpen) {
-    if (hour < 6)  return 'closed_night'
+    if (hour < 5)  return 'closed_night'
     if (hour < 14) return 'regular_closed'
     if (hour < 15) return 'opening_soon'
     return 'opening_very_soon'
