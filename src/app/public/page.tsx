@@ -267,9 +267,23 @@ const HOURS: [string, string][] = [
   ['Thu', '4 PM – 12 MN'], ['Fri', '4 PM – 12 MN'], ['Sat', '4 PM – 12 MN'], ['Sun', '4 PM – 12 MN'],
 ]
 
-const BUSY_HOURS: [string, number][] = [
-  ['4p', 25], ['5p', 40], ['6p', 58], ['7p', 74], ['8p', 88], ['9p', 96], ['10p', 82], ['11p', 60], ['12m', 38],
+const HOUR_SLOTS = [
+  { label: '4p', h: 16 }, { label: '5p', h: 17 }, { label: '6p', h: 18 },
+  { label: '7p', h: 19 }, { label: '8p', h: 20 }, { label: '9p', h: 21 },
+  { label: '10p', h: 22 }, { label: '11p', h: 23 }, { label: '12m', h: 0 },
 ]
+
+const MANILA_OFFSET_MS = 8 * 60 * 60 * 1000
+
+function getManilaDateParts() {
+  const d = new Date(Date.now() + MANILA_OFFSET_MS)
+  return { year: d.getUTCFullYear(), month: d.getUTCMonth(), day: d.getUTCDate(), hour: d.getUTCHours() }
+}
+
+function slotStartUTC(manilaHour: number, year: number, month: number, day: number): number {
+  const d = manilaHour === 0 ? day + 1 : day
+  return Date.UTC(year, month, d, manilaHour) - MANILA_OFFSET_MS
+}
 
 /* ---- types ---- */
 type Status = 'av' | 'oc' | 'rs' | 'cl'
@@ -408,7 +422,7 @@ function SiteHeader({ summary }: { summary: Summary }) {
 /* ============================================================
    HERO
    ============================================================ */
-function Hero({ summary, currentMsg }: { summary: Summary; currentMsg: string }) {
+function Hero({ summary, currentMsg, totalTables }: { summary: Summary; currentMsg: string; totalTables: number }) {
   return (
     <section className="byp-hero" id="top">
       <div className="byp-hero-glow" />
@@ -436,7 +450,7 @@ function Hero({ summary, currentMsg }: { summary: Summary; currentMsg: string })
         </div>
         <div className="byp-hero-cards">
           <SummaryCard summary={summary} message={currentMsg} />
-          <BusyMeter openNow={summary.open} />
+          <BusyMeter openNow={summary.open} totalTables={totalTables} />
         </div>
       </div>
     </section>
@@ -490,24 +504,60 @@ function SummaryCard({ summary, message }: { summary: Summary; message: string }
 /* ============================================================
    BUSY METER
    ============================================================ */
-function BusyMeter({ openNow }: { openNow: boolean }) {
-  const manilaHour = new Date(
-    new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' })
-  ).getHours()
-  // Map hour to BUSY_HOURS index (4p=4,5p=5,...,12m=0)
+function BusyMeter({ openNow, totalTables }: { openNow: boolean; totalTables: number }) {
+  const [barData, setBarData] = useState<number[]>(Array(9).fill(15))
+
+  useEffect(() => {
+    if (totalTables === 0) return
+    const sb = getClient()
+
+    async function fetchOccupancy() {
+      const { year, month, day } = getManilaDateParts()
+      const todayStartUTC = Date.UTC(year, month, day, 0) - MANILA_OFFSET_MS
+
+      const { data } = await sb
+        .from('orders')
+        .select('table_id, opened_at, closed_at, status')
+        .gte('opened_at', new Date(todayStartUTC).toISOString()) as { data: { table_id: string; opened_at: string; closed_at: string | null; status: string }[] | null }
+
+      if (!data) return
+
+      const pcts = HOUR_SLOTS.map(({ h }) => {
+        const start = slotStartUTC(h, year, month, day)
+        const end = start + 60 * 60 * 1000
+        const active = new Set<string>()
+        for (const order of data) {
+          const openedMs = new Date(order.opened_at).getTime()
+          const closedMs = order.closed_at ? new Date(order.closed_at).getTime() : Infinity
+          if (openedMs < end && closedMs > start) active.add(order.table_id)
+        }
+        return Math.max(15, Math.round((active.size / totalTables) * 100))
+      })
+
+      setBarData(pcts)
+    }
+
+    fetchOccupancy()
+    function onVisible() { if (document.visibilityState === 'visible') fetchOccupancy() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [totalTables])
+
+  const { hour: manilaHour } = getManilaDateParts()
   const hourToIdx: Record<number, number> = { 16: 0, 17: 1, 18: 2, 19: 3, 20: 4, 21: 5, 22: 6, 23: 7, 0: 8 }
   const activeIdx = openNow ? (hourToIdx[manilaHour] ?? -1) : -1
+
   return (
     <div className="byp-busy-card">
       <div className="byp-busy-head">
         <span className="byp-eyebrow">Tonight&rsquo;s vibe</span>
-        <span className="byp-busy-now">{openNow ? 'Busiest around 9 PM' : 'Opens at 4 PM'}</span>
+        <span className="byp-busy-now">{openNow ? 'Live occupancy by hour' : 'Opens at 4 PM'}</span>
       </div>
       <div className="byp-busy-bars">
-        {BUSY_HOURS.map(([h, v], i) => (
-          <div key={h} className={'byp-busy-col' + (i === activeIdx ? ' is-now' : '')}>
-            <div className="byp-busy-bar" style={{ height: v + '%' }} />
-            <span className="byp-busy-lbl">{h}</span>
+        {HOUR_SLOTS.map(({ label }, i) => (
+          <div key={label} className={'byp-busy-col' + (i === activeIdx ? ' is-now' : '')}>
+            <div className="byp-busy-bar" style={{ height: barData[i] + '%' }} />
+            <span className="byp-busy-lbl">{label}</span>
           </div>
         ))}
       </div>
@@ -850,7 +900,7 @@ export default function TablesPage() {
   return (
     <div className="byp-page">
       <SiteHeader summary={summary} />
-      <Hero summary={summary} currentMsg={currentMsg} />
+      <Hero summary={summary} currentMsg={currentMsg} totalTables={rawTables.length} />
 
       <TablesSection tables={tables} />
       <MenuSection onZoom={onZoom} />
