@@ -504,6 +504,8 @@ function SummaryCard({ summary, message }: { summary: Summary; message: string }
 /* ============================================================
    BUSY METER
    ============================================================ */
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
 function BusyMeter({ openNow, totalTables }: { openNow: boolean; totalTables: number }) {
   const [barData, setBarData] = useState<number[]>(Array(9).fill(15))
 
@@ -511,39 +513,59 @@ function BusyMeter({ openNow, totalTables }: { openNow: boolean; totalTables: nu
     if (totalTables === 0) return
     const sb = getClient()
 
-    async function fetchOccupancy() {
-      const { year, month, day } = getManilaDateParts()
-      const todayStartUTC = Date.UTC(year, month, day, 0) - MANILA_OFFSET_MS
+    async function fetchAvgOccupancy() {
+      // Build the 7 most recent complete instances of the same weekday (excluding today)
+      const refDays: Array<{ year: number; month: number; day: number }> = []
+      for (let i = 1; i <= 7; i++) {
+        const pastMs = Date.now() + MANILA_OFFSET_MS - i * 7 * 24 * 60 * 60 * 1000
+        const d = new Date(pastMs)
+        refDays.push({ year: d.getUTCFullYear(), month: d.getUTCMonth(), day: d.getUTCDate() })
+      }
+
+      const oldest = refDays[6]
+      const oldestStartUTC = Date.UTC(oldest.year, oldest.month, oldest.day, 0) - MANILA_OFFSET_MS
 
       const { data } = await sb
         .from('orders')
-        .select('table_id, opened_at, closed_at, status')
-        .gte('opened_at', new Date(todayStartUTC).toISOString()) as { data: { table_id: string; opened_at: string; closed_at: string | null; status: string }[] | null }
-
-      if (!data) return
-
-      const pcts = HOUR_SLOTS.map(({ h }) => {
-        const start = slotStartUTC(h, year, month, day)
-        const end = start + 60 * 60 * 1000
-        const active = new Set<string>()
-        for (const order of data) {
-          const openedMs = new Date(order.opened_at).getTime()
-          const closedMs = order.closed_at ? new Date(order.closed_at).getTime() : Infinity
-          if (openedMs < end && closedMs > start) active.add(order.table_id)
+        .select('table_id, opened_at, closed_at')
+        .gte('opened_at', new Date(oldestStartUTC).toISOString()) as {
+          data: { table_id: string; opened_at: string; closed_at: string | null }[] | null
         }
-        return Math.max(15, Math.round((active.size / totalTables) * 100))
+
+      if (!data || data.length === 0) return
+
+      // For each reference day, compute per-slot occupancy
+      const dailyPcts = refDays.map(({ year: y, month: m, day: d }) =>
+        HOUR_SLOTS.map(({ h }) => {
+          const start = slotStartUTC(h, y, m, d)
+          const end = start + 60 * 60 * 1000
+          const active = new Set<string>()
+          for (const order of data) {
+            const openedMs = new Date(order.opened_at).getTime()
+            const closedMs = order.closed_at ? new Date(order.closed_at).getTime() : Infinity
+            if (openedMs < end && closedMs > start) active.add(order.table_id)
+          }
+          return Math.round((active.size / totalTables) * 100)
+        })
+      )
+
+      // Average across the 7 days, apply 15% floor
+      const avg = HOUR_SLOTS.map((_, i) => {
+        const mean = dailyPcts.reduce((sum, day) => sum + day[i], 0) / dailyPcts.length
+        return Math.max(15, Math.round(mean))
       })
 
-      setBarData(pcts)
+      setBarData(avg)
     }
 
-    fetchOccupancy()
-    function onVisible() { if (document.visibilityState === 'visible') fetchOccupancy() }
+    fetchAvgOccupancy()
+    function onVisible() { if (document.visibilityState === 'visible') fetchAvgOccupancy() }
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
   }, [totalTables])
 
   const { hour: manilaHour } = getManilaDateParts()
+  const manilaWeekday = new Date(Date.now() + MANILA_OFFSET_MS).getUTCDay()
   const hourToIdx: Record<number, number> = { 16: 0, 17: 1, 18: 2, 19: 3, 20: 4, 21: 5, 22: 6, 23: 7, 0: 8 }
   const activeIdx = openNow ? (hourToIdx[manilaHour] ?? -1) : -1
 
@@ -551,7 +573,11 @@ function BusyMeter({ openNow, totalTables }: { openNow: boolean; totalTables: nu
     <div className="byp-busy-card">
       <div className="byp-busy-head">
         <span className="byp-eyebrow">Tonight&rsquo;s vibe</span>
-        <span className="byp-busy-now">{openNow ? 'Live occupancy by hour' : 'Opens at 4 PM'}</span>
+        <span className="byp-busy-now">
+          {openNow
+            ? `Typical ${DAY_NAMES[manilaWeekday]} nights`
+            : 'Opens at 4 PM'}
+        </span>
       </div>
       <div className="byp-busy-bars">
         {HOUR_SLOTS.map(({ label }, i) => (
