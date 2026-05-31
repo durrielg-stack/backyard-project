@@ -27,7 +27,6 @@ const MSG: Record<AvailState, string[]> = {
     "We are preparing tonight's stories.",
     'Nothing to see here yet. Check back later.',
     "The plot hasn't started.",
-    "We are currently in our 'five more minutes' era.",
     'The vibes are still loading.',
     'Too early for bad decisions.',
     'The group chat is still asleep.',
@@ -75,6 +74,7 @@ const MSG: Record<AvailState, string[]> = {
     'Doors open in less than an hour.',
     'The waiting is almost over.',
     "Plot twist: we're opening soon.",
+    "We are currently in our 'five more minutes' era.",
     "We can feel the Friday energy, even when it's not Friday.",
   ],
   open_plenty: [
