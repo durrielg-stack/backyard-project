@@ -58,7 +58,7 @@ body:has(.byp-page) {
 
 /* ---- block ---- */
 .byp-block {
-  margin-top: clamp(44px, 6vw, 80px);
+  margin-top: clamp(28px, 3.5vw, 48px);
 }
 .byp-block-head {
   display: flex;
@@ -147,7 +147,6 @@ body:has(.byp-page) {
    HERO
    ============================ */
 .byp-hero {
-  min-height: 100dvh;
   display: flex;
   align-items: center;
   position: relative;
@@ -163,7 +162,7 @@ body:has(.byp-page) {
 .byp-hero-grid {
   max-width: 1240px;
   margin: 0 auto;
-  padding: clamp(48px, 8vw, 96px) clamp(20px, 5vw, 64px);
+  padding: clamp(24px, 4vw, 48px) clamp(20px, 5vw, 64px);
   display: grid;
   grid-template-columns: 1.06fr .94fr;
   gap: clamp(40px, 6vw, 80px);

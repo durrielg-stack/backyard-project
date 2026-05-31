@@ -527,12 +527,15 @@ export default function TablesPage() {
   /* Supabase realtime */
   useEffect(() => {
     const sb = getClient()
-    sb.from('restaurant_tables').select('id, status').order('id')
-      .then(({ data }) => { setRawTables(data ?? []); setUpdatedAt(Date.now()) })
+    const sortById = (rows: TableRow[]) =>
+      [...rows].sort((a, b) => parseInt(a.id.replace(/\D/g, ''), 10) - parseInt(b.id.replace(/\D/g, ''), 10))
+
+    sb.from('restaurant_tables').select('id, status')
+      .then(({ data }) => { setRawTables(sortById(data ?? [])); setUpdatedAt(Date.now()) })
     const ch = sb.channel('public-tables-v2')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'restaurant_tables' }, () => {
-        sb.from('restaurant_tables').select('id, status').order('id')
-          .then(({ data }) => { setRawTables(data ?? []); setUpdatedAt(Date.now()) })
+        sb.from('restaurant_tables').select('id, status')
+          .then(({ data }) => { setRawTables(sortById(data ?? [])); setUpdatedAt(Date.now()) })
       })
       .subscribe()
     return () => { sb.removeChannel(ch) }
@@ -546,10 +549,9 @@ export default function TablesPage() {
 
   const closed = isClosedNow(now)
 
-  /* map raw rows to display tables (T1…T21, no seats exposed) */
   const tables = useMemo(() =>
-    rawTables.map((row, i) => ({
-      id: `T${i + 1}`,
+    rawTables.map((row) => ({
+      id: row.id,
       status: (closed ? 'cl' : mapStatus(row.status)) as Status,
     })),
     [rawTables, closed]
