@@ -472,7 +472,7 @@ function Hero({ summary, currentMsg, totalTables, preOpen }: { summary: Summary;
           </h1>
           </div>
           <p className="byp-hero-sub">
-            Real-time seating at The Backyard Project. We refresh the floor every few seconds, so you know before you go.
+            We refresh the page every few seconds, so you know before heading over.
           </p>
           <div className="byp-hero-status">
             <span className={'byp-op-pill ' + (summary.open ? 'is-open' : 'is-closed')}>
