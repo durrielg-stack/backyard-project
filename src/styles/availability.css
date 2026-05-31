@@ -18,6 +18,12 @@
   --cl:      #D9A23F;
 }
 
+/* ---- undo POS full-screen overflow lock for this route ---- */
+html:has(.byp-page),
+body:has(.byp-page) {
+  overflow: auto !important;
+}
+
 /* ---- reset / base ---- */
 .byp-page *, .byp-page *::before, .byp-page *::after { box-sizing: border-box; margin: 0; padding: 0; }
 .byp-page {
@@ -116,7 +122,7 @@
   align-items: center;
   justify-content: space-between;
 }
-.byp-header-logo img { height: 30px; width: auto; }
+.byp-header-logo img { max-height: 30px; width: auto; height: auto; }
 
 .byp-head-pill {
   display: flex;
@@ -169,7 +175,7 @@
 }
 
 .byp-hero-copy { display: flex; flex-direction: column; gap: 20px; }
-.byp-hero-logo { height: clamp(64px, 8vw, 104px); width: auto; }
+.byp-hero-logo { max-height: clamp(64px, 8vw, 104px); width: auto; height: auto; }
 
 .byp-hero-title {
   font-family: 'Oswald', sans-serif;
@@ -865,7 +871,7 @@
   align-items: center;
   gap: 14px;
 }
-.byp-foot-logo { height: 36px; width: auto; opacity: .7; }
+.byp-foot-logo { max-height: 36px; width: auto; height: auto; opacity: .7; }
 .byp-footer p { font-size: 0.88rem; color: var(--dim); }
 .byp-footer .byp-fine { font-size: 0.75rem; color: var(--faint); }
 
