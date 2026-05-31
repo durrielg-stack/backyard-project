@@ -206,8 +206,10 @@ body:has(.byp-page) {
 
 .byp-hero-copy { display: flex; flex-direction: column; gap: 12px; }
 .byp-hero-logo-row { display: contents; }
+.byp-mobile-br { display: none; }
 
 @media (max-width: 767px) {
+  .byp-mobile-br { display: block; }
   .byp-hero-copy { align-items: center; text-align: center; gap: 16px; }
   .byp-hero-status { justify-content: center; }
   .byp-hero-logo-row {
@@ -215,7 +217,7 @@ body:has(.byp-page) {
     flex-direction: row;
     align-items: stretch;
     gap: 14px;
-    text-align: left;
+    text-align: center;
   }
   .byp-hero-logo-row .byp-hero-logo {
     height: unset;

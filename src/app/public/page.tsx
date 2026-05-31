@@ -468,7 +468,7 @@ function Hero({ summary, currentMsg, totalTables, preOpen }: { summary: Summary;
           <div className="byp-hero-logo-row">
             <img className="byp-hero-logo" src="/byp-logo.png" alt="The Backyard Project · bar + kitchen" />
             <h1 className="byp-hero-title">
-            Find your<br/>spot<br/><span className="byp-amp">tonight</span>
+            Find your<br/>spot<br className="byp-mobile-br"/><span className="byp-amp">tonight</span>
           </h1>
           </div>
           <p className="byp-hero-sub">
