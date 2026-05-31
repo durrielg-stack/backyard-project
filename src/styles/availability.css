@@ -116,14 +116,14 @@ body:has(.byp-page) {
 .byp-header-inner {
   max-width: 1240px;
   margin: 0 auto;
-  padding: 12px clamp(20px, 5vw, 64px);
+  padding: 6px clamp(20px, 5vw, 64px);
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 .byp-header-logo { display: flex; align-items: center; }
 .byp-header-logo img {
-  height: 100px;
+  height: 50px;
   width: auto;
   max-width: unset;
   opacity: 0;
@@ -161,7 +161,7 @@ body:has(.byp-page) {
   align-items: center;
   position: relative;
   overflow: hidden;
-  padding-top: 124px;
+  padding-top: 62px;
 }
 .byp-hero-glow {
   position: absolute;
