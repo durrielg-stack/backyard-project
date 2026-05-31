@@ -7,6 +7,261 @@ import '@/styles/availability.css'
 /* ---- constants ---- */
 const MAPS_URL = 'https://www.google.com/maps/place/The+Backyard+Project+bar+%2B+kitchen/@15.7143202,120.9070077,20z/data=!4m6!3m5!1s0x3390d716a59781c3:0xb8eb7c82149b36a3!8m2!3d15.7141421!4d120.9063941!16s%2Fg%2F11gmy07jmv'
 
+/* ---- message pools ---- */
+type AvailState =
+  | 'tuesday' | 'wednesday_early' | 'closed_night' | 'regular_closed'
+  | 'opening_soon' | 'opening_very_soon'
+  | 'open_plenty' | 'open_filling' | 'open_almost' | 'open_full'
+  | 'closing_soon'
+
+const MSG: Record<AvailState, string[]> = {
+  regular_closed: [
+    'Status: Offline. Scheduled restart at 4 PM.',
+    'Running pre-service diagnostics. See you at 4 PM.',
+    'The lights are off, but the plans are forming.',
+    'No active sessions. Gates open at 4 PM.',
+    'Our chairs are still in sleep mode.',
+    'The bar is closed. Anticipation remains open.',
+    'Gathering ingredients and good intentions.',
+    'Service is paused. Excitement is loading.',
+    "We are preparing tonight's stories.",
+    'Nothing to see here yet. Check back later.',
+    "The plot hasn't started.",
+    "We are currently in our 'five more minutes' era.",
+    'The vibes are still loading.',
+    'Too early for bad decisions.',
+    'The group chat is still asleep.',
+    'Currently unavailable for core memories.',
+    'We open at 4 PM. Patience is character development.',
+    'Not open yet. We checked.',
+  ],
+  opening_soon: [
+    'Warming up. Gates open at 4 PM.',
+    'The countdown has officially begun.',
+    'Systems are coming online.',
+    'Final checks in progress.',
+    'The first drink is getting closer.',
+    'Opening routines initiated.',
+    "We're awake. Just not open yet.",
+    'Preparations are in full swing.',
+    'The clock is finally working in your favor.',
+    'See you in a little while.',
+    'Getting ready to be your next stop.',
+    'The vibes are starting to give.',
+    "It's giving opening soon.",
+    'Preparations are looking suspiciously complete.',
+    'The countdown is no longer theoretical.',
+    "We can almost hear the first 'isang bucket nga.'",
+    'Almost time.',
+    'The evening is slowly unlocking.',
+    'The staff is moving with purpose.',
+    'Your after-work plans are loading.',
+  ],
+  opening_very_soon: [
+    'Almost there. Opening at 4 PM.',
+    'Final approach. Stand by.',
+    'The bar is moments from going live.',
+    'Last call before first call.',
+    'Gates open shortly.',
+    'We can hear the ice already.',
+    'T minus less than an hour.',
+    'You picked a good time to check.',
+    'We are literally almost there.',
+    'If you leave now, your timing will be impressive.',
+    'The chairs have been briefed.',
+    'The first round is within reach.',
+    'This is your sign.',
+    'Not saying you should head over now, but...',
+    'Doors open in less than an hour.',
+    'The waiting is almost over.',
+    "Plot twist: we're opening soon.",
+    "We can feel the Friday energy, even when it's not Friday.",
+  ],
+  open_plenty: [
+    'Plenty of room. Walk right in.',
+    'No queue. No waiting. Just good times.',
+    'Tables available and ready.',
+    'Peak comfort levels detected.',
+    'Your future table is waiting.',
+    'Green across the board.',
+    'Room to spare tonight.',
+    'Capacity is looking healthy.',
+    'The odds are in your favor.',
+    'Pick almost any seat you like.',
+    'Plenty of room. Bring the whole group.',
+    'Zero stress. Maximum vibes.',
+    'Pick a table. Almost any table.',
+    "We're comfortably available.",
+    'Plenty of space for spontaneous plans.',
+    'No hunting for seats tonight.',
+    'Walk in like you own the place.',
+    'Tables are ready when you are.',
+    'We saved a spot. Not officially, but still.',
+  ],
+  open_filling: [
+    'Filling up nicely.',
+    'Good crowd, plenty of space.',
+    'Things are getting lively.',
+    'The night is finding its rhythm.',
+    'Busy enough to be fun.',
+    'Activity levels are rising.',
+    'Momentum is building.',
+    'The atmosphere is warming up.',
+    'Tables are moving steadily.',
+    'A good night is in progress.',
+    'The crowd understood the assignment.',
+    'Good energy. Good company. Good timing.',
+    'Things are getting interesting.',
+    'Busy, but not stressful.',
+    'The atmosphere is doing its thing.',
+    'The vibes have arrived.',
+    'Looking lively tonight.',
+    'People are making solid life choices.',
+    'Just the right amount of busy.',
+  ],
+  open_almost: [
+    'Almost full. Come soon.',
+    'Availability is running low.',
+    'Last few tables remaining.',
+    'Capacity approaching maximum.',
+    'Time is becoming a factor.',
+    'You might want to head over now.',
+    'Inventory: tables running low.',
+    'The window is closing.',
+    'The crowd got the memo.',
+    'Opportunities remain, but not many.',
+    "You're cutting it close.",
+    'Last few tables standing.',
+    'This is not a drill.',
+    "If you're thinking about it, stop thinking.",
+    'The clock is not on your side.',
+    'Few seats. Many hopefuls.',
+    'Main character timing required.',
+    "You're in the final stretch.",
+  ],
+  open_full: [
+    "We're at capacity tonight.",
+    'All tables are currently occupied.',
+    'Full house.',
+    'Every seat has a story tonight.',
+    'Capacity reached.',
+    'The crowd beat you to it.',
+    'Standing room for optimism only.',
+    "Mission successful. We're full.",
+    'No vacancies detected.',
+    'Every table is currently spoken for.',
+    'Everyone had the same idea.',
+    'The function is packed.',
+    'No tables left. Only dreams.',
+    'We are officially booked and busy.',
+    'The crowd won this round.',
+    'Every table understood the assignment.',
+    "We're packed tonight.",
+  ],
+  closing_soon: [
+    'Final hour in progress.',
+    'The night is winding down.',
+    'Closing sequence initiated.',
+    'One more round before midnight.',
+    'The clock is starting to win.',
+    "Final boarding for tonight's good decisions.",
+    'Service ending soon.',
+    "You've caught the last chapter.",
+    'Last call energy.',
+    'The night is entering its final chapter.',
+    'One more round and a good story.',
+    'Final hour unlocked.',
+    "We're wrapping things up soon.",
+    "Last chance to make tonight's memories.",
+    'Closing time is approaching.',
+    'The playlist is nearing the end.',
+    "Time flies when you're having fun.",
+  ],
+  closed_night: [
+    "That's a wrap for tonight.",
+    'Service complete. See you tomorrow at 4 PM.',
+    'The lights are off until tomorrow.',
+    'Mission accomplished. Returning tomorrow.',
+    "Tonight's stories have been archived.",
+    'The bar has logged off for the night.',
+    'Thanks for a great evening.',
+    'See you after a little maintenance and sleep.',
+    "Today's session has ended.",
+    'We survived another night. Back at 4 PM.',
+    "That's all for tonight, folks.",
+    'The memories have been saved successfully.',
+    'The vibes have clocked out.',
+    'Session ended successfully.',
+    'The lights are off. The stories remain.',
+    'Thanks for spending your night with us.',
+    'See you tomorrow for round two.',
+    'Time to recharge.',
+    'We are now accepting sleep.',
+  ],
+  tuesday: [
+    'Tuesdays are reserved for maintenance and mischief.',
+    'Closed today. Even the bar deserves a day off.',
+    'Tuesday mode activated.',
+    'Scheduled weekly recharge in progress.',
+    'Our one day of responsible behavior.',
+    'Closed for maintenance, planning, and snacks.',
+    'Tuesdays keep the rest of the week running.',
+    'Systems offline for routine updates.',
+    'Today is our weekly intermission.',
+    "We'll be back tomorrow at 4 PM.",
+    'Tuesdays are for maintenance and main character recovery.',
+    'Closed today. Even legends need rest days.',
+    'Taking our weekly cooldown.',
+    'Tuesday is our factory reset.',
+    'No vibes today. See you tomorrow.',
+    'Recharging for the rest of the week.',
+    "Today's agenda: rest.",
+    'We are closed, but emotionally available.',
+    'Tuesdays keep the magic working.',
+  ],
+  wednesday_early: [
+    "Tuesday just ended. We'll be back at 4 PM.",
+    'Maintenance complete. Opening later today.',
+    'Fresh week loading. Doors open at 4 PM.',
+    'Tuesday has been successfully uninstalled.',
+    'The reboot is complete. See you at 4 PM.',
+    "Wednesday is online, but we're not open yet.",
+    'One step closer to opening time.',
+    'The day has started. Service begins at 4 PM.',
+    'Recovery from Tuesday in progress.',
+    'See you later today for a fresh start.',
+    'Tuesday has left the chat.',
+    'Fresh week, fresh start.',
+    'We survived Tuesday.',
+    'The reset is complete.',
+    'Wednesday just dropped.',
+    'Back in business later today.',
+    'Tuesday has overstayed its welcome.',
+    'The comeback begins at 4 PM.',
+    'Recovery complete. Opening later.',
+    'The weekly reset was successful.',
+  ],
+}
+
+function getAvailState(now: Date, isOpen: boolean, free: number): AvailState {
+  const manila = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' }))
+  const day  = manila.getDay()
+  const hour = manila.getHours()
+  if (day === 2) return 'tuesday'
+  if (day === 3 && hour < 16) return 'wednesday_early'
+  if (!isOpen) {
+    if (hour < 6)  return 'closed_night'
+    if (hour < 14) return 'regular_closed'
+    if (hour < 15) return 'opening_soon'
+    return 'opening_very_soon'
+  }
+  if (hour >= 23) return 'closing_soon'
+  if (free === 0) return 'open_full'
+  if (free <= 5)  return 'open_almost'
+  if (free <= 9)  return 'open_filling'
+  return 'open_plenty'
+}
+
 const HOURS: [string, string][] = [
   ['Mon', '4 PM – 12 MN'], ['Tue', 'Closed'], ['Wed', '4 PM – 12 MN'],
   ['Thu', '4 PM – 12 MN'], ['Fri', '4 PM – 12 MN'], ['Sat', '4 PM – 12 MN'], ['Sun', '4 PM – 12 MN'],
@@ -44,7 +299,7 @@ function relTime(ms: number): string {
 interface Summary {
   open: boolean; free: number; total: number; occPct: number;
   tone: 'open' | 'busy' | 'almost' | 'full' | 'closed';
-  headline: string; wait: string; updated: string;
+  wait: string; updated: string;
 }
 
 function deriveSummary(tables: { status: Status }[], closed: boolean, updatedAt: number): Summary {
@@ -57,19 +312,13 @@ function deriveSummary(tables: { status: Status }[], closed: boolean, updatedAt:
   else if (free === 0) tone = 'full'
   else if (free <= 3) tone = 'almost'
   else if (free <= 8) tone = 'busy'
-  let headline = ''
-  if (!open) headline = 'Closed today — we open at 4 PM'
-  else if (free >= 10) headline = 'Plenty of room — walk right in'
-  else if (free >= 6) headline = 'Filling up nicely'
-  else if (free >= 1) headline = 'Almost full — come soon'
-  else headline = "We're at capacity tonight"
   let wait = ''
-  if (!open) wait = '—'
+  if (!open) wait = '--'
   else if (free >= 10) wait = 'No wait'
   else if (free >= 4) wait = '~10 min'
   else if (free >= 1) wait = '~25 min'
   else wait = '30 min+'
-  return { open, free, total, occPct, tone, headline, wait, updated: relTime(updatedAt) }
+  return { open, free, total, occPct, tone, wait, updated: relTime(updatedAt) }
 }
 
 /* ============================================================
@@ -159,7 +408,7 @@ function SiteHeader({ summary }: { summary: Summary }) {
 /* ============================================================
    HERO
    ============================================================ */
-function Hero({ summary }: { summary: Summary }) {
+function Hero({ summary, currentMsg }: { summary: Summary; currentMsg: string }) {
   return (
     <section className="byp-hero" id="top">
       <div className="byp-hero-glow" />
@@ -186,7 +435,7 @@ function Hero({ summary }: { summary: Summary }) {
           </div>
         </div>
         <div className="byp-hero-cards">
-          <SummaryCard summary={summary} />
+          <SummaryCard summary={summary} message={currentMsg} />
           <BusyMeter openNow={summary.open} />
         </div>
       </div>
@@ -197,7 +446,7 @@ function Hero({ summary }: { summary: Summary }) {
 /* ============================================================
    SUMMARY CARD
    ============================================================ */
-function SummaryCard({ summary }: { summary: Summary }) {
+function SummaryCard({ summary, message }: { summary: Summary; message: string }) {
   return (
     <div className={'byp-sum-card st-' + summary.tone}>
       <div className="byp-sum-left">
@@ -215,7 +464,7 @@ function SummaryCard({ summary }: { summary: Summary }) {
             <span className="byp-sum-number is-closed">Closed</span>
           </div>
         )}
-        <div className="byp-sum-headline">{summary.headline}</div>
+        <div className="byp-sum-headline">{message}</div>
       </div>
       <div className="byp-sum-right">
         <div className="byp-sum-stat">
@@ -536,6 +785,7 @@ export default function TablesPage() {
   const [updatedAt, setUpdatedAt] = useState(Date.now())
   const [now, setNow] = useState(new Date())
   const [zoom, setZoom] = useState<string | null>(null)
+  const [msgTick, setMsgTick] = useState(() => Math.floor(Math.random() * 100))
   const onZoom = useCallback((src: string) => setZoom(src), [])
   const onClose = useCallback(() => setZoom(null), [])
 
@@ -569,6 +819,12 @@ export default function TablesPage() {
     return () => clearInterval(id)
   }, [])
 
+  /* 90-second ticker for rotating messages */
+  useEffect(() => {
+    const id = setInterval(() => setMsgTick(t => t + 1), 90_000)
+    return () => clearInterval(id)
+  }, [])
+
   const closed = isClosedNow(now)
 
   const tables = useMemo(() =>
@@ -585,10 +841,16 @@ export default function TablesPage() {
     [tables, closed, updatedAt]
   )
 
+  const currentMsg = useMemo(() => {
+    const state = getAvailState(now, summary.open, summary.free)
+    const pool = MSG[state]
+    return pool[msgTick % pool.length]
+  }, [now, summary.open, summary.free, msgTick])
+
   return (
     <div className="byp-page">
       <SiteHeader summary={summary} />
-      <Hero summary={summary} />
+      <Hero summary={summary} currentMsg={currentMsg} />
 
       <TablesSection tables={tables} />
       <MenuSection onZoom={onZoom} />
