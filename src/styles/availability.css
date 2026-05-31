@@ -205,8 +205,13 @@ body:has(.byp-page) {
 }
 
 .byp-hero-copy { display: flex; flex-direction: column; gap: 20px; }
+@media (max-width: 767px) {
+  .byp-hero-copy { align-items: center; text-align: center; }
+  .byp-hero-logo { align-self: center; }
+  .byp-hero-status { justify-content: center; }
+}
 .byp-hero-logo {
-  height: clamp(80px, 10vw, 130px);
+  height: clamp(120px, 15vw, 195px);
   width: auto;
   max-width: unset;
   align-self: flex-start;

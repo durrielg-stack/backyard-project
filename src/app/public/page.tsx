@@ -466,7 +466,6 @@ function Hero({ summary, currentMsg, totalTables, preOpen }: { summary: Summary;
         <div className="byp-hero-copy">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="byp-hero-logo" src="/byp-logo.png" alt="The Backyard Project · bar + kitchen" />
-          <div className="byp-eyebrow">Live table availability</div>
           <h1 className="byp-hero-title">
             Check who&rsquo;s<br/>got a table<br/><span className="byp-amp">right now</span>
           </h1>
