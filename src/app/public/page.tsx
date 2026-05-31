@@ -5,7 +5,7 @@ import { getClient } from '@/lib/supabase'
 import '@/styles/availability.css'
 
 /* ---- constants ---- */
-const MAPS_URL = 'https://maps.app.goo.gl/vnQ1G3cDfj7hPQEQ6'
+const MAPS_URL = 'https://www.google.com/maps/place/The+Backyard+Project+bar+%2B+kitchen/@15.7143202,120.9070077,20z/data=!4m6!3m5!1s0x3390d716a59781c3:0xb8eb7c82149b36a3!8m2!3d15.7141421!4d120.9063941!16s%2Fg%2F11gmy07jmv'
 
 const HOURS: [string, string][] = [
   ['Mon', '4 PM – 12 MN'], ['Tue', 'Closed'], ['Wed', '4 PM – 12 MN'],
@@ -465,7 +465,7 @@ function LocationSection() {
         </div>
         <div className="byp-visit-map">
           <iframe
-            src="https://www.google.com/maps?q=Mabini+St+Ext,+Mu%C3%B1oz,+3119+Nueva+Ecija,+Philippines&output=embed&z=16"
+            src="https://www.google.com/maps?q=15.7141421,120.9063941&output=embed&z=18"
             title="The Backyard Project location"
             allowFullScreen
             loading="lazy"
