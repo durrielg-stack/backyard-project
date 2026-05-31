@@ -8,9 +8,9 @@ export function middleware(req: NextRequest) {
 
   if (host === TABLES_HOST) {
     const url = req.nextUrl.clone()
-    // Rewrite root and any sub-path to /tables so the page renders at /
-    if (!url.pathname.startsWith('/tables') && !url.pathname.startsWith('/_next') && !url.pathname.startsWith('/api')) {
-      url.pathname = '/tables' + (url.pathname === '/' ? '' : url.pathname)
+    // Rewrite root and any sub-path to /public so the page renders at /
+    if (!url.pathname.startsWith('/public') && !url.pathname.startsWith('/_next') && !url.pathname.startsWith('/api')) {
+      url.pathname = '/public' + (url.pathname === '/' ? '' : url.pathname)
       return NextResponse.rewrite(url)
     }
   }
