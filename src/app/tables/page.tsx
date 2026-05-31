@@ -127,9 +127,16 @@ function IcFb(p: React.SVGProps<SVGSVGElement>) {
 function SiteHeader({ summary }: { summary: Summary }) {
   const [solid, setSolid] = useState(false)
   useEffect(() => {
-    const on = () => setSolid(window.scrollY > 360)
+    const on = () => {
+      const past = window.scrollY > 360
+      setSolid(past)
+      document.documentElement.classList.toggle('byp-hero-past', past)
+    }
     window.addEventListener('scroll', on, { passive: true }); on()
-    return () => window.removeEventListener('scroll', on)
+    return () => {
+      window.removeEventListener('scroll', on)
+      document.documentElement.classList.remove('byp-hero-past')
+    }
   }, [])
   return (
     <header className={'byp-header' + (solid ? ' is-solid' : '')}>

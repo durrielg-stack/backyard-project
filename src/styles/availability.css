@@ -116,14 +116,24 @@ body:has(.byp-page) {
 .byp-header-inner {
   max-width: 1240px;
   margin: 0 auto;
-  padding: 0 clamp(20px, 5vw, 64px);
-  height: 64px;
+  padding: 12px clamp(20px, 5vw, 64px);
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 .byp-header-logo { display: flex; align-items: center; }
-.byp-header-logo img { height: 30px; width: auto; max-width: unset; }
+.byp-header-logo img {
+  height: 100px;
+  width: auto;
+  max-width: unset;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 300ms ease, transform 300ms ease;
+}
+.byp-header.is-solid .byp-header-logo img {
+  opacity: 1;
+  transform: translateY(0);
+}
 
 .byp-head-pill {
   display: flex;
@@ -151,7 +161,7 @@ body:has(.byp-page) {
   align-items: center;
   position: relative;
   overflow: hidden;
-  padding-top: 64px;
+  padding-top: 124px;
 }
 .byp-hero-glow {
   position: absolute;
@@ -174,7 +184,18 @@ body:has(.byp-page) {
 }
 
 .byp-hero-copy { display: flex; flex-direction: column; gap: 20px; }
-.byp-hero-logo { height: clamp(64px, 8vw, 104px); width: auto; max-width: unset; align-self: flex-start; }
+.byp-hero-logo {
+  height: clamp(80px, 10vw, 130px);
+  width: auto;
+  max-width: unset;
+  align-self: flex-start;
+  transition: opacity 300ms ease, transform 300ms ease;
+}
+html.byp-hero-past .byp-hero-logo {
+  opacity: 0;
+  transform: translateY(-16px);
+  pointer-events: none;
+}
 
 .byp-hero-title {
   font-family: var(--font-oswald), sans-serif;
@@ -848,7 +869,7 @@ body:has(.byp-page) {
   align-items: center;
   gap: 14px;
 }
-.byp-foot-logo { height: 36px; width: auto; max-width: unset; opacity: .7; }
+.byp-foot-logo { height: 100px; width: auto; max-width: unset; opacity: .7; }
 .byp-footer p { font-size: 0.88rem; color: var(--dim); }
 .byp-footer .byp-fine { font-size: 0.75rem; color: var(--faint); }
 
