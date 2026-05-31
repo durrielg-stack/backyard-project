@@ -13,7 +13,7 @@ function fmtElapsed(sec: number): string {
 
 function KdsTicketRow({ ticket, onBump }: {
   ticket: KdsTicket
-  onBump: (itemId: number) => void
+  onBump: (itemIds: number[]) => void
 }) {
   const { T } = useTheme()
   const isLate  = ticket.elapsedSec > 600
@@ -55,17 +55,29 @@ function KdsTicketRow({ ticket, onBump }: {
           <span style={{ fontSize: 12, color: T.textDim }}>· {ticket.tableId}</span>
           <span style={{ fontSize: 12, color: T.textMute }}>· {ticket.server}</span>
         </div>
-        <span style={{
-          fontSize: 13, color: T.text, fontWeight: 500,
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block',
-        }}>
-          {ticket.itemName}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{
+            fontSize: 13, color: T.text, fontWeight: 500,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {ticket.itemName}
+          </span>
+          {ticket.qty > 1 && (
+            <span style={{
+              fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
+              background: T.accent + '22', color: T.accent,
+              border: `1px solid ${T.accent}44`,
+              padding: '1px 6px', borderRadius: 3, flexShrink: 0,
+            }}>
+              ×{ticket.qty}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Served button */}
       <button
-        onClick={e => { e.stopPropagation(); onBump(ticket.itemId) }}
+        onClick={e => { e.stopPropagation(); onBump(ticket.itemIds) }}
         style={{
           padding: '5px 12px', fontSize: 11, fontFamily: 'inherit', fontWeight: 600,
           background: 'transparent', border: `1px solid ${T.line2}`, color: T.textDim,
@@ -99,7 +111,7 @@ export default function KdsPanel({
 }: {
   tickets: KdsTicket[]
   tick: number
-  onBump: (itemId: number) => void
+  onBump: (itemIds: number[]) => void
 }) {
   const { T } = useTheme()
   const [filter, setFilter] = useState<FilterMode>('all')
@@ -143,11 +155,9 @@ export default function KdsPanel({
             No open tickets
           </div>
         ) : (
-          visible.flatMap(t =>
-            Array.from({ length: t.qty }, (_, i) => (
-              <KdsTicketRow key={`${t.itemId}-${i}`} ticket={t} onBump={onBump} />
-            ))
-          )
+          visible.map(t => (
+            <KdsTicketRow key={t.id} ticket={t} onBump={onBump} />
+          ))
         )}
       </div>
     </div>

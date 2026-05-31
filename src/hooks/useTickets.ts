@@ -49,7 +49,7 @@ interface RawItem {
  */
 export function useTickets(tick: number): {
   tickets: KdsTicket[]
-  bump: (itemId: number) => Promise<void>
+  bump: (itemIds: number[]) => Promise<void>
 } {
   const [rawItems, setRawItems] = useState<RawItem[]>([])
 
@@ -124,11 +124,15 @@ export function useTickets(tick: number): {
   }, [fetchAll])
 
   // ── Derive KdsTicket[] from rawItems + current time ──────────────────────────
-  // One ticket per order_item so each product has its own independent timer.
+  // Items with the same (orderId, itemName) within the same order are merged
+  // into one ticket with summed qty and the oldest elapsed time.
   const tickets = useMemo(() => {
     const now = Date.now()
 
-    const result: KdsTicket[] = rawItems.map(item => {
+    // Merge map keyed by "orderId\0itemName"
+    const mergeMap = new Map<string, KdsTicket>()
+
+    for (const item of rawItems) {
       const station    = getStation(item.category)
       const startMs    = item.firedAtMs ?? item.createdAtMs
       const elapsedSec = Math.max(0, Math.floor((now - startMs) / 1_000))
@@ -136,20 +140,34 @@ export function useTickets(tick: number): {
       const status: KdsTicket['status'] =
         elapsedSec >= lateSec ? 'late' : elapsedSec >= agingSec ? 'aging' : 'firing'
 
-      return {
-        id:         `#${item.id}`,
-        itemId:     item.id,
-        orderId:    item.orderId,
-        tableId:    item.tableId,
-        station,
-        server:     item.server ?? 'Staff',
-        itemName:   item.itemName,
-        qty:        item.qty,
-        elapsedSec,
-        status,
-      }
-    })
+      const key = `${item.orderId}\0${item.itemName}`
+      const existing = mergeMap.get(key)
 
+      if (existing) {
+        existing.itemIds.push(item.id)
+        existing.qty += item.qty
+        if (elapsedSec > existing.elapsedSec) {
+          existing.elapsedSec = elapsedSec
+          existing.status = status
+        }
+      } else {
+        mergeMap.set(key, {
+          id:         `#${item.id}`,
+          itemId:     item.id,
+          itemIds:    [item.id],
+          orderId:    item.orderId,
+          tableId:    item.tableId,
+          station,
+          server:     item.server ?? 'Staff',
+          itemName:   item.itemName,
+          qty:        item.qty,
+          elapsedSec,
+          status,
+        })
+      }
+    }
+
+    const result = Array.from(mergeMap.values())
     // Sort: oldest (highest elapsed) first — most urgent at top
     result.sort((a, b) => b.elapsedSec - a.elapsedSec)
     return result
@@ -158,17 +176,17 @@ export function useTickets(tick: number): {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rawItems, tick])
 
-  // ── Bump: mark a single order_item as 'served' ───────────────────────────────
-  const bump = useCallback(async (itemId: number) => {
+  // ── Bump: mark all items in a merged group as 'served' ──────────────────────
+  const bump = useCallback(async (itemIds: number[]) => {
     const sb = getClient()
 
-    // Optimistic: remove from local state immediately
-    setRawItems(prev => prev.filter(i => i.id !== itemId))
+    // Optimistic: remove all from local state immediately
+    setRawItems(prev => prev.filter(i => !itemIds.includes(i.id)))
 
     const { error } = await (sb as any)
       .from('order_items')
       .update({ status: 'served', completed_at: new Date().toISOString() })
-      .eq('id', itemId)
+      .in('id', itemIds)
 
     if (error) fetchAll()
   }, [fetchAll])

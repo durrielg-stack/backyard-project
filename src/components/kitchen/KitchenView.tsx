@@ -75,9 +75,21 @@ function ConfirmScreen({
             </div>
           </div>
 
-          {/* Item name */}
-          <div style={{ fontSize: 24, fontWeight: 700, color: T.text, lineHeight: 1.2, marginBottom: 8 }}>
-            {card.itemName}
+          {/* Item name + qty */}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 8 }}>
+            <div style={{ fontSize: 24, fontWeight: 700, color: T.text, lineHeight: 1.2 }}>
+              {card.itemName}
+            </div>
+            {card.qty > 1 && (
+              <span style={{
+                fontSize: 16, fontWeight: 700,
+                background: T.accent + '22', color: T.accent,
+                border: `1px solid ${T.accent}44`,
+                padding: '2px 8px', borderRadius: 4, flexShrink: 0,
+              }}>
+                ×{card.qty}
+              </span>
+            )}
           </div>
           <div style={{ fontSize: 12, color: T.textMute }}>
             {card.server}
@@ -134,16 +146,14 @@ export default function KitchenView({ session, onSignOut }: { session: Session; 
     return () => clearInterval(id)
   }, [])
 
-  // Kitchen station only, expanded: qty=2 → 2 separate cards
+  // Kitchen station only — qty already merged in useTickets
   const cards: KitchenCard[] = tickets
     .filter(t => t.station === 'kitchen')
-    .flatMap(t =>
-      Array.from({ length: t.qty }, (_, i) => ({ ...t, cardKey: `${t.itemId}-${i}` }))
-    )
+    .map(t => ({ ...t, cardKey: t.id }))
 
   const handleConfirm = useCallback(async (card: KitchenCard) => {
     setConfirming(true)
-    await bump(card.itemId)
+    await bump(card.itemIds)
     setConfirming(false)
     setScreen({ kind: 'list' })
   }, [bump])
@@ -251,9 +261,21 @@ export default function KitchenView({ session, onSignOut }: { session: Session; 
                     </div>
                   </div>
 
-                  {/* Item name */}
-                  <div style={{ fontSize: 20, fontWeight: 700, color: T.text, lineHeight: 1.2, marginBottom: 14 }}>
-                    {card.itemName}
+                  {/* Item name + qty */}
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 14 }}>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: T.text, lineHeight: 1.2 }}>
+                      {card.itemName}
+                    </div>
+                    {card.qty > 1 && (
+                      <span style={{
+                        fontSize: 14, fontWeight: 700,
+                        background: T.accent + '22', color: T.accent,
+                        border: `1px solid ${T.accent}44`,
+                        padding: '2px 8px', borderRadius: 4, flexShrink: 0,
+                      }}>
+                        ×{card.qty}
+                      </span>
+                    )}
                   </div>
 
                   {/* Served button — large tap target */}

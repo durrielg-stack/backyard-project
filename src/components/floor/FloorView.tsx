@@ -772,7 +772,7 @@ export default function FloorView({
   tickets: KdsTicket[]
   tick: number
   onOpenTable: (id: string) => void
-  onBump: (itemId: number) => void
+  onBump: (itemIds: number[]) => void
 }) {
   const { T } = useTheme()
   const bp = useBreakpoint()

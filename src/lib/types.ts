@@ -98,15 +98,16 @@ export interface CartLine {
 
 // KDS ticket: derived from orders + order_items
 export interface KdsTicket {
-  id: string              // '#' + order_item.id
-  itemId: number          // order_item.id — bumping a single item
+  id: string              // '#' + first itemId in group
+  itemId: number          // first order_item.id in group (for keying)
+  itemIds: number[]       // all order_item.ids in merged group — used for bump
   orderId: number
   tableId: string
   station: 'kitchen' | 'bar'
   server: string
   itemName: string
-  qty: number
-  elapsedSec: number      // computed live from fired_at (or order opened_at)
+  qty: number             // sum of all merged item qtys
+  elapsedSec: number      // max elapsed across merged items (oldest)
   status: 'firing' | 'aging' | 'late'
 }
 
