@@ -468,7 +468,7 @@ function Hero({ summary, currentMsg, totalTables, preOpen }: { summary: Summary;
           <div className="byp-hero-logo-row">
             <img className="byp-hero-logo" src="/byp-logo.png" alt="The Backyard Project · bar + kitchen" />
             <h1 className="byp-hero-title">
-            Check who&rsquo;s<br/>got a table<br/><span className="byp-amp">right now</span>
+            Find your<br/>spot<br/><span className="byp-amp">tonight</span>
           </h1>
           </div>
           <p className="byp-hero-sub">
@@ -689,7 +689,7 @@ function TablesSection({ tables }: { tables: { id: string; label: string; status
       <div className="byp-block-head">
         <div>
           <div className="byp-eyebrow">The floor</div>
-          <h2 className="byp-block-title">Find your spot</h2>
+          <h2 className="byp-block-title">Every table, live</h2>
         </div>
         <Legend />
       </div>
