@@ -464,13 +464,10 @@ function LocationSection() {
           </div>
         </div>
         <div className="byp-visit-map">
-          <iframe
-            src="https://www.google.com/maps?q=15.7141421,120.9063941&output=embed&z=18"
-            title="The Backyard Project location"
-            allowFullScreen
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-          />
+          <a href={MAPS_URL} target="_blank" rel="noreferrer" className="byp-map-img-link">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/stylized-map.png" alt="Map to The Backyard Project" className="byp-map-img" />
+          </a>
           <a className="byp-map-cta" href={MAPS_URL} target="_blank" rel="noreferrer">
             Open in Google Maps <IcArrow width={14} height={14} />
           </a>
