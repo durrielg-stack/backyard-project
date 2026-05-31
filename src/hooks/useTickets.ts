@@ -9,7 +9,11 @@ import type { KdsTicket } from '@/lib/types'
 const BAR_CATS = new Set(['Beer', 'Cocktails', 'Hard Drinks', 'Palit Bote', 'Non-Alcohol'])
 
 // Categories that need no prep — excluded from KDS entirely
-const NO_PREP_CATS = new Set(['Cigarettes', 'Charges'])
+const NO_PREP_CATS = new Set(['Cigarettes', 'Charges', 'Others'])
+
+// Specific items excluded from KDS even if their category is not in NO_PREP_CATS
+// (Extra Egg and Take-Out Box are in 'Extra' but need no kitchen action)
+const NO_PREP_ITEMS = new Set(['Extra Egg', 'Take-Out Box'])
 
 function getStation(category: string): 'kitchen' | 'bar' {
   return BAR_CATS.has(category) ? 'bar' : 'kitchen'
@@ -80,6 +84,7 @@ export function useTickets(tick: number): {
       if (!order || order.status !== 'open') continue
       if (!mi) continue
       if (NO_PREP_CATS.has(mi.category as string)) continue
+      if (NO_PREP_ITEMS.has(mi.name as string)) continue
 
       items.push({
         id:         row.id as number,
