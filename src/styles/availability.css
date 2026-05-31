@@ -220,7 +220,8 @@ body:has(.byp-page) {
   .byp-hero-logo-row .byp-hero-logo {
     height: unset;
     width: auto;
-    flex-shrink: 0;
+    max-width: 30vw;
+    flex-shrink: 1;
     align-self: stretch;
     object-fit: contain;
     object-position: left top;
