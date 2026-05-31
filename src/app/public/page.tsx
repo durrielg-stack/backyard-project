@@ -651,7 +651,7 @@ function BusyMeter({ openNow, totalTables }: { openNow: boolean; totalTables: nu
       <div className="byp-busy-bars">
         {HOUR_SLOTS.map(({ label }, i) => (
           <div key={label} className={'byp-busy-col' + (i === activeIdx ? ' is-now' : '')}>
-            <div className="byp-busy-bar" style={{ height: barData[i] + '%' }} />
+            <div className="byp-busy-bar" style={{ height: Math.round((barData[i] / 100) * 64) + 'px' }} />
             <span className="byp-busy-lbl">{label}</span>
           </div>
         ))}
