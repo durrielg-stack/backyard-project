@@ -18,7 +18,7 @@ const BUSY_HOURS: [string, number][] = [
 
 /* ---- types ---- */
 type Status = 'av' | 'oc' | 'rs' | 'cl'
-interface TableRow { id: string; status: string }
+interface TableRow { id: string; label: string; status: string }
 
 /* ---- helpers ---- */
 function mapStatus(raw: string): Exclude<Status, 'cl'> {
@@ -271,15 +271,15 @@ function BusyMeter({ openNow }: { openNow: boolean }) {
    ============================================================ */
 const STATUS_LABEL: Record<Status, string> = { av: 'Open', oc: 'Taken', rs: 'Reserved', cl: 'Closed' }
 
-function TableTile({ id, status }: { id: string; status: Status }) {
+function TableTile({ label, status }: { label: string; status: Status }) {
   return (
     <div
       className={'byp-tile ' + status}
       tabIndex={0}
-      aria-label={`Table ${id}, ${STATUS_LABEL[status]}`}
+      aria-label={`Table ${label}, ${STATUS_LABEL[status]}`}
     >
       <div className="byp-tile-top">
-        <span className="byp-tile-no">{id}</span>
+        <span className="byp-tile-no">{label}</span>
         <span className="byp-tile-led" />
       </div>
       <div className="byp-tile-status">{STATUS_LABEL[status]}</div>
@@ -300,7 +300,7 @@ function Legend() {
   )
 }
 
-function TablesSection({ tables }: { tables: { id: string; status: Status }[] }) {
+function TablesSection({ tables }: { tables: { id: string; label: string; status: Status }[] }) {
   return (
     <section className="byp-block byp-shell" id="tables">
       <div className="byp-block-head">
@@ -311,7 +311,7 @@ function TablesSection({ tables }: { tables: { id: string; status: Status }[] })
         <Legend />
       </div>
       <div className="byp-tables-grid">
-        {tables.map(t => <TableTile key={t.id} id={t.id} status={t.status} />)}
+        {tables.map(t => <TableTile key={t.id} label={t.label} status={t.status} />)}
       </div>
     </section>
   )
@@ -546,13 +546,17 @@ export default function TablesPage() {
   useEffect(() => {
     const sb = getClient()
     const sortById = (rows: TableRow[]) =>
-      [...rows].sort((a, b) => parseInt(a.id.replace(/\D/g, ''), 10) - parseInt(b.id.replace(/\D/g, ''), 10))
+      [...rows].sort((a, b) => {
+        const [, ap, an] = a.id.match(/^([A-Za-z]+)(\d+)$/) ?? ['', a.id, '0']
+        const [, bp, bn] = b.id.match(/^([A-Za-z]+)(\d+)$/) ?? ['', b.id, '0']
+        return ap !== bp ? ap.localeCompare(bp) : parseInt(an, 10) - parseInt(bn, 10)
+      })
 
-    sb.from('restaurant_tables').select('id, status')
+    sb.from('restaurant_tables').select('id, label, status')
       .then(({ data }) => { setRawTables(sortById(data ?? [])); setUpdatedAt(Date.now()) })
     const ch = sb.channel('public-tables-v2')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'restaurant_tables' }, () => {
-        sb.from('restaurant_tables').select('id, status')
+        sb.from('restaurant_tables').select('id, label, status')
           .then(({ data }) => { setRawTables(sortById(data ?? [])); setUpdatedAt(Date.now()) })
       })
       .subscribe()
@@ -570,6 +574,7 @@ export default function TablesPage() {
   const tables = useMemo(() =>
     rawTables.map((row) => ({
       id: row.id,
+      label: row.label,
       status: (closed ? 'cl' : mapStatus(row.status)) as Status,
     })),
     [rawTables, closed]

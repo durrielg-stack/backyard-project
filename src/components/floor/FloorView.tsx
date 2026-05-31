@@ -113,13 +113,12 @@ function TablePin({
         zIndex: isAttn ? 2 : hovered ? 3 : 1,
       }}
     >
-      {/* Table ID */}
       <span style={{
         fontFamily: T.mono, fontSize: 11, fontWeight: 700,
         color: isActive ? color : T.textDim,
         letterSpacing: '-0.01em', lineHeight: 1,
       }}>
-        {table.id}
+        {table.label}
       </span>
 
       {/* Status dot */}

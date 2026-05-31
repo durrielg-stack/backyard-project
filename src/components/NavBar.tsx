@@ -274,7 +274,7 @@ export default function NavBar({
               key={tableId}
               active={currentTableId === tableId}
               onClick={() => onOrder(tableId)}
-              label={tableId}
+              label={t.label}
               sub={`$${total.toFixed(0)} · ${t.openMin}m`}
               dot={dot}
               onClose={() => onCloseTab(tableId)}
