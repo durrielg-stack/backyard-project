@@ -609,17 +609,22 @@ function BusyMeter({ openNow, totalTables }: { openNow: boolean; totalTables: nu
         })
       )
 
-      const avg = HOUR_SLOTS.map((_, i) => {
-        const mean = dailyPcts.reduce((sum, day) => sum + day[i], 0) / dailyPcts.length
-        return Math.max(15, Math.round(mean))
-      })
+      // Raw averages across 7 days
+      const rawAvg = HOUR_SLOTS.map((_, i) =>
+        dailyPcts.reduce((sum, day) => sum + day[i], 0) / dailyPcts.length
+      )
 
-      // If all bars are still at floor (no meaningful data), keep fallback
-      const hasRealData = avg.some((v, i) => v > FALLBACK_BARS[i] || dailyPcts.some(d => d[i] > 0))
-      if (!hasRealData) { setFallback(true); setBarData(FALLBACK_BARS); return }
+      const maxRaw = Math.max(...rawAvg)
+
+      // No meaningful signal — use fallback
+      if (maxRaw === 0) { setFallback(true); setBarData(FALLBACK_BARS); return }
+
+      // Normalize relative to peak so the busiest slot always fills the chart
+      // Scale to [15, 96] — same visual range as the fallback curve
+      const normalized = rawAvg.map(v => Math.max(15, Math.round(15 + (v / maxRaw) * 81)))
 
       setFallback(false)
-      setBarData(avg)
+      setBarData(normalized)
     }
 
     fetchAvgOccupancy()
