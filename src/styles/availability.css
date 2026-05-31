@@ -29,7 +29,7 @@ body:has(.byp-page) {
 .byp-page {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Hanken Grotesk', system-ui, sans-serif;
+  font-family: var(--font-hanken), system-ui, sans-serif;
   font-size: 16px;
   line-height: 1.6;
   overflow-x: hidden;
@@ -48,7 +48,7 @@ body:has(.byp-page) {
 
 /* ---- eyebrow ---- */
 .byp-eyebrow {
-  font-family: 'Hanken Grotesk', sans-serif;
+  font-family: var(--font-hanken), sans-serif;
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: .20em;
@@ -69,7 +69,7 @@ body:has(.byp-page) {
   flex-wrap: wrap;
 }
 .byp-block-title {
-  font-family: 'Oswald', sans-serif;
+  font-family: var(--font-oswald), sans-serif;
   font-size: clamp(1.55rem, 3.4vw, 2.35rem);
   font-weight: 500;
   text-transform: uppercase;
@@ -122,7 +122,8 @@ body:has(.byp-page) {
   align-items: center;
   justify-content: space-between;
 }
-.byp-header-logo img { max-height: 30px; width: auto; height: auto; }
+.byp-header-logo { display: flex; align-items: center; }
+.byp-header-logo img { height: 30px; width: auto; max-width: unset; }
 
 .byp-head-pill {
   display: flex;
@@ -132,7 +133,7 @@ body:has(.byp-page) {
   border-radius: 100px;
   font-size: 0.82rem;
   font-weight: 600;
-  font-family: 'Hanken Grotesk', sans-serif;
+  font-family: var(--font-hanken), sans-serif;
   border: 1px solid;
   transition: opacity 150ms;
 }
@@ -171,14 +172,13 @@ body:has(.byp-page) {
 }
 @media (max-width: 899px) {
   .byp-hero-grid { grid-template-columns: 1fr; }
-  .byp-hero-media { order: -1; }
 }
 
 .byp-hero-copy { display: flex; flex-direction: column; gap: 20px; }
-.byp-hero-logo { max-height: clamp(64px, 8vw, 104px); width: auto; height: auto; }
+.byp-hero-logo { height: clamp(64px, 8vw, 104px); width: auto; max-width: unset; align-self: flex-start; }
 
 .byp-hero-title {
-  font-family: 'Oswald', sans-serif;
+  font-family: var(--font-oswald), sans-serif;
   font-size: clamp(2.5rem, 7.2vw, 5rem);
   font-weight: 600;
   text-transform: uppercase;
@@ -208,7 +208,7 @@ body:has(.byp-page) {
   border-radius: 100px;
   font-size: 0.85rem;
   font-weight: 600;
-  font-family: 'Hanken Grotesk', sans-serif;
+  font-family: var(--font-hanken), sans-serif;
   border: 1px solid;
 }
 .byp-op-pill.is-open   { color: var(--av); border-color: rgba(111,190,133,.4); background: rgba(111,190,133,.08); }
@@ -222,36 +222,14 @@ body:has(.byp-page) {
   color: var(--faint);
 }
 
-.byp-hero-media { position: relative; }
-.byp-hero-photo-frame {
-  position: relative;
-  border-radius: 18px;
-  overflow: hidden;
-  aspect-ratio: 4 / 4.5;
-}
-@media (max-width: 899px) {
-  .byp-hero-photo-frame { aspect-ratio: 16 / 10; }
-}
-.byp-hero-photo-frame img { width: 100%; height: 100%; object-fit: cover; }
-.byp-hero-photo-frame::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(21,17,12,.5) 0%, transparent 50%);
-  pointer-events: none;
-}
 
 /* ============================
    SUMMARY + BUSY METER
    ============================ */
-.byp-summary-wrap {
-  display: grid;
-  grid-template-columns: 1.7fr 1fr;
-  gap: 20px;
-  align-items: start;
-}
-@media (max-width: 839px) {
-  .byp-summary-wrap { grid-template-columns: 1fr; }
+.byp-hero-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 /* summary card */
@@ -308,7 +286,7 @@ body:has(.byp-page) {
   margin-bottom: 12px;
 }
 .byp-sum-number {
-  font-family: 'Oswald', sans-serif;
+  font-family: var(--font-oswald), sans-serif;
   font-size: clamp(3.6rem, 11vw, 6.6rem);
   font-weight: 600;
   line-height: .86;
@@ -326,7 +304,7 @@ body:has(.byp-page) {
 }
 
 .byp-sum-unit {
-  font-family: 'Oswald', sans-serif;
+  font-family: var(--font-oswald), sans-serif;
   font-size: 0.78rem;
   font-weight: 500;
   text-transform: uppercase;
@@ -360,13 +338,13 @@ body:has(.byp-page) {
   margin-bottom: 4px;
 }
 .byp-sum-stat-v {
-  font-family: 'Oswald', sans-serif;
+  font-family: var(--font-oswald), sans-serif;
   font-size: 1.35rem;
   font-weight: 600;
   color: var(--text);
 }
 .byp-sum-stat-v.sm {
-  font-family: 'Hanken Grotesk', sans-serif;
+  font-family: var(--font-hanken), sans-serif;
   font-size: 0.85rem;
   font-weight: 500;
   color: var(--dim);
@@ -519,7 +497,7 @@ body:has(.byp-page) {
   justify-content: space-between;
 }
 .byp-tile-no {
-  font-family: 'Oswald', sans-serif;
+  font-family: var(--font-oswald), sans-serif;
   font-size: 1.45rem;
   font-weight: 600;
   color: var(--text);
@@ -783,7 +761,7 @@ body:has(.byp-page) {
   color: #fff;
   font-size: 0.9rem;
   font-weight: 600;
-  font-family: 'Hanken Grotesk', sans-serif;
+  font-family: var(--font-hanken), sans-serif;
   transition: transform 150ms, filter 150ms;
   white-space: nowrap;
 }
@@ -871,7 +849,7 @@ body:has(.byp-page) {
   align-items: center;
   gap: 14px;
 }
-.byp-foot-logo { max-height: 36px; width: auto; height: auto; opacity: .7; }
+.byp-foot-logo { height: 36px; width: auto; max-width: unset; opacity: .7; }
 .byp-footer p { font-size: 0.88rem; color: var(--dim); }
 .byp-footer .byp-fine { font-size: 0.75rem; color: var(--faint); }
 

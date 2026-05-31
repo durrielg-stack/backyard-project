@@ -152,7 +152,7 @@ function SiteHeader({ summary }: { summary: Summary }) {
 /* ============================================================
    HERO
    ============================================================ */
-function Hero({ openNow }: { openNow: boolean }) {
+function Hero({ summary }: { summary: Summary }) {
   return (
     <section className="byp-hero" id="top">
       <div className="byp-hero-glow" />
@@ -168,21 +168,19 @@ function Hero({ openNow }: { openNow: boolean }) {
             Real-time seating at The Backyard Project. We refresh the floor every few seconds, so you know before you go.
           </p>
           <div className="byp-hero-status">
-            <span className={'byp-op-pill ' + (openNow ? 'is-open' : 'is-closed')}>
+            <span className={'byp-op-pill ' + (summary.open ? 'is-open' : 'is-closed')}>
               <span className="byp-dot" style={{ color: 'currentColor' }} />
-              {openNow ? 'Open now' : 'Closed'}
+              {summary.open ? 'Open now' : 'Closed'}
             </span>
             <span className="byp-op-meta">
               <IcClock width={15} height={15} />
-              {openNow ? 'Closes 12 MN tonight' : 'Opens 4 PM'}
+              {summary.open ? 'Closes 12 MN tonight' : 'Opens 4 PM'}
             </span>
           </div>
         </div>
-        <div className="byp-hero-media">
-          <div className="byp-hero-photo-frame">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/hero.jpg" alt="Inside The Backyard Project" />
-          </div>
+        <div className="byp-hero-cards">
+          <SummaryCard summary={summary} />
+          <BusyMeter openNow={summary.open} />
         </div>
       </div>
     </section>
@@ -565,16 +563,7 @@ export default function TablesPage() {
   return (
     <div className="byp-page">
       <SiteHeader summary={summary} />
-      <Hero openNow={summary.open} />
-
-      <div className="byp-shell">
-        <section className="byp-block">
-          <div className="byp-summary-wrap">
-            <SummaryCard summary={summary} />
-            <BusyMeter openNow={summary.open} />
-          </div>
-        </section>
-      </div>
+      <Hero summary={summary} />
 
       <TablesSection tables={tables} />
       <MenuSection onZoom={onZoom} />
