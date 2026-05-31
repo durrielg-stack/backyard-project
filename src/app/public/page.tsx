@@ -564,15 +564,17 @@ function SummaryCard({ summary, message, preOpen }: { summary: Summary; message:
    ============================================================ */
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
+const FALLBACK_BARS = [25, 40, 58, 74, 88, 96, 82, 60, 38]
+
 function BusyMeter({ openNow, totalTables }: { openNow: boolean; totalTables: number }) {
-  const [barData, setBarData] = useState<number[]>(Array(9).fill(15))
+  const [barData, setBarData]       = useState<number[]>(FALLBACK_BARS)
+  const [usingFallback, setFallback] = useState(true)
 
   useEffect(() => {
     if (totalTables === 0) return
     const sb = getClient()
 
     async function fetchAvgOccupancy() {
-      // Build the 7 most recent complete instances of the same weekday (excluding today)
       const refDays: Array<{ year: number; month: number; day: number }> = []
       for (let i = 1; i <= 7; i++) {
         const pastMs = Date.now() + MANILA_OFFSET_MS - i * 7 * 24 * 60 * 60 * 1000
@@ -590,9 +592,9 @@ function BusyMeter({ openNow, totalTables }: { openNow: boolean; totalTables: nu
           data: { table_id: string; opened_at: string; closed_at: string | null }[] | null
         }
 
-      if (!data || data.length === 0) return
+      // No orders in past 7 weeks — use fallback curve
+      if (!data || data.length === 0) { setFallback(true); setBarData(FALLBACK_BARS); return }
 
-      // For each reference day, compute per-slot occupancy
       const dailyPcts = refDays.map(({ year: y, month: m, day: d }) =>
         HOUR_SLOTS.map(({ h }) => {
           const start = slotStartUTC(h, y, m, d)
@@ -607,12 +609,16 @@ function BusyMeter({ openNow, totalTables }: { openNow: boolean; totalTables: nu
         })
       )
 
-      // Average across the 7 days, apply 15% floor
       const avg = HOUR_SLOTS.map((_, i) => {
         const mean = dailyPcts.reduce((sum, day) => sum + day[i], 0) / dailyPcts.length
         return Math.max(15, Math.round(mean))
       })
 
+      // If all bars are still at floor (no meaningful data), keep fallback
+      const hasRealData = avg.some((v, i) => v > FALLBACK_BARS[i] || dailyPcts.some(d => d[i] > 0))
+      if (!hasRealData) { setFallback(true); setBarData(FALLBACK_BARS); return }
+
+      setFallback(false)
       setBarData(avg)
     }
 
@@ -633,7 +639,7 @@ function BusyMeter({ openNow, totalTables }: { openNow: boolean; totalTables: nu
         <span className="byp-eyebrow">Tonight&rsquo;s vibe</span>
         <span className="byp-busy-now">
           {openNow
-            ? `Typical ${DAY_NAMES[manilaWeekday]} nights`
+            ? usingFallback ? 'Typical night' : `Typical ${DAY_NAMES[manilaWeekday]} nights`
             : 'Opens at 4 PM'}
         </span>
       </div>
