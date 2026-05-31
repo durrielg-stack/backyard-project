@@ -689,7 +689,7 @@ function TablesSection({ tables }: { tables: { id: string; label: string; status
       <div className="byp-block-head">
         <div>
           <div className="byp-eyebrow">The floor</div>
-          <h2 className="byp-block-title">Every table, live</h2>
+          <h2 className="byp-block-title">Find your spot</h2>
         </div>
         <Legend />
       </div>
