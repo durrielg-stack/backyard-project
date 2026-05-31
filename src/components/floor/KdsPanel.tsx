@@ -16,10 +16,8 @@ function KdsTicketRow({ ticket, onBump }: {
   onBump: (itemIds: number[]) => void
 }) {
   const { T } = useTheme()
-  const isLate  = ticket.elapsedSec > 600
-  const isAging = ticket.elapsedSec > 360
-  const color   = isLate ? T.bad : isAging ? T.warn : T.ok
-  const badge   = isLate ? 'LATE' : isAging ? 'AGING' : 'FIRING'
+  const color = ticket.status === 'late' ? T.bad : ticket.status === 'aging' ? T.warn : T.ok
+  const badge = ticket.status === 'late' ? 'LATE' : ticket.status === 'aging' ? 'AGING' : 'FIRING'
 
   return (
     <div style={{
