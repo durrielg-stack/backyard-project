@@ -306,7 +306,7 @@ function deriveSummary(tables: { status: Status }[], closed: boolean, updatedAt:
   const open = !closed
   const free = tables.filter(t => t.status === 'av').length
   const total = tables.filter(t => t.status !== 'cl').length || tables.length
-  const occPct = total > 0 ? Math.round(((total - free) / total) * 100) : 0
+  const occPct = (!open || total === 0) ? 0 : Math.round(((total - free) / total) * 100)
   let tone: Summary['tone'] = 'open'
   if (!open) tone = 'closed'
   else if (free === 0) tone = 'full'
