@@ -111,6 +111,7 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
   const [loading,    setLoading]    = useState(true)
   const [showForm,   setShowForm]   = useState(false)
   const [saving,     setSaving]     = useState(false)
+  const [search,     setSearch]     = useState('')
   const nav = useDateNav()
 
   // Form state
@@ -154,6 +155,7 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
   }, [sb])
 
   useEffect(() => {
+    setSearch('')
     let start: string, end: string
     if (nav.mode === 'today') {
       ;({ start, end } = dayBounds(nav.date))
@@ -164,6 +166,10 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
     }
     fetchRows(start, end)
   }, [nav.mode, nav.date, nav.weekRef, nav.month, nav.year, fetchRows])
+
+  const filteredRows = search.trim()
+    ? sortedRows.filter(r => r.description.toLowerCase().includes(search.toLowerCase()))
+    : sortedRows
 
   // Update suggestions as user types
   function handleDescChange(val: string) {
@@ -226,7 +232,8 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
     setRows(prev => prev.filter(r => r.id !== id))
   }
 
-  const totalShown = rows.reduce((s, r) => s + r.amount, 0)
+  const totalShown    = rows.reduce((s, r) => s + r.amount, 0)
+  const totalFiltered = filteredRows.reduce((s, r) => s + r.amount, 0)
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: T.surface }}>
@@ -248,6 +255,28 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
               {showForm ? 'Cancel' : '+ Add'}
             </button>
           </div>
+          {nav.mode !== 'today' && (
+            <div style={{ padding: '0 16px 8px', position: 'relative' }}>
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search expenses…"
+                style={{
+                  width: '100%', fontFamily: 'inherit', fontSize: 12,
+                  background: T.surface, border: `1px solid ${search ? T.accent : T.line2}`,
+                  color: T.text, borderRadius: T.radius,
+                  padding: '6px 28px 6px 8px', outline: 'none', boxSizing: 'border-box',
+                }}
+              />
+              {search && (
+                <button onClick={() => setSearch('')} style={{
+                  position: 'absolute', right: 22, top: '50%', transform: 'translateY(-50%)',
+                  background: 'transparent', border: 'none', color: T.textMute,
+                  cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1,
+                }}>×</button>
+              )}
+            </div>
+          )}
           <div className="bp-no-scrollbar" style={{ padding: '0 16px 10px', overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
             <DateRangeNav
               mode={nav.mode} date={nav.date} weekRef={nav.weekRef}
@@ -270,6 +299,28 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
             {fmtPeso(totalShown)}
           </span>
           <div style={{ flex: 1 }} />
+          {nav.mode !== 'today' && (
+            <div style={{ position: 'relative' }}>
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search expenses…"
+                style={{
+                  fontFamily: 'inherit', fontSize: 12,
+                  background: T.surface, border: `1px solid ${search ? T.accent : T.line2}`,
+                  color: T.text, borderRadius: T.radius,
+                  padding: '5px 28px 5px 8px', outline: 'none', width: 180,
+                }}
+              />
+              {search && (
+                <button onClick={() => setSearch('')} style={{
+                  position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+                  background: 'transparent', border: 'none', color: T.textMute,
+                  cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1,
+                }}>×</button>
+              )}
+            </div>
+          )}
           <DateRangeNav
             mode={nav.mode} date={nav.date} weekRef={nav.weekRef}
             month={nav.month} year={nav.year}
@@ -416,7 +467,11 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
             <div style={{ padding: '32px 24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>
               No expenses logged for this period
             </div>
-          ) : sortedRows.map((row, i) => {
+          ) : filteredRows.length === 0 ? (
+            <div style={{ padding: '32px 24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>
+              No expenses match &ldquo;{search}&rdquo;
+            </div>
+          ) : filteredRows.map((row, i) => {
             const dt      = new Date(row.createdAt)
             const time    = `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`
             const qtyPart = row.qty % 1 === 0 ? String(row.qty) : row.qty.toFixed(3)
@@ -454,11 +509,16 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
       {/* Footer total */}
       {rows.length > 0 && (
         <div style={{ padding: '12px 24px', borderTop: `1px solid ${T.line}`, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          {search && (
+            <span style={{ fontSize: 11, color: T.textMute, fontFamily: T.mono }}>
+              {filteredRows.length} of {rows.length} expenses
+            </span>
+          )}
           <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute }}>
-            Total {nav.mode === 'today' ? 'Today' : nav.mode === 'week' ? 'This Week' : 'This Month'}
+            {search ? `Total for "${search}"` : `Total ${nav.mode === 'today' ? 'Today' : nav.mode === 'week' ? 'This Week' : 'This Month'}`}
           </span>
           <span style={{ fontFamily: T.mono, fontSize: 18, fontWeight: 700, color: T.bad, fontVariantNumeric: 'tabular-nums' }}>
-            {fmtPeso(totalShown)}
+            {fmtPeso(search ? totalFiltered : totalShown)}
           </span>
         </div>
       )}
