@@ -48,6 +48,7 @@ export default function SalesTab() {
   const nav = useDateNav()
   const [lines, setLines] = useState<LineItem[]>([])
   const [loading, setLoading] = useState(false)
+  const [search, setSearch] = useState('')
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = getClient() as any
@@ -83,6 +84,7 @@ export default function SalesTab() {
   }, [sb])
 
   useEffect(() => {
+    setSearch('')
     let start: string, end: string
     if (nav.mode === 'today') {
       ;({ start, end } = dayBounds(nav.date))
@@ -93,6 +95,10 @@ export default function SalesTab() {
     }
     fetchSales(start, end)
   }, [nav.mode, nav.date, nav.weekRef, nav.month, nav.year, fetchSales])
+
+  const filteredLines = search.trim()
+    ? lines.filter(l => l.itemName.toLowerCase().includes(search.toLowerCase()))
+    : lines
 
   // ── Category summary ──────────────────────────────────────────────────────
   const SUMMARY_CATS = ['Food', 'Beer', 'Cocktails/Hard', 'Non-Alcohol', 'Cigarettes']
@@ -110,7 +116,7 @@ export default function SalesTab() {
   for (const cat of SUMMARY_CATS) {
     catMap.set(cat, { category: cat, gross: 0, cost: 0, net: 0, margin: 0 })
   }
-  for (const l of lines) {
+  for (const l of filteredLines) {
     const key = CAT_BUCKET[l.category] ?? null
     if (!key) continue
     const c = catMap.get(key)!
@@ -121,9 +127,9 @@ export default function SalesTab() {
     return { ...c, margin: c.gross > 0 ? (c.net / c.gross) * 100 : 0 }
   })
 
-  const totalGross  = lines.reduce((s, l) => s + l.gross, 0)
-  const totalCost   = lines.reduce((s, l) => s + l.cost,  0)
-  const totalNet    = lines.reduce((s, l) => s + l.net,   0)
+  const totalGross  = filteredLines.reduce((s, l) => s + l.gross, 0)
+  const totalCost   = filteredLines.reduce((s, l) => s + l.cost,  0)
+  const totalNet    = filteredLines.reduce((s, l) => s + l.net,   0)
   const totalMargin = totalGross > 0 ? (totalNet / totalGross) * 100 : 0
 
   // ── Cell / header styles ──────────────────────────────────────────────────
@@ -170,6 +176,16 @@ export default function SalesTab() {
               </span>
             )}
           </div>
+          {nav.mode !== 'today' && (
+            <div style={{ padding: '0 16px 8px', position: 'relative' }}>
+              <input
+                value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="Search items…"
+                style={{ width: '100%', fontFamily: 'inherit', fontSize: 12, background: T.surface, border: `1px solid ${search ? T.accent : T.line2}`, color: T.text, borderRadius: T.radius, padding: '6px 28px 6px 8px', outline: 'none', boxSizing: 'border-box' }}
+              />
+              {search && <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 22, top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: T.textMute, cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1 }}>×</button>}
+            </div>
+          )}
           <div className="bp-no-scrollbar" style={{ padding: '0 16px 10px', overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
             <DateRangeNav mode={nav.mode} date={nav.date} weekRef={nav.weekRef} month={nav.month} year={nav.year} onModeChange={nav.setMode} onDateChange={nav.setDate} onWeekChange={nav.setWeekRef} onMonthChange={nav.setMonth} />
           </div>
@@ -177,8 +193,22 @@ export default function SalesTab() {
       ) : (
         <SectionHd
           title="Sales"
-          badge={lines.length > 0 ? `${lines.length} items` : undefined}
-          action={<DateRangeNav mode={nav.mode} date={nav.date} weekRef={nav.weekRef} month={nav.month} year={nav.year} onModeChange={nav.setMode} onDateChange={nav.setDate} onWeekChange={nav.setWeekRef} onMonthChange={nav.setMonth} />}
+          badge={lines.length > 0 ? `${filteredLines.length}${search ? `/${lines.length}` : ''} items` : undefined}
+          action={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {nav.mode !== 'today' && (
+                <div style={{ position: 'relative' }}>
+                  <input
+                    value={search} onChange={e => setSearch(e.target.value)}
+                    placeholder="Search items…"
+                    style={{ fontFamily: 'inherit', fontSize: 12, background: T.surface, border: `1px solid ${search ? T.accent : T.line2}`, color: T.text, borderRadius: T.radius, padding: '5px 26px 5px 8px', outline: 'none', width: 180 }}
+                  />
+                  {search && <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: T.textMute, cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1 }}>×</button>}
+                </div>
+              )}
+              <DateRangeNav mode={nav.mode} date={nav.date} weekRef={nav.weekRef} month={nav.month} year={nav.year} onModeChange={nav.setMode} onDateChange={nav.setDate} onWeekChange={nav.setWeekRef} onMonthChange={nav.setMonth} />
+            </div>
+          }
         />
       )}
 
@@ -229,9 +259,9 @@ export default function SalesTab() {
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>
               Loading…
             </div>
-          ) : lines.length === 0 ? (
+          ) : filteredLines.length === 0 ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>
-              No sales on this date
+              {search ? `No items match "${search}"` : 'No sales on this date'}
             </div>
           ) : (
             // Single scroll container for both header and rows — they move together
@@ -251,7 +281,7 @@ export default function SalesTab() {
                   </tr>
                 </thead>
                 <tbody>
-                  {lines.map((l, i) => {
+                  {filteredLines.map((l, i) => {
                     const rowBg = i % 2 === 0 ? T.surface : T.bg
                     return (
                       <tr key={l.id} style={{ background: rowBg }}>
