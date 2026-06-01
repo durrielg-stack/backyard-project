@@ -533,7 +533,7 @@ function SummaryCard({ summary, message, preOpen }: { summary: Summary; message:
       <div className="byp-sum-left">
         <div className="byp-sum-eyebrow">
           <span className="byp-dot" style={{ color: 'currentColor' }} />
-          <span className="byp-eyebrow" style={{ color: 'inherit' }}>Live availability</span>
+          <span className="byp-eyebrow" style={{ color: 'inherit' }}>Status</span>
         </div>
         {statusContent}
         <div className="byp-sum-headline">{message}</div>
