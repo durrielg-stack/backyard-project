@@ -166,7 +166,13 @@ body:has(.byp-page) {
   font-weight: 600;
   font-family: var(--font-hanken), sans-serif;
   border: 1px solid;
-  transition: opacity 150ms;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 300ms ease, transform 300ms ease;
+}
+.byp-header.is-solid .byp-head-pill {
+  opacity: 1;
+  transform: translateY(0);
 }
 .byp-head-pill.st-open   { color: var(--av); border-color: rgba(111,190,133,.4); background: rgba(111,190,133,.08); }
 .byp-head-pill.st-busy   { color: var(--copper); border-color: rgba(201,130,78,.4); background: rgba(201,130,78,.08); }

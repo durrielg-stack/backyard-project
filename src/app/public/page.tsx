@@ -446,9 +446,11 @@ function SiteHeader({ summary }: { summary: Summary }) {
         </a>
         <a className={'byp-head-pill st-' + summary.tone} href="#tables">
           <span className="byp-dot" style={{ color: 'currentColor' }} />
-          {summary.open
-            ? <><b>{summary.free}</b>&nbsp;tables free</>
-            : <>We&rsquo;re closed</>}
+          {summary.tone === 'open'   ? <>We&rsquo;re open</>      :
+           summary.tone === 'busy'   ? <>Filling up</>            :
+           summary.tone === 'almost' ? <>Almost full</>           :
+           summary.tone === 'full'   ? <>We&rsquo;re at capacity</> :
+                                       <>We&rsquo;re closed</>}
         </a>
       </div>
     </header>
