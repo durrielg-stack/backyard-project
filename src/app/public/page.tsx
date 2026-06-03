@@ -504,10 +504,21 @@ function SummaryCard({ summary, message, preOpen }: { summary: Summary; message:
 
   let statusContent: React.ReactNode
   if (summary.open) {
+    // Restore when bar gets busier
+    // statusContent = (
+    //   <div className="byp-sum-number-row">
+    //     <span className="byp-sum-number">{summary.free}</span>
+    //     <span className="byp-sum-unit">{summary.free === 1 ? 'table' : 'tables'}<br/>available</span>
+    //   </div>
+    // )
+    const label =
+      summary.tone === 'full'   ? "We're at Capacity" :
+      summary.tone === 'almost' ? 'Party Vibes'        :
+      summary.tone === 'busy'   ? 'Filling Up'         :
+                                  "We're Open"
     statusContent = (
       <div className="byp-sum-number-row">
-        <span className="byp-sum-number">{summary.free}</span>
-        <span className="byp-sum-unit">{summary.free === 1 ? 'table' : 'tables'}<br/>available</span>
+        <span className="byp-sum-number">{label}</span>
       </div>
     )
   } else if (preOpen?.label === 'preparing') {
@@ -1001,7 +1012,7 @@ export default function TablesPage() {
       <SiteHeader summary={summary} />
       <Hero summary={summary} currentMsg={currentMsg} totalTables={rawTables.length} preOpen={preOpen} />
 
-      <TablesSection tables={tables} />
+      {/* <TablesSection tables={tables} /> */}
       <MenuSection onZoom={onZoom} />
       <HoursSection openNow={summary.open} />
       <GallerySection />
