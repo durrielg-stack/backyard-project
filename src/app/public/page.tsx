@@ -535,7 +535,7 @@ function SummaryCard({ summary, message, preOpen }: { summary: Summary; message:
                                   "We're Open"
     statusContent = (
       <div className="byp-sum-number-row">
-        <span className="byp-sum-number">{label}</span>
+        <span className="byp-sum-number is-label">{label}</span>
       </div>
     )
   } else if (preOpen?.label === 'preparing') {
@@ -1019,6 +1019,14 @@ export default function TablesPage() {
 
   const closed = false // TEMP: forced open for screenshot — revert after
 
+  /* TEMP: cycle through all status tones every 30s for demo/screenshot */
+  const DEMO_TONES: Summary['tone'][] = ['open', 'busy', 'almost', 'full']
+  const [demoToneIdx, setDemoToneIdx] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setDemoToneIdx(i => (i + 1) % DEMO_TONES.length), 30_000)
+    return () => clearInterval(id)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   const tables = useMemo(() =>
     rawTables.map((row) => ({
       id: row.id,
@@ -1033,6 +1041,12 @@ export default function TablesPage() {
     [tables, closed, updatedAt]
   )
 
+  // TEMP: override tone for demo cycling — revert with closed/demoTone removal
+  const displaySummary = useMemo(
+    () => ({ ...summary, tone: DEMO_TONES[demoToneIdx] }),
+    [summary, demoToneIdx] // eslint-disable-line react-hooks/exhaustive-deps
+  )
+
   const preOpen = useMemo(() => getPreOpenAccent(now), [now])
 
   const currentMsg = useMemo(() => {
@@ -1043,8 +1057,8 @@ export default function TablesPage() {
 
   return (
     <div className={'byp-page' + (theme === 'light' ? ' byp-light' : '')}>
-      <SiteHeader summary={summary} theme={theme} onToggleTheme={toggleTheme} />
-      <Hero summary={summary} currentMsg={currentMsg} totalTables={rawTables.length} preOpen={preOpen} theme={theme} />
+      <SiteHeader summary={displaySummary} theme={theme} onToggleTheme={toggleTheme} />
+      <Hero summary={displaySummary} currentMsg={currentMsg} totalTables={rawTables.length} preOpen={preOpen} theme={theme} />
 
       {/* <TablesSection tables={tables} /> */}
       <MenuSection onZoom={onZoom} />
@@ -1053,7 +1067,7 @@ export default function TablesPage() {
       <LocationSection />
       <SiteFooter />
 
-      <MobileCTA summary={summary} />
+      <MobileCTA summary={displaySummary} />
       <Lightbox src={zoom} onClose={onClose} />
     </div>
   )

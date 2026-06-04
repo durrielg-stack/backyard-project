@@ -374,6 +374,11 @@ html.byp-hero-past .byp-hero-logo {
 .byp-sum-number.is-closed {
   font-size: clamp(2.4rem, 7vw, 4rem);
 }
+.byp-sum-number.is-label {
+  font-size: clamp(2rem, 4.5vw, 3rem);
+  line-height: 1.2;
+  white-space: nowrap;
+}
 
 .byp-sum-unit {
   font-family: var(--font-oswald), sans-serif;
