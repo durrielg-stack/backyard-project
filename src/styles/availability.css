@@ -1056,6 +1056,21 @@ html.byp-hero-past .byp-hero-logo {
   box-shadow: 0 0 10px rgba(168,99,30,.3);
 }
 
+/* status card large label — more vibrant than AA-small-text pill values,
+   still passes 3:1 large-text contrast on white card surface */
+.byp-page.byp-light .byp-sum-card.st-open   .byp-sum-number { color: #2E9D65; }
+.byp-page.byp-light .byp-sum-card.st-busy   .byp-sum-number { color: #B8840A; }
+.byp-page.byp-light .byp-sum-card.st-almost .byp-sum-number { color: #A87C00; }
+.byp-page.byp-light .byp-sum-card.st-full   .byp-sum-number { color: #9E5820; }
+.byp-page.byp-light .byp-sum-card.st-closed .byp-sum-number { color: #B03830; }
+
+/* card glow blob — decorative, use original vibrant dark-mode colors */
+.byp-page.byp-light .byp-sum-card.st-open::before   { background: #6FBE85; }
+.byp-page.byp-light .byp-sum-card.st-busy::before   { background: #D9A23F; }
+.byp-page.byp-light .byp-sum-card.st-almost::before { background: #E8A020; }
+.byp-page.byp-light .byp-sum-card.st-full::before   { background: #C9824E; }
+.byp-page.byp-light .byp-sum-card.st-closed::before { background: #D56454; }
+
 /* menu image caption */
 .byp-page.byp-light .byp-menu-page figcaption {
   background: rgba(251,246,236,.92);
