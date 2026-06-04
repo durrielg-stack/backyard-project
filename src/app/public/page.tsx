@@ -1017,15 +1017,7 @@ export default function TablesPage() {
     return () => clearInterval(id)
   }, [])
 
-  const closed = false // TEMP: forced open for screenshot — revert after
-
-  /* TEMP: cycle through all status tones every 3s for review */
-  const DEMO_TONES: Summary['tone'][] = ['open', 'busy', 'almost', 'full']
-  const [demoToneIdx, setDemoToneIdx] = useState(0)
-  useEffect(() => {
-    const id = setInterval(() => setDemoToneIdx(i => (i + 1) % DEMO_TONES.length), 3_000)
-    return () => clearInterval(id)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const closed = isClosedNow(now)
 
   const tables = useMemo(() =>
     rawTables.map((row) => ({
@@ -1041,12 +1033,6 @@ export default function TablesPage() {
     [tables, closed, updatedAt]
   )
 
-  // TEMP: override tone for demo cycling
-  const displaySummary = useMemo(
-    () => ({ ...summary, tone: DEMO_TONES[demoToneIdx] }),
-    [summary, demoToneIdx] // eslint-disable-line react-hooks/exhaustive-deps
-  )
-
   const preOpen = useMemo(() => getPreOpenAccent(now), [now])
 
   const currentMsg = useMemo(() => {
@@ -1057,8 +1043,8 @@ export default function TablesPage() {
 
   return (
     <div className={'byp-page' + (theme === 'light' ? ' byp-light' : '')}>
-      <SiteHeader summary={displaySummary} theme={theme} onToggleTheme={toggleTheme} />
-      <Hero summary={displaySummary} currentMsg={currentMsg} totalTables={rawTables.length} preOpen={preOpen} theme={theme} />
+      <SiteHeader summary={summary} theme={theme} onToggleTheme={toggleTheme} />
+      <Hero summary={summary} currentMsg={currentMsg} totalTables={rawTables.length} preOpen={preOpen} theme={theme} />
 
       {/* <TablesSection tables={tables} /> */}
       <MenuSection onZoom={onZoom} />
@@ -1067,7 +1053,7 @@ export default function TablesPage() {
       <LocationSection />
       <SiteFooter />
 
-      <MobileCTA summary={displaySummary} />
+      <MobileCTA summary={summary} />
       <Lightbox src={zoom} onClose={onClose} />
     </div>
   )
