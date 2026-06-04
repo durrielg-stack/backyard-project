@@ -779,12 +779,12 @@ export default function FloorView({
   const isMobile = bp === 'mobile'
 
   return (
-    <div className={isMobile ? 'bp-no-scrollbar' : undefined} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflowY: isMobile ? 'auto' : undefined }}>
+    <div className={isMobile ? 'bp-no-scrollbar' : undefined} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflowY: isMobile ? 'auto' : undefined, touchAction: isMobile ? 'pan-y' : undefined }}>
       <KpiStrip tables={tables} tickets={tickets} />
 
       {isMobile ? (
         /* Mobile: stacked layout */
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
           <FloorPanel tables={tables} tickets={tickets} onOpenTable={onOpenTable} />
           <div style={{ borderTop: `1px solid ${T.line}`, flexShrink: 0, minHeight: 220 }}>
             <KdsPanel tickets={tickets} tick={tick} onBump={onBump} />
