@@ -177,9 +177,9 @@ body:has(.byp-page) {
   transform: translateY(0);
 }
 .byp-head-pill.st-open   { color: var(--av); border-color: rgba(111,190,133,.4); background: rgba(111,190,133,.08); }
-.byp-head-pill.st-busy   { color: var(--gold);   border-color: rgba(232,160,32,.4); background: rgba(232,160,32,.08); }
-.byp-head-pill.st-almost { color: var(--copper); border-color: rgba(201,130,78,.4); background: rgba(201,130,78,.08); }
-.byp-head-pill.st-full   { color: var(--cl); border-color: rgba(217,162,63,.4); background: rgba(217,162,63,.08); }
+.byp-head-pill.st-busy   { color: var(--cl);     border-color: rgba(217,162,63,.4); background: rgba(217,162,63,.08); }
+.byp-head-pill.st-almost { color: var(--gold);   border-color: rgba(232,160,32,.4); background: rgba(232,160,32,.08); }
+.byp-head-pill.st-full   { color: var(--copper); border-color: rgba(201,130,78,.4); background: rgba(201,130,78,.08); }
 .byp-head-pill.st-closed { color: var(--oc); border-color: rgba(213,100,84,.4); background: rgba(213,100,84,.08); }
 
 /* ============================
@@ -333,9 +333,9 @@ html.byp-hero-past .byp-hero-logo {
   transition: background 600ms;
 }
 .byp-sum-card.st-open::before   { background: var(--card-accent, var(--av)); }
-.byp-sum-card.st-busy::before   { background: var(--card-accent, var(--gold)); }
-.byp-sum-card.st-almost::before { background: var(--card-accent, var(--copper)); }
-.byp-sum-card.st-full::before   { background: var(--card-accent, var(--cl)); }
+.byp-sum-card.st-busy::before   { background: var(--card-accent, var(--cl)); }
+.byp-sum-card.st-almost::before { background: var(--card-accent, var(--gold)); }
+.byp-sum-card.st-full::before   { background: var(--card-accent, var(--copper)); }
 .byp-sum-card.st-closed::before { background: var(--card-accent, var(--oc)); }
 
 .byp-sum-left { min-width: 0; flex: 1; }
@@ -348,9 +348,9 @@ html.byp-hero-past .byp-hero-logo {
 .byp-sum-eyebrow .byp-eyebrow { color: inherit; }
 
 .byp-sum-card.st-open   .byp-sum-eyebrow { color: var(--av); }
-.byp-sum-card.st-busy   .byp-sum-eyebrow { color: var(--gold); }
-.byp-sum-card.st-almost .byp-sum-eyebrow { color: var(--copper); }
-.byp-sum-card.st-full   .byp-sum-eyebrow { color: var(--cl); }
+.byp-sum-card.st-busy   .byp-sum-eyebrow { color: var(--cl); }
+.byp-sum-card.st-almost .byp-sum-eyebrow { color: var(--gold); }
+.byp-sum-card.st-full   .byp-sum-eyebrow { color: var(--copper); }
 .byp-sum-card.st-closed .byp-sum-eyebrow { color: var(--oc); }
 
 .byp-sum-number-row {
@@ -368,9 +368,9 @@ html.byp-hero-past .byp-hero-logo {
   transition: color 600ms;
 }
 .byp-sum-card.st-open   .byp-sum-number { color: var(--card-accent, var(--av)); }
-.byp-sum-card.st-busy   .byp-sum-number { color: var(--card-accent, var(--gold)); }
-.byp-sum-card.st-almost .byp-sum-number { color: var(--card-accent, var(--copper)); }
-.byp-sum-card.st-full   .byp-sum-number { color: var(--card-accent, var(--cl)); }
+.byp-sum-card.st-busy   .byp-sum-number { color: var(--card-accent, var(--cl)); }
+.byp-sum-card.st-almost .byp-sum-number { color: var(--card-accent, var(--gold)); }
+.byp-sum-card.st-full   .byp-sum-number { color: var(--card-accent, var(--copper)); }
 .byp-sum-card.st-closed .byp-sum-number { color: var(--card-accent, var(--oc)); }
 
 .byp-sum-number.is-closed {
@@ -959,9 +959,9 @@ html.byp-hero-past .byp-hero-logo {
   font-weight: 600;
 }
 .byp-mcta-status.st-open   { color: var(--av); }
-.byp-mcta-status.st-busy   { color: var(--gold); }
-.byp-mcta-status.st-almost { color: var(--copper); }
-.byp-mcta-status.st-full   { color: var(--cl); }
+.byp-mcta-status.st-busy   { color: var(--cl); }
+.byp-mcta-status.st-almost { color: var(--gold); }
+.byp-mcta-status.st-full   { color: var(--copper); }
 .byp-mcta-status.st-closed { color: var(--oc); }
 
 /* mobile cta bottom padding for content */
@@ -1036,9 +1036,9 @@ html.byp-hero-past .byp-hero-logo {
 
 /* status pill borders + backgrounds */
 .byp-page.byp-light .byp-head-pill.st-open   { border-color: rgba(46,139,89,.35);  background: rgba(46,139,89,.10); }
-.byp-page.byp-light .byp-head-pill.st-busy   { border-color: rgba(138,96,16,.35);  background: rgba(138,96,16,.10); }
-.byp-page.byp-light .byp-head-pill.st-almost { border-color: rgba(168,99,30,.35);  background: rgba(168,99,30,.10); }
-.byp-page.byp-light .byp-head-pill.st-full   { border-color: rgba(154,116,21,.35); background: rgba(154,116,21,.10); }
+.byp-page.byp-light .byp-head-pill.st-busy   { border-color: rgba(154,116,21,.35); background: rgba(154,116,21,.10); }
+.byp-page.byp-light .byp-head-pill.st-almost { border-color: rgba(138,96,16,.35);  background: rgba(138,96,16,.10); }
+.byp-page.byp-light .byp-head-pill.st-full   { border-color: rgba(168,99,30,.35);  background: rgba(168,99,30,.10); }
 .byp-page.byp-light .byp-head-pill.st-closed { border-color: rgba(192,70,58,.35);  background: rgba(192,70,58,.10); }
 
 /* hero open/closed pill */
