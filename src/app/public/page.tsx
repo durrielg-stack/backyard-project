@@ -551,6 +551,7 @@ function SummaryCard({ summary, message, preOpen }: { summary: Summary; message:
         {statusContent}
         <div className="byp-sum-headline">{message}</div>
       </div>
+      {/* Restore when things get busy — wait time, occupancy, updated
       <div className="byp-sum-right">
         <div className="byp-sum-stat">
           <div className="byp-sum-stat-k">Wait time</div>
@@ -568,6 +569,7 @@ function SummaryCard({ summary, message, preOpen }: { summary: Summary; message:
           <div className="byp-sum-stat-v sm">{summary.updated}</div>
         </div>
       </div>
+      */}
     </div>
   )
 }
