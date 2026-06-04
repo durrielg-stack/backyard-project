@@ -1023,7 +1023,7 @@ export default function TablesPage() {
   const DEMO_TONES: Summary['tone'][] = ['open', 'busy', 'almost', 'full']
   const [demoToneIdx, setDemoToneIdx] = useState(0)
   useEffect(() => {
-    const id = setInterval(() => setDemoToneIdx(i => (i + 1) % DEMO_TONES.length), 30_000)
+    const id = setInterval(() => setDemoToneIdx(i => (i + 1) % DEMO_TONES.length), 3_000)
     return () => clearInterval(id)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
