@@ -450,16 +450,13 @@ function SiteHeader({ summary, theme, onToggleTheme }: { summary: Summary; theme
       <div className="byp-header-inner">
         <a className="byp-header-logo" href="#top">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/byp-logo-topbar.png" alt="The Backyard Project" />
+          <img src={theme === 'light' ? '/logo-black.svg' : '/byp-logo-topbar.png'} alt="The Backyard Project" />
           <span className="byp-header-wordmark">
             <span className="byp-header-wordmark-full">The Backyard Project</span>
             <span className="byp-header-wordmark-short">TBP</span>
           </span>
         </a>
         <div className="byp-head-right">
-          <button className="byp-theme-toggle" onClick={onToggleTheme} aria-label="Toggle theme">
-            {theme === 'dark' ? <IcSun width={17} height={17} /> : <IcMoon width={17} height={17} />}
-          </button>
           <a className={'byp-head-pill st-' + summary.tone} href="#tables">
             <span className="byp-dot" style={{ color: 'currentColor' }} />
             {summary.tone === 'open'   ? <>We&rsquo;re open</>      :
@@ -468,6 +465,9 @@ function SiteHeader({ summary, theme, onToggleTheme }: { summary: Summary; theme
              summary.tone === 'full'   ? <>We&rsquo;re at capacity</> :
                                          <>We&rsquo;re closed</>}
           </a>
+          <button className="byp-theme-toggle" onClick={onToggleTheme} aria-label="Toggle theme">
+            {theme === 'dark' ? <IcSun width={17} height={17} /> : <IcMoon width={17} height={17} />}
+          </button>
         </div>
       </div>
     </header>
@@ -477,7 +477,7 @@ function SiteHeader({ summary, theme, onToggleTheme }: { summary: Summary; theme
 /* ============================================================
    HERO
    ============================================================ */
-function Hero({ summary, currentMsg, totalTables, preOpen }: { summary: Summary; currentMsg: string; totalTables: number; preOpen: PreOpenState }) {
+function Hero({ summary, currentMsg, totalTables, preOpen, theme }: { summary: Summary; currentMsg: string; totalTables: number; preOpen: PreOpenState; theme: 'dark' | 'light' }) {
   return (
     <section className="byp-hero" id="top">
       <div className="byp-hero-glow" />
@@ -485,7 +485,7 @@ function Hero({ summary, currentMsg, totalTables, preOpen }: { summary: Summary;
         <div className="byp-hero-copy">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <div className="byp-hero-logo-row">
-            <img className="byp-hero-logo" src="/byp-logo.png" alt="The Backyard Project · bar + kitchen" />
+            <img className="byp-hero-logo" src={theme === 'light' ? '/logo-square.png' : '/byp-logo.png'} alt="The Backyard Project · bar + kitchen" />
             <h1 className="byp-hero-title">
             Find your<br/>spot<br className="byp-mobile-br"/>{' '}<span className="byp-amp">tonight</span>
           </h1>
@@ -1044,7 +1044,7 @@ export default function TablesPage() {
   return (
     <div className={'byp-page' + (theme === 'light' ? ' byp-light' : '')}>
       <SiteHeader summary={summary} theme={theme} onToggleTheme={toggleTheme} />
-      <Hero summary={summary} currentMsg={currentMsg} totalTables={rawTables.length} preOpen={preOpen} />
+      <Hero summary={summary} currentMsg={currentMsg} totalTables={rawTables.length} preOpen={preOpen} theme={theme} />
 
       {/* <TablesSection tables={tables} /> */}
       <MenuSection onZoom={onZoom} />
