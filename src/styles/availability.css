@@ -981,14 +981,8 @@ html.byp-hero-past .byp-hero-logo {
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0;
-  transform: translateY(-10px);
-  transition: opacity 300ms ease, transform 300ms ease, border-color 150ms, color 150ms;
+  transition: border-color 150ms, color 150ms;
   flex-shrink: 0;
-}
-.byp-header.is-solid .byp-theme-toggle {
-  opacity: 1;
-  transform: translateY(0);
 }
 .byp-theme-toggle:hover {
   border-color: var(--copper);
