@@ -1017,7 +1017,7 @@ export default function TablesPage() {
     return () => clearInterval(id)
   }, [])
 
-  const closed = isClosedNow(now)
+  const closed = false // TEMP: forced open for screenshot — revert after
 
   const tables = useMemo(() =>
     rawTables.map((row) => ({
