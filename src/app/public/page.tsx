@@ -419,7 +419,19 @@ function IcFb(p: React.SVGProps<SVGSVGElement>) {
 /* ============================================================
    SITE HEADER
    ============================================================ */
-function SiteHeader({ summary }: { summary: Summary }) {
+function IcSun(p: React.SVGProps<SVGSVGElement>) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" {...p}>
+    <circle cx="12" cy="12" r="4"/>
+    <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+  </svg>
+}
+function IcMoon(p: React.SVGProps<SVGSVGElement>) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" {...p}>
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/>
+  </svg>
+}
+
+function SiteHeader({ summary, theme, onToggleTheme }: { summary: Summary; theme: 'dark' | 'light'; onToggleTheme: () => void }) {
   const [solid, setSolid] = useState(false)
   useEffect(() => {
     const on = () => {
@@ -444,14 +456,19 @@ function SiteHeader({ summary }: { summary: Summary }) {
             <span className="byp-header-wordmark-short">TBP</span>
           </span>
         </a>
-        <a className={'byp-head-pill st-' + summary.tone} href="#tables">
-          <span className="byp-dot" style={{ color: 'currentColor' }} />
-          {summary.tone === 'open'   ? <>We&rsquo;re open</>      :
-           summary.tone === 'busy'   ? <>Filling up</>            :
-           summary.tone === 'almost' ? <>Almost full</>           :
-           summary.tone === 'full'   ? <>We&rsquo;re at capacity</> :
-                                       <>We&rsquo;re closed</>}
-        </a>
+        <div className="byp-head-right">
+          <button className="byp-theme-toggle" onClick={onToggleTheme} aria-label="Toggle theme">
+            {theme === 'dark' ? <IcSun width={17} height={17} /> : <IcMoon width={17} height={17} />}
+          </button>
+          <a className={'byp-head-pill st-' + summary.tone} href="#tables">
+            <span className="byp-dot" style={{ color: 'currentColor' }} />
+            {summary.tone === 'open'   ? <>We&rsquo;re open</>      :
+             summary.tone === 'busy'   ? <>Filling up</>            :
+             summary.tone === 'almost' ? <>Almost full</>           :
+             summary.tone === 'full'   ? <>We&rsquo;re at capacity</> :
+                                         <>We&rsquo;re closed</>}
+          </a>
+        </div>
       </div>
     </header>
   )
@@ -946,8 +963,23 @@ export default function TablesPage() {
   const [now, setNow] = useState(new Date())
   const [zoom, setZoom] = useState<string | null>(null)
   const [msgTick, setMsgTick] = useState(() => Math.floor(Math.random() * 100))
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const onZoom = useCallback((src: string) => setZoom(src), [])
   const onClose = useCallback(() => setZoom(null), [])
+
+  /* Persist theme preference per user via localStorage */
+  useEffect(() => {
+    const saved = localStorage.getItem('byp-theme') as 'dark' | 'light' | null
+    if (saved) setTheme(saved)
+  }, [])
+
+  const toggleTheme = useCallback(() => {
+    setTheme(t => {
+      const next = t === 'dark' ? 'light' : 'dark'
+      localStorage.setItem('byp-theme', next)
+      return next
+    })
+  }, [])
 
   /* Supabase realtime */
   useEffect(() => {
@@ -1010,8 +1042,8 @@ export default function TablesPage() {
   }, [now, summary.open, summary.free, msgTick])
 
   return (
-    <div className="byp-page">
-      <SiteHeader summary={summary} />
+    <div className={'byp-page' + (theme === 'light' ? ' byp-light' : '')}>
+      <SiteHeader summary={summary} theme={theme} onToggleTheme={toggleTheme} />
       <Hero summary={summary} currentMsg={currentMsg} totalTables={rawTables.length} preOpen={preOpen} />
 
       {/* <TablesSection tables={tables} /> */}

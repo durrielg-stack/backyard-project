@@ -963,6 +963,112 @@ html.byp-hero-past .byp-hero-logo {
 }
 
 /* ============================
+   THEME TOGGLE BUTTON
+   ============================ */
+.byp-head-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.byp-theme-toggle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 300ms ease, transform 300ms ease, border-color 150ms, color 150ms;
+  flex-shrink: 0;
+}
+.byp-header.is-solid .byp-theme-toggle {
+  opacity: 1;
+  transform: translateY(0);
+}
+.byp-theme-toggle:hover {
+  border-color: var(--copper);
+  color: var(--copper);
+}
+
+/* ============================
+   LIGHT MODE
+   ============================ */
+.byp-page.byp-light {
+  --bg:      #F4EEE3;
+  --panel:   #FFFFFF;
+  --panel-2: #FBF6EC;
+  --line:    rgba(44,36,25,.12);
+  --line-2:  rgba(44,36,25,.07);
+  --text:    #2C2419;
+  --dim:     #7A6E60;
+  --faint:   #A39585;
+  --copper:  #A8631E;
+  --av:      #2E8B59;
+  --oc:      #C0463A;
+  --rs:      #3C6FA6;
+  --cl:      #9A7415;
+}
+
+/* header solid background */
+.byp-page.byp-light .byp-header.is-solid {
+  background: rgba(244,238,227,.88);
+}
+
+/* card shadows — softer on light */
+.byp-page.byp-light .byp-sum-card,
+.byp-page.byp-light .byp-busy-card,
+.byp-page.byp-light .byp-hours-card {
+  box-shadow: 0 4px 20px rgba(44,36,25,.10);
+}
+
+/* hero glow — subtler on light */
+.byp-page.byp-light .byp-hero-glow {
+  background: radial-gradient(ellipse 80% 60% at 70% 40%, rgba(168,99,30,.08) 0%, transparent 65%);
+}
+
+/* status pill borders + backgrounds */
+.byp-page.byp-light .byp-head-pill.st-open   { border-color: rgba(46,139,89,.35);  background: rgba(46,139,89,.10); }
+.byp-page.byp-light .byp-head-pill.st-busy   { border-color: rgba(168,99,30,.35);  background: rgba(168,99,30,.10); }
+.byp-page.byp-light .byp-head-pill.st-almost { border-color: rgba(154,116,21,.35); background: rgba(154,116,21,.10); }
+.byp-page.byp-light .byp-head-pill.st-full   { border-color: rgba(192,70,58,.35);  background: rgba(192,70,58,.10); }
+.byp-page.byp-light .byp-head-pill.st-closed { border-color: rgba(192,70,58,.35);  background: rgba(192,70,58,.10); }
+
+/* hero open/closed pill */
+.byp-page.byp-light .byp-op-pill.is-open   { border-color: rgba(46,139,89,.35);  background: rgba(46,139,89,.10); }
+.byp-page.byp-light .byp-op-pill.is-closed { border-color: rgba(192,70,58,.35);  background: rgba(192,70,58,.10); }
+
+/* hours today badge */
+.byp-page.byp-light .byp-hd-day em {
+  background: rgba(168,99,30,.12);
+  border-color: rgba(168,99,30,.25);
+}
+
+/* vibe chart current bar glow */
+.byp-page.byp-light .byp-busy-col.is-now .byp-busy-bar {
+  box-shadow: 0 0 10px rgba(168,99,30,.3);
+}
+
+/* menu image caption */
+.byp-page.byp-light .byp-menu-page figcaption {
+  background: rgba(251,246,236,.92);
+  border-color: rgba(44,36,25,.12);
+}
+
+/* map + mobile CTA overlays */
+.byp-page.byp-light .byp-map-cta {
+  background: rgba(251,246,236,.92);
+  border-color: rgba(44,36,25,.12);
+}
+.byp-page.byp-light .byp-mobile-cta {
+  background: rgba(244,238,227,.92);
+}
+
+/* ============================
    REDUCED MOTION
    ============================ */
 @media (prefers-reduced-motion: reduce) {
