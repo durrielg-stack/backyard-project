@@ -8,16 +8,17 @@ import type { CartLine } from '@/lib/types'
 const VOID_REASONS = ['Wrong item', 'Changed mind', 'Unavailable', 'Duplicate'] as const
 
 interface OrderLineProps {
-  line:        CartLine
-  index:       number
-  selected:    boolean
-  onSelect:    () => void
-  onUpdateQty: (lineId: string, delta: number) => void
-  onVoid:      (lineId: string, reason: string) => void
-  onSetNote:   (lineId: string, note: string) => void
-  onBill:      (lineId: string) => void
-  bulkMode?:   boolean
-  bulkChecked?: boolean
+  line:           CartLine
+  index:          number
+  selected:       boolean
+  onSelect:       () => void
+  onUpdateQty:    (lineId: string, delta: number) => void
+  onVoid:         (lineId: string, reason: string) => void
+  onSetNote:      (lineId: string, note: string) => void
+  onBill:         (lineId: string) => void
+  onSetOrderType: (lineId: string, type: 'dine_in' | 'takeout') => void
+  bulkMode?:      boolean
+  bulkChecked?:   boolean
 }
 
 function TrashIcon() {
@@ -37,7 +38,7 @@ function NoteIcon() {
 
 export default function OrderLine({
   line, index, selected,
-  onSelect, onUpdateQty, onVoid, onSetNote, onBill,
+  onSelect, onUpdateQty, onVoid, onSetNote, onBill, onSetOrderType,
   bulkMode = false, bulkChecked = false,
 }: OrderLineProps) {
   const { T } = useTheme()
@@ -94,13 +95,34 @@ export default function OrderLine({
 
         {/* Name + note */}
         <div>
-          <div style={{ fontSize: 14, fontWeight: 500, color: T.text, marginBottom: 4 }}>
-            {line.itemName}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 14, fontWeight: 500, color: T.text }}>
+              {line.itemName}
+            </span>
             {line.unitPrice > 0 && (
-              <span style={{ marginLeft: 8, fontSize: 12, color: T.textMute, fontFamily: T.mono }}>
+              <span style={{ fontSize: 12, color: T.textMute, fontFamily: T.mono }}>
                 ₱{line.unitPrice.toFixed(0)}
               </span>
             )}
+            {/* Dine-in / Takeout toggle pill */}
+            <button
+              onClick={e => {
+                e.stopPropagation()
+                onSetOrderType(line.lineId, line.orderType === 'dine_in' ? 'takeout' : 'dine_in')
+              }}
+              title={line.orderType === 'takeout' ? 'Switch to Dine-In' : 'Switch to Takeout'}
+              style={{
+                padding: '1px 7px', fontSize: 10, fontWeight: 700,
+                letterSpacing: '0.07em', textTransform: 'uppercase',
+                border: `1px solid ${line.orderType === 'takeout' ? T.info + '88' : T.line2}`,
+                background: line.orderType === 'takeout' ? T.info + '20' : 'transparent',
+                color: line.orderType === 'takeout' ? T.info : T.textMute,
+                borderRadius: 3, cursor: 'pointer', flexShrink: 0,
+                transition: 'all 0.12s ease',
+              }}
+            >
+              {line.orderType === 'takeout' ? 'TO' : 'DI'}
+            </button>
           </div>
 
           {/* Note pill */}

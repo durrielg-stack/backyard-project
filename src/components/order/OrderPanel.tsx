@@ -27,6 +27,7 @@ interface OrderPanelProps {
   onUpdateQty:        (lineId: string, delta: number) => Promise<void>
   onVoid:             (lineId: string, reason: string) => Promise<void>
   onSetNote:          (lineId: string, note: string) => Promise<void>
+  onSetOrderType:     (lineId: string, type: 'dine_in' | 'takeout') => Promise<void>
   onBillItem:         (lineId: string) => void
   onBack:             () => void
   onSplit:            () => void
@@ -44,7 +45,7 @@ export default function OrderPanel({
   table, orderId, lines,
   subtotal, tip, setTip, discount, setDiscount, total,
   selectedLine, setSelectedLine, selectedSeat, setSelectedSeat,
-  onUpdateQty, onVoid, onSetNote, onBillItem,
+  onUpdateQty, onVoid, onSetNote, onSetOrderType, onBillItem,
   onBack, onSplit, onCharge,
   bulkMode, bulkSelected, onToggleBulkMode, onToggleBulk, onBulkVoid, onMove, onSetStatus,
 }: OrderPanelProps) {
@@ -339,6 +340,7 @@ export default function OrderPanel({
               onUpdateQty={onUpdateQty}
               onVoid={onVoid}
               onSetNote={onSetNote}
+              onSetOrderType={onSetOrderType}
               onBill={onBillItem}
               bulkMode={bulkMode}
               bulkChecked={bulkSelected.has(line.lineId)}

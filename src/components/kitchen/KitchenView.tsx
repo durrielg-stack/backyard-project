@@ -58,13 +58,25 @@ function ConfirmScreen({
         }}>
           {/* Table + elapsed */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <span style={{
-              fontSize: 14, fontWeight: 700, fontFamily: T.mono, color: T.text,
-              background: T.chip, padding: '5px 14px', borderRadius: T.radius,
-              letterSpacing: '0.04em',
-            }}>
-              {card.tableId}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{
+                fontSize: 14, fontWeight: 700, fontFamily: T.mono, color: T.text,
+                background: T.chip, padding: '5px 14px', borderRadius: T.radius,
+                letterSpacing: '0.04em',
+              }}>
+                {card.tableId}
+              </span>
+              {card.orderType === 'takeout' && (
+                <span style={{
+                  fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
+                  textTransform: 'uppercase', color: T.info,
+                  background: `${T.info}20`, border: `1px solid ${T.info}55`,
+                  padding: '2px 7px', borderRadius: 3,
+                }}>
+                  Takeout
+                </span>
+              )}
+            </div>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontFamily: T.mono, fontSize: 26, fontWeight: 700, color, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
                 {fmtElapsed(card.elapsedSec)}
@@ -232,12 +244,16 @@ export default function KitchenView({ session, onSignOut }: { session: Session; 
               const isUrgent = card.status === 'late' || card.status === 'aging'
               const badge    = card.status === 'late' ? 'LATE' : card.status === 'aging' ? 'AGING' : 'FIRING'
 
+              const isTakeout = card.orderType === 'takeout'
+              const cardBg     = isTakeout ? `${T.info}12` : T.surface
+              const cardBorder = isUrgent ? color : isTakeout ? T.info : T.line
+
               return (
                 <div
                   key={card.cardKey}
                   style={{
-                    background: T.surface,
-                    border: `2px solid ${isUrgent ? color : T.line}`,
+                    background: cardBg,
+                    border: `2px solid ${cardBorder}`,
                     borderRadius: 10,
                     padding: '16px 16px 14px',
                     ...(isUrgent ? { animation: 'bp-attn 1.4s ease-in-out infinite' } : {}),
@@ -245,12 +261,24 @@ export default function KitchenView({ session, onSignOut }: { session: Session; 
                 >
                   {/* Table + elapsed */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                    <span style={{
-                      fontSize: 14, fontWeight: 700, fontFamily: T.mono, color: T.text,
-                      background: T.chip, padding: '4px 12px', borderRadius: T.radius,
-                    }}>
-                      {card.tableId}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{
+                        fontSize: 14, fontWeight: 700, fontFamily: T.mono, color: T.text,
+                        background: T.chip, padding: '4px 12px', borderRadius: T.radius,
+                      }}>
+                        {card.tableId}
+                      </span>
+                      {isTakeout && (
+                        <span style={{
+                          fontSize: 10, fontWeight: 700, letterSpacing: '0.1em',
+                          textTransform: 'uppercase', color: T.info,
+                          background: `${T.info}20`, border: `1px solid ${T.info}55`,
+                          padding: '2px 7px', borderRadius: 3,
+                        }}>
+                          Takeout
+                        </span>
+                      )}
+                    </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color }}>
                         {badge}

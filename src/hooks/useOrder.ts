@@ -5,19 +5,20 @@ import { getClient } from '@/lib/supabase'
 import type { CartLine, MenuItem, PayMethod } from '@/lib/types'
 
 interface UseOrderReturn {
-  orderId:     number | null
-  lines:       CartLine[]
-  loading:     boolean
-  error:       string | null
-  clearError:  () => void
-  addItem:     (item: MenuItem, qty?: number, mods?: string[], seat?: number) => Promise<void>
-  updateQty:   (lineId: string, delta: number) => Promise<void>
-  removeItem:  (lineId: string) => Promise<void>
-  voidItem:    (lineId: string, reason: string) => Promise<void>
-  setNote:     (lineId: string, note: string) => Promise<void>
-  closeOrder:  (method: PayMethod, tendered: number, total: number, tip: number, discount?: number) => Promise<boolean>
-  payPartial:  (lineIds: string[], method: PayMethod, amount: number, tendered: number, autoClose?: boolean) => Promise<'partial' | 'closed' | 'error'>
-  moveItems:   (lineIds: string[], targetTableId: string) => Promise<boolean>
+  orderId:      number | null
+  lines:        CartLine[]
+  loading:      boolean
+  error:        string | null
+  clearError:   () => void
+  addItem:      (item: MenuItem, qty?: number, mods?: string[], seat?: number, orderType?: 'dine_in' | 'takeout') => Promise<void>
+  updateQty:    (lineId: string, delta: number) => Promise<void>
+  removeItem:   (lineId: string) => Promise<void>
+  voidItem:     (lineId: string, reason: string) => Promise<void>
+  setNote:      (lineId: string, note: string) => Promise<void>
+  setOrderType: (lineId: string, orderType: 'dine_in' | 'takeout') => Promise<void>
+  closeOrder:   (method: PayMethod, tendered: number, total: number, tip: number, discount?: number) => Promise<boolean>
+  payPartial:   (lineIds: string[], method: PayMethod, amount: number, tendered: number, autoClose?: boolean) => Promise<'partial' | 'closed' | 'error'>
+  moveItems:    (lineIds: string[], targetTableId: string) => Promise<boolean>
 }
 
 export function useOrder(tableId: string, staff?: string): UseOrderReturn {
@@ -58,7 +59,7 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
 
       const { data: items, error: iErr } = await sb
         .from('order_items')
-        .select('id, menu_item_id, qty, unit_price, modifiers, notes, status, seat, menu_items(id, name, category)')
+        .select('id, menu_item_id, qty, unit_price, modifiers, notes, status, seat, order_type, menu_items(id, name, category)')
         .eq('order_id', order.id)
         .neq('status', 'voided')
         .order('id')
@@ -77,6 +78,7 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
         mods:      row.modifiers ?? [],
         note:      row.notes ?? '',
         seat:      row.seat ?? 0,
+        orderType: (row.order_type ?? 'dine_in') as 'dine_in' | 'takeout',
       }))
 
       if (!cancelled) { setLines(loaded); setLoading(false) }
@@ -114,15 +116,17 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
     qty = 1,
     mods: string[] = [],
     seat = 0,
+    orderType: 'dine_in' | 'takeout' = 'dine_in',
   ) => {
     const sb  = getClient()
     const oid = await ensureOrder()
     if (!oid) return
 
-    // Stack: same item + same mods + same seat (pending lines only)
+    // Stack: same item + same mods + same seat + same orderType
     const match = lines.find(l =>
-      l.itemId === item.id &&
-      l.seat   === seat &&
+      l.itemId    === item.id &&
+      l.seat      === seat &&
+      l.orderType === orderType &&
       JSON.stringify(l.mods) === JSON.stringify(mods)
     )
 
@@ -133,11 +137,10 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
       setLines(prev => prev.map(l => l.lineId === match.lineId ? { ...l, qty: newQty } : l))
       await sb.rpc('deduct_inventory', { p_menu_item_id: item.id, p_qty: qty })
     } else {
-      // Optimistic: add immediately with a temp lineId, swap dbId on confirm
       const tempLineId = 'L' + (lineCount.current++)
       const optimistic: CartLine = {
         lineId: tempLineId, itemId: item.id, itemName: item.name,
-        category: item.category, unitPrice: item.price, qty, mods, note: '', seat,
+        category: item.category, unitPrice: item.price, qty, mods, note: '', seat, orderType,
       }
       setLines(prev => [...prev, optimistic])
 
@@ -150,6 +153,7 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
           unit_price:   item.price,
           modifiers:    mods,
           status:       'pending',
+          order_type:   orderType,
           seat:         seat || null,
           fired_at:     new Date().toISOString(),
         })
@@ -225,6 +229,19 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
       if (error) { setError(error.message); return }
     }
     setLines(prev => prev.map(l => l.lineId === lineId ? { ...l, note } : l))
+  }, [lines])
+
+  // ── Set order type on a line ─────────────────────────────────────────────
+  const setOrderType = useCallback(async (lineId: string, orderType: 'dine_in' | 'takeout') => {
+    const sb   = getClient()
+    const line = lines.find(l => l.lineId === lineId)
+    if (!line) return
+
+    if (line.dbId) {
+      const { error } = await sb.from('order_items').update({ order_type: orderType }).eq('id', line.dbId)
+      if (error) { setError(error.message); return }
+    }
+    setLines(prev => prev.map(l => l.lineId === lineId ? { ...l, orderType } : l))
   }, [lines])
 
   // ── Close order: insert payment, close order, free table ────────────────
@@ -366,6 +383,6 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
     return true
   }, [lines])
 
-  return { orderId, lines, loading, error, clearError: () => setError(null), addItem, updateQty, removeItem, voidItem, setNote, closeOrder, payPartial, moveItems }
+  return { orderId, lines, loading, error, clearError: () => setError(null), addItem, updateQty, removeItem, voidItem, setNote, setOrderType, closeOrder, payPartial, moveItems }
 
 }

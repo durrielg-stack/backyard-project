@@ -63,6 +63,7 @@ export interface OrderItem {
   modifiers: string[]
   notes: string | null
   status: ItemStatus
+  order_type: 'dine_in' | 'takeout'
   payment_id: number | null
   seat: number | null
   fired_at: string | null
@@ -93,6 +94,7 @@ export interface CartLine {
   mods: string[]
   note: string
   seat: number            // 0 = shared, 1+ = per-seat
+  orderType: 'dine_in' | 'takeout'  // per-item dine-in vs takeout flag
   dbId?: number           // order_items.id once written
 }
 
@@ -109,6 +111,7 @@ export interface KdsTicket {
   qty: number             // sum of all merged item qtys
   elapsedSec: number      // max elapsed across merged items (oldest)
   status: 'firing' | 'aging' | 'late'
+  orderType: 'dine_in' | 'takeout'  // same item with different types = separate tickets
 }
 
 // Table with runtime-derived status and totals
@@ -164,9 +167,9 @@ export interface Database {
         Relationships: []
       }
       order_items: {
-        Row: { id: number; order_id: number; menu_item_id: string; qty: number; unit_price: number; modifiers: string[]; notes: string | null; status: ItemStatus; payment_id: number | null; seat: number | null; fired_at: string | null; completed_at: string | null; voided_by: string | null; void_reason: string | null }
-        Insert: { order_id: number; menu_item_id: string; qty: number; unit_price: number; modifiers?: string[]; notes?: string | null; status?: ItemStatus; payment_id?: number | null; seat?: number | null; fired_at?: string | null; completed_at?: string | null; voided_by?: string | null; void_reason?: string | null }
-        Update: { order_id?: number; menu_item_id?: string; qty?: number; unit_price?: number; modifiers?: string[]; notes?: string | null; status?: ItemStatus; payment_id?: number | null; seat?: number | null; fired_at?: string | null; completed_at?: string | null; voided_by?: string | null; void_reason?: string | null }
+        Row: { id: number; order_id: number; menu_item_id: string; qty: number; unit_price: number; modifiers: string[]; notes: string | null; status: ItemStatus; order_type: 'dine_in' | 'takeout'; payment_id: number | null; seat: number | null; fired_at: string | null; completed_at: string | null; voided_by: string | null; void_reason: string | null }
+        Insert: { order_id: number; menu_item_id: string; qty: number; unit_price: number; modifiers?: string[]; notes?: string | null; status?: ItemStatus; order_type?: 'dine_in' | 'takeout'; payment_id?: number | null; seat?: number | null; fired_at?: string | null; completed_at?: string | null; voided_by?: string | null; void_reason?: string | null }
+        Update: { order_id?: number; menu_item_id?: string; qty?: number; unit_price?: number; modifiers?: string[]; notes?: string | null; status?: ItemStatus; order_type?: 'dine_in' | 'takeout'; payment_id?: number | null; seat?: number | null; fired_at?: string | null; completed_at?: string | null; voided_by?: string | null; void_reason?: string | null }
         Relationships: []
       }
       inventory: {

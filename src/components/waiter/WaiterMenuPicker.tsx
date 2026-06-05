@@ -24,7 +24,7 @@ interface Props {
   onSent: () => void
 }
 
-interface PendingItem { item: MenuItem; qty: number }
+interface PendingItem { item: MenuItem; qty: number; orderType: 'dine_in' | 'takeout' }
 
 function fmtPeso(n: number) {
   return '₱' + n.toLocaleString('en-PH', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
@@ -77,16 +77,26 @@ export default function WaiterMenuPicker({ tableId, waiterId, waiterName, onBack
       if (newQty <= 0) {
         next.delete(item.id)
       } else {
-        next.set(item.id, { item, qty: newQty })
+        next.set(item.id, { item, qty: newQty, orderType: cur?.orderType ?? 'dine_in' })
       }
+      return next
+    })
+  }
+
+  function toggleOrderType(itemId: string) {
+    setPending(prev => {
+      const next = new Map(prev)
+      const cur  = next.get(itemId)
+      if (!cur) return prev
+      next.set(itemId, { ...cur, orderType: cur.orderType === 'dine_in' ? 'takeout' : 'dine_in' })
       return next
     })
   }
 
   async function handleConfirm() {
     setSending(true)
-    for (const { item, qty } of pendingList) {
-      await addItem(item, qty)
+    for (const { item, qty, orderType } of pendingList) {
+      await addItem(item, qty, [], 0, orderType)
     }
     setSending(false)
     setSent(true)
@@ -322,14 +332,29 @@ export default function WaiterMenuPicker({ tableId, waiterId, waiterName, onBack
               Send this order to {tableId}?
             </div>
 
-            {pendingList.map(({ item, qty }) => (
+            {pendingList.map(({ item, qty, orderType }) => (
               <div key={item.id} style={{
-                display: 'flex', justifyContent: 'space-between',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 padding: '8px 0', borderBottom: `1px solid ${T.line}`,
-                fontSize: 14, color: T.textDim,
+                fontSize: 14, color: T.textDim, gap: 8,
               }}>
-                <span style={{ color: T.text }}>{item.name}</span>
-                <span>×{qty} · {fmtPeso(item.price * qty)}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                  <span style={{ color: T.text, flex: 1, minWidth: 0 }}>{item.name}</span>
+                  <button
+                    onClick={() => toggleOrderType(item.id)}
+                    style={{
+                      padding: '2px 8px', fontSize: 10, fontWeight: 700,
+                      letterSpacing: '0.07em', textTransform: 'uppercase',
+                      border: `1px solid ${orderType === 'takeout' ? T.info + '88' : T.line2}`,
+                      background: orderType === 'takeout' ? T.info + '20' : 'transparent',
+                      color: orderType === 'takeout' ? T.info : T.textMute,
+                      borderRadius: 3, cursor: 'pointer', flexShrink: 0,
+                    }}
+                  >
+                    {orderType === 'takeout' ? 'TO' : 'DI'}
+                  </button>
+                </div>
+                <span style={{ flexShrink: 0 }}>×{qty} · {fmtPeso(item.price * qty)}</span>
               </div>
             ))}
 

@@ -39,7 +39,7 @@ export default function OrderView({ tableId, table, tables, staff, onBack, onCar
   const { T } = useTheme()
   const {
     orderId, lines, loading, error, clearError,
-    addItem, updateQty, voidItem, setNote, closeOrder, payPartial, moveItems,
+    addItem, updateQty, voidItem, setNote, setOrderType, closeOrder, payPartial, moveItems,
   } = useOrder(tableId, staff)
 
   const { byCategory, byId: menuById } = useMenuItems()
@@ -224,6 +224,7 @@ export default function OrderView({ tableId, table, tables, staff, onBack, onCar
             onUpdateQty={updateQty}
             onVoid={voidItem}
             onSetNote={setNote}
+            onSetOrderType={setOrderType}
             onBillItem={handleBillItem}
             onBack={onBack}
             onSplit={handleSplit}

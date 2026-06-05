@@ -16,14 +16,17 @@ function KdsTicketRow({ ticket, onBump }: {
   onBump: (itemIds: number[]) => void
 }) {
   const { T } = useTheme()
-  const color = ticket.status === 'late' ? T.bad : ticket.status === 'aging' ? T.warn : T.ok
-  const badge = ticket.status === 'late' ? 'LATE' : ticket.status === 'aging' ? 'AGING' : 'FIRING'
+  const color      = ticket.status === 'late' ? T.bad : ticket.status === 'aging' ? T.warn : T.ok
+  const badge      = ticket.status === 'late' ? 'LATE' : ticket.status === 'aging' ? 'AGING' : 'FIRING'
+  const isTakeout  = ticket.orderType === 'takeout'
 
   return (
     <div style={{
       display: 'grid', gridTemplateColumns: '64px 1fr auto',
       padding: '10px 16px', borderBottom: `1px solid ${T.line}`,
       alignItems: 'center', gap: 12,
+      background: isTakeout ? `${T.info}10` : 'transparent',
+      borderLeft: isTakeout ? `3px solid ${T.info}` : '3px solid transparent',
     }}>
       {/* Elapsed time */}
       <div style={{ textAlign: 'center' }}>
@@ -50,6 +53,13 @@ function KdsTicketRow({ ticket, onBump }: {
           }}>
             {ticket.station === 'kitchen' ? 'KIT' : 'BAR'}
           </span>
+          {isTakeout && (
+            <span style={{
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+              color: T.info, background: `${T.info}20`, border: `1px solid ${T.info}44`,
+              padding: '1px 6px', borderRadius: 2,
+            }}>TO</span>
+          )}
           <span style={{ fontSize: 12, color: T.textDim }}>· {ticket.tableId}</span>
           <span style={{ fontSize: 12, color: T.textMute }}>· {ticket.server}</span>
         </div>

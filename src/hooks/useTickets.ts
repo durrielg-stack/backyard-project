@@ -38,6 +38,7 @@ interface RawItem {
   itemName:    string
   qty:         number
   category:    string
+  orderType:   'dine_in' | 'takeout'
   server?:     string
 }
 
@@ -66,7 +67,7 @@ export function useTickets(tick: number): {
     const { data, error } = await sb
       .from('order_items')
       .select(`
-        id, order_id, qty, status, fired_at, created_at,
+        id, order_id, qty, status, fired_at, created_at, order_type,
         orders(id, table_id, opened_at, status, opened_by),
         menu_items(name, category)
       `)
@@ -87,15 +88,16 @@ export function useTickets(tick: number): {
       if (NO_PREP_ITEMS.has(mi.name as string)) continue
 
       items.push({
-        id:         row.id as number,
-        orderId:    row.order_id as number,
-        tableId:    order.table_id as string,
+        id:          row.id as number,
+        orderId:     row.order_id as number,
+        tableId:     order.table_id as string,
         createdAtMs: new Date(row.created_at as string).getTime(),
         firedAtMs:   row.fired_at ? new Date(row.fired_at as string).getTime() : null,
-        itemName:   mi.name as string,
-        qty:        (row.qty as number) ?? 1,
-        category:   mi.category as string,
-        server:     (order.opened_by as string | null) ?? undefined,
+        itemName:    mi.name as string,
+        qty:         (row.qty as number) ?? 1,
+        category:    mi.category as string,
+        orderType:   (row.order_type ?? 'dine_in') as 'dine_in' | 'takeout',
+        server:      (order.opened_by as string | null) ?? undefined,
       })
     }
 
@@ -145,7 +147,8 @@ export function useTickets(tick: number): {
       const status: KdsTicket['status'] =
         elapsedSec >= lateSec ? 'late' : elapsedSec >= agingSec ? 'aging' : 'firing'
 
-      const key = `${item.orderId}\0${item.itemName}`
+      // Include orderType in key: same item with different types = separate tickets
+      const key = `${item.orderId}\0${item.itemName}\0${item.orderType}`
       const existing = mergeMap.get(key)
 
       if (existing) {
@@ -168,6 +171,7 @@ export function useTickets(tick: number): {
           qty:        item.qty,
           elapsedSec,
           status,
+          orderType:  item.orderType,
         })
       }
     }
