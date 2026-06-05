@@ -937,16 +937,14 @@ function MobileCTA({ summary }: { summary: Summary }) {
     // the bar stays above the actual bottom. We offset it by the gap.
     const update = () => {
       if (!ref.current) return
-      const gap = Math.max(0, window.innerHeight - vv.offsetTop - vv.height)
+      // Only resize fires on navbar show/hide; avoid scroll to prevent
+      // offsetTop edge cases during normal page scroll causing overscroll.
+      const gap = Math.max(0, window.innerHeight - vv.height)
       ref.current.style.bottom = `${gap}px`
     }
     vv.addEventListener('resize', update)
-    vv.addEventListener('scroll', update)
     update()
-    return () => {
-      vv.removeEventListener('resize', update)
-      vv.removeEventListener('scroll', update)
-    }
+    return () => vv.removeEventListener('resize', update)
   }, [])
   return (
     <div ref={ref} className="byp-mobile-cta">
