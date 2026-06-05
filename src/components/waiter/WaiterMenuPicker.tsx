@@ -343,15 +343,16 @@ export default function WaiterMenuPicker({ tableId, waiterId, waiterName, onBack
                   <button
                     onClick={() => toggleOrderType(item.id)}
                     style={{
-                      padding: '2px 8px', fontSize: 10, fontWeight: 700,
-                      letterSpacing: '0.07em', textTransform: 'uppercase',
+                      padding: '6px 14px', fontSize: 13, fontWeight: 700,
+                      letterSpacing: '0.04em', textTransform: 'uppercase',
                       border: `1px solid ${orderType === 'takeout' ? T.info + '88' : T.line2}`,
                       background: orderType === 'takeout' ? T.info + '20' : 'transparent',
                       color: orderType === 'takeout' ? T.info : T.textMute,
-                      borderRadius: 3, cursor: 'pointer', flexShrink: 0,
+                      borderRadius: 4, cursor: 'pointer', flexShrink: 0,
+                      minHeight: 44,
                     }}
                   >
-                    {orderType === 'takeout' ? 'TO' : 'DI'}
+                    {orderType === 'takeout' ? 'Takeout' : 'Dine-In'}
                   </button>
                 </div>
                 <span style={{ flexShrink: 0 }}>×{qty} · {fmtPeso(item.price * qty)}</span>

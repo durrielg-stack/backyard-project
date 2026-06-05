@@ -112,16 +112,16 @@ export default function OrderLine({
               }}
               title={line.orderType === 'takeout' ? 'Switch to Dine-In' : 'Switch to Takeout'}
               style={{
-                padding: '1px 7px', fontSize: 10, fontWeight: 700,
-                letterSpacing: '0.07em', textTransform: 'uppercase',
+                padding: '4px 12px', fontSize: 12, fontWeight: 700,
+                letterSpacing: '0.05em', textTransform: 'uppercase',
                 border: `1px solid ${line.orderType === 'takeout' ? T.info + '88' : T.line2}`,
                 background: line.orderType === 'takeout' ? T.info + '20' : 'transparent',
                 color: line.orderType === 'takeout' ? T.info : T.textMute,
-                borderRadius: 3, cursor: 'pointer', flexShrink: 0,
+                borderRadius: 4, cursor: 'pointer', flexShrink: 0,
                 transition: 'all 0.12s ease',
               }}
             >
-              {line.orderType === 'takeout' ? 'TO' : 'DI'}
+              {line.orderType === 'takeout' ? 'Takeout' : 'Dine-In'}
             </button>
           </div>
 
