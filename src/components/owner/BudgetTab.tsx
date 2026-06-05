@@ -86,10 +86,13 @@ function buildLedger(
     // COGS incoming per category
     const cogsBycat = allIncoming[date] ?? emptyBycat()
 
-    // OPEX daily allocation for this date's month
+    // OPEX daily allocation — only allocate if the venue had any activity
+    // (sales or expenses). No activity = venue was closed that day.
     const monthKey = date.slice(0, 7) // 'YYYY-MM'
     const dayCfg = opexConfigs[monthKey] ?? null
-    const dailyOpex = computeDailyOpex(opexItems, dayCfg)
+    const hasActivity = Object.values(allIncoming[date] ?? {}).some(v => v > 0)
+                     || Object.values(allExpenses[date] ?? {}).some(v => v > 0)
+    const dailyOpex = hasActivity ? computeDailyOpex(opexItems, dayCfg) : 0
 
     // Merge: product categories get COGS, opex category gets daily allocation
     const incoming: Record<string, number> = { ...cogsBycat, opex: Math.ceil(dailyOpex) }
@@ -245,11 +248,6 @@ export default function BudgetTab() {
     const { start, end } = dayBounds(d)
     const seedStart = seed?.date ?? '1970-01-01'
 
-    // OPEX daily allocation for selected date
-    const monthKey = d.slice(0, 7)
-    const dayCfg = opexConfigs[monthKey] ?? null
-    const dayOpex = computeDailyOpex(opexItems, dayCfg)
-
     // Today's orders
     const { data: dayOrders, error: dOrdErr } = await sb
       .from('orders').select('id').gte('opened_at', start).lte('opened_at', end)
@@ -263,7 +261,6 @@ export default function BudgetTab() {
       if (iErr) console.error('[BudgetTab] day items error', iErr)
       accumulateItems(items ?? [], todayIncoming)
     }
-    todayIncoming.opex = Math.ceil(dayOpex)
 
     // Today's expenses
     const { data: expRows, error: expErr } = await sb
@@ -275,6 +272,13 @@ export default function BudgetTab() {
       if (!cat) continue
       todayExpenses[cat] = (todayExpenses[cat] ?? 0) + r.amount
     }
+
+    // OPEX only if venue had activity (sales or expenses) — no activity = closed day
+    const monthKey = d.slice(0, 7)
+    const dayCfg = opexConfigs[monthKey] ?? null
+    const hasSales = dayIds.length > 0
+    const hasExpenses = (expRows ?? []).length > 0
+    todayIncoming.opex = (hasSales || hasExpenses) ? Math.ceil(computeDailyOpex(opexItems, dayCfg)) : 0
 
     // Cumulative prior days (from seed date onwards)
     const { data: priorOrders, error: pOrdErr } = await sb
