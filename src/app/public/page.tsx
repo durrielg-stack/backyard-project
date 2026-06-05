@@ -434,14 +434,21 @@ function IcMoon(p: React.SVGProps<SVGSVGElement>) {
 function SiteHeader({ summary, theme, onToggleTheme }: { summary: Summary; theme: 'dark' | 'light'; onToggleTheme: () => void }) {
   const [solid, setSolid] = useState(false)
   useEffect(() => {
+    // Hysteresis prevents Chrome Android's brief scrollY dip (when browser
+    // navbar hides) from clearing the solid state mid-scroll.
+    // visualViewport resize catches the navbar hide/show transition itself.
+    let isSolid = false
     const on = () => {
-      const past = window.scrollY > 360
-      setSolid(past)
-      document.documentElement.classList.toggle('byp-hero-past', past)
+      const y = window.scrollY
+      if (!isSolid && y > 360)  { isSolid = true;  setSolid(true);  document.documentElement.classList.add('byp-hero-past') }
+      else if (isSolid && y < 200) { isSolid = false; setSolid(false); document.documentElement.classList.remove('byp-hero-past') }
     }
-    window.addEventListener('scroll', on, { passive: true }); on()
+    window.addEventListener('scroll', on, { passive: true })
+    window.visualViewport?.addEventListener('resize', on)
+    on()
     return () => {
       window.removeEventListener('scroll', on)
+      window.visualViewport?.removeEventListener('resize', on)
       document.documentElement.classList.remove('byp-hero-past')
     }
   }, [])
@@ -921,8 +928,28 @@ function SiteFooter() {
    MOBILE CTA
    ============================================================ */
 function MobileCTA({ summary }: { summary: Summary }) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    // On Chrome Android, position:fixed bottom:0 anchors to the layout
+    // viewport. When the browser navbar hides, the visual viewport grows but
+    // the bar stays above the actual bottom. We offset it by the gap.
+    const update = () => {
+      if (!ref.current) return
+      const gap = Math.max(0, window.innerHeight - vv.offsetTop - vv.height)
+      ref.current.style.bottom = `${gap}px`
+    }
+    vv.addEventListener('resize', update)
+    vv.addEventListener('scroll', update)
+    update()
+    return () => {
+      vv.removeEventListener('resize', update)
+      vv.removeEventListener('scroll', update)
+    }
+  }, [])
   return (
-    <div className="byp-mobile-cta">
+    <div ref={ref} className="byp-mobile-cta">
       <div className={'byp-mcta-status st-' + summary.tone}>
         <span className="byp-dot" style={{ color: 'currentColor' }} />
         {summary.open ? <><b>{summary.free}</b>&nbsp;free</> : 'Closed'}
