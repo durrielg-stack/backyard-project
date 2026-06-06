@@ -68,7 +68,7 @@ export function useTickets(tick: number): {
       .from('order_items')
       .select(`
         id, order_id, qty, status, fired_at, created_at, order_type,
-        orders(id, table_id, opened_at, status, opened_by),
+        orders(id, table_id, opened_at, status, opened_by, users(name)),
         menu_items(name, category)
       `)
       .in('status', ['pending', 'preparing', 'ready'])
@@ -78,8 +78,9 @@ export function useTickets(tick: number): {
 
     const items: RawItem[] = []
     for (const row of data) {
-      const order = Array.isArray(row.orders) ? row.orders[0] : row.orders
-      const mi    = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
+      const order  = Array.isArray(row.orders) ? row.orders[0] : row.orders
+      const mi     = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
+      const opener = Array.isArray(order?.users) ? order.users[0] : order?.users
 
       // Only show tickets for open orders; skip no-prep items
       if (!order || order.status !== 'open') continue
@@ -97,7 +98,7 @@ export function useTickets(tick: number): {
         qty:         (row.qty as number) ?? 1,
         category:    mi.category as string,
         orderType:   (row.order_type ?? 'dine_in') as 'dine_in' | 'takeout',
-        server:      (order.opened_by as string | null) ?? undefined,
+        server:      (opener?.name as string | null) ?? undefined,
       })
     }
 
