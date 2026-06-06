@@ -79,6 +79,7 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
         note:      row.notes ?? '',
         seat:      row.seat ?? 0,
         orderType: (row.order_type ?? 'dine_in') as 'dine_in' | 'takeout',
+        status:    (row.status ?? 'pending') as CartLine['status'],
       }))
 
       if (!cancelled) { setLines(loaded); setLoading(false) }
@@ -87,6 +88,31 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
     init()
     return () => { cancelled = true }
   }, [tableId])
+
+  // ── Sync CartLine status when KDS bumps items ────────────────────────────
+  // Without this, addItem stacks re-orders onto served rows — those rows never
+  // resurface in KDS because useTickets only shows pending/preparing/ready items.
+  useEffect(() => {
+    if (!orderId) return
+    const sb = getClient()
+    const channel = sb
+      .channel(`order-items-status-${orderId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'order_items', filter: `order_id=eq.${orderId}` },
+        (payload) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const row = payload.new as any
+          setLines(prev => prev.map(l =>
+            l.dbId === (row.id as number)
+              ? { ...l, status: row.status as CartLine['status'], qty: row.qty as number }
+              : l
+          ))
+        }
+      )
+      .subscribe()
+    return () => { sb.removeChannel(channel) }
+  }, [orderId])
 
   // ── Ensure open order exists, return its id ──────────────────────────────
   const ensureOrder = useCallback(async (): Promise<number | null> => {
@@ -122,11 +148,14 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
     const oid = await ensureOrder()
     if (!oid) return
 
-    // Stack: same item + same mods + same seat + same orderType
+    // Stack: same item + same mods + same seat + same orderType + not yet served
+    // Served lines must not be stacked — a re-order of a served item must create
+    // a fresh order_items row so KDS sees it as a new ticket.
     const match = lines.find(l =>
       l.itemId    === item.id &&
       l.seat      === seat &&
       l.orderType === orderType &&
+      l.status    !== 'served' &&
       JSON.stringify(l.mods) === JSON.stringify(mods)
     )
 
@@ -141,6 +170,7 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
       const optimistic: CartLine = {
         lineId: tempLineId, itemId: item.id, itemName: item.name,
         category: item.category, unitPrice: item.price, qty, mods, note: '', seat, orderType,
+        status: 'pending',
       }
       setLines(prev => [...prev, optimistic])
 

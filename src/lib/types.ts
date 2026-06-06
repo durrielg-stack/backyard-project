@@ -95,6 +95,7 @@ export interface CartLine {
   note: string
   seat: number            // 0 = shared, 1+ = per-seat
   orderType: 'dine_in' | 'takeout'  // per-item dine-in vs takeout flag
+  status: ItemStatus      // synced from DB — served lines must not be stacked
   dbId?: number           // order_items.id once written
 }
 
