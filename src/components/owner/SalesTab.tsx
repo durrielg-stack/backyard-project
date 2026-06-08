@@ -44,6 +44,17 @@ interface CategorySummary {
   margin:   number
 }
 
+interface ItemSummary {
+  itemName:    string
+  category:    string
+  totalQty:    number
+  gross:       number
+  cost:        number
+  net:         number
+  margin:      number
+  avgServeMin: number | null
+}
+
 // ── SalesTab ──────────────────────────────────────────────────────────────────
 
 export default function SalesTab() {
@@ -54,6 +65,7 @@ export default function SalesTab() {
   const [lines, setLines] = useState<LineItem[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
+  const [tableView, setTableView] = useState<'lines' | 'summary'>('lines')
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = getClient() as any
@@ -112,6 +124,30 @@ export default function SalesTab() {
   const filteredLines = search.trim()
     ? sortedLines.filter(l => l.itemName.toLowerCase().includes(search.toLowerCase()))
     : sortedLines
+
+  // ── Per-unique-item summary ───────────────────────────────────────────────
+  const itemSummaryMap = new Map<string, ItemSummary>()
+  for (const l of filteredLines) {
+    const key = l.itemName
+    if (!itemSummaryMap.has(key)) {
+      itemSummaryMap.set(key, { itemName: l.itemName, category: l.category, totalQty: 0, gross: 0, cost: 0, net: 0, margin: 0, avgServeMin: null })
+    }
+    const s = itemSummaryMap.get(key)!
+    s.totalQty += l.qty
+    s.gross    += l.gross
+    s.cost     += l.cost
+    s.net      += l.net
+  }
+  const rawItemSummaries: ItemSummary[] = Array.from(itemSummaryMap.values()).map(s => {
+    // average serve time only over lines that have it
+    const serveLines = filteredLines.filter(l => l.itemName === s.itemName && l.serveMin != null)
+    const avgServeMin = serveLines.length > 0
+      ? Math.round(serveLines.reduce((acc, l) => acc + l.serveMin!, 0) / serveLines.length)
+      : null
+    return { ...s, margin: s.gross > 0 ? (s.net / s.gross) * 100 : 0, avgServeMin }
+  })
+
+  const { sorted: sortedSummary, toggle: summaryToggle, icon: summaryIcon } = useSortable<ItemSummary>(rawItemSummaries, 'gross', 'desc')
 
   // ── Category summary ──────────────────────────────────────────────────────
   const SUMMARY_CATS = ['Food', 'Beer', 'Cocktails/Hard', 'Non-Alcohol', 'Cigarettes']
@@ -175,7 +211,7 @@ export default function SalesTab() {
     ...extra,
   })
 
-  const sortBtn = (k: keyof LineItem, align: 'left' | 'right' = 'left'): React.CSSProperties => ({
+  const sortBtn = (_k: string, align: 'left' | 'right' = 'left'): React.CSSProperties => ({
     background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
     fontFamily: 'inherit', fontSize: 10, fontWeight: 600, letterSpacing: '0.1em',
     textTransform: 'uppercase', color: T.textMute,
@@ -277,6 +313,30 @@ export default function SalesTab() {
 
         {/* ── Line items ───────────────────────────────────────────────────── */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          {/* Toggle header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', height: 34, borderBottom: `1px solid ${T.line}`, flexShrink: 0, background: T.surface2 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.textMute }}>
+              {tableView === 'lines'
+                ? `${filteredLines.length} line${filteredLines.length !== 1 ? 's' : ''}`
+                : `${sortedSummary.length} unique item${sortedSummary.length !== 1 ? 's' : ''}`}
+            </span>
+            <div style={{ display: 'flex', gap: 2 }}>
+              {(['lines', 'summary'] as const).map(v => (
+                <button
+                  key={v}
+                  onClick={() => setTableView(v)}
+                  style={{
+                    padding: '2px 8px', fontSize: 9, fontWeight: 700,
+                    letterSpacing: '0.08em', textTransform: 'uppercase',
+                    borderRadius: 99, cursor: 'pointer', fontFamily: 'inherit',
+                    border: `1px solid ${tableView === v ? T.accent : T.line2}`,
+                    background: tableView === v ? `${T.accent}18` : 'transparent',
+                    color: tableView === v ? T.accent : T.textMute,
+                  }}
+                >{v === 'lines' ? 'Per Line' : 'Per Item'}</button>
+              ))}
+            </div>
+          </div>
           {loading ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>
               Loading…
@@ -284,6 +344,76 @@ export default function SalesTab() {
           ) : filteredLines.length === 0 ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>
               {search ? `No items match "${search}"` : 'No sales on this date'}
+            </div>
+          ) : tableView === 'summary' ? (
+            <div className="bp-no-scrollbar" style={{ flex: 1, overflow: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+              <table style={{ borderCollapse: 'collapse', minWidth: 900 }}>
+                <thead>
+                  <tr>
+                    <th style={th('left', { position: 'sticky', top: 0, left: 0, zIndex: 4, minWidth: 140 })}>
+                      <button style={sortBtn('category')} onClick={() => summaryToggle('category')}>
+                        Category<span style={{ fontSize: 8, opacity: 0.7 }}>{summaryIcon('category')}</span>
+                      </button>
+                    </th>
+                    <th style={th('left', { minWidth: 220 })}>
+                      <button style={sortBtn('itemName')} onClick={() => summaryToggle('itemName')}>
+                        Item Name<span style={{ fontSize: 8, opacity: 0.7 }}>{summaryIcon('itemName')}</span>
+                      </button>
+                    </th>
+                    <th style={th('right', { minWidth: 64 })}>
+                      <button style={sortBtn('totalQty', 'right')} onClick={() => summaryToggle('totalQty')}>
+                        Qty<span style={{ fontSize: 8, opacity: 0.7 }}>{summaryIcon('totalQty')}</span>
+                      </button>
+                    </th>
+                    <th style={th('right', { minWidth: 120 })}>
+                      <button style={sortBtn('gross', 'right')} onClick={() => summaryToggle('gross')}>
+                        Gross<span style={{ fontSize: 8, opacity: 0.7 }}>{summaryIcon('gross')}</span>
+                      </button>
+                    </th>
+                    <th style={th('right', { minWidth: 120 })}>
+                      <button style={sortBtn('cost', 'right')} onClick={() => summaryToggle('cost')}>
+                        Cost<span style={{ fontSize: 8, opacity: 0.7 }}>{summaryIcon('cost')}</span>
+                      </button>
+                    </th>
+                    <th style={th('right', { minWidth: 120 })}>
+                      <button style={sortBtn('net', 'right')} onClick={() => summaryToggle('net')}>
+                        Net<span style={{ fontSize: 8, opacity: 0.7 }}>{summaryIcon('net')}</span>
+                      </button>
+                    </th>
+                    <th style={th('right', { minWidth: 110 })}>
+                      <button style={sortBtn('avgServeMin', 'right')} onClick={() => summaryToggle('avgServeMin')}>
+                        Avg Fire→Serve<span style={{ fontSize: 8, opacity: 0.7 }}>{summaryIcon('avgServeMin')}</span>
+                      </button>
+                    </th>
+                    <th style={th('right', { minWidth: 90 })}>
+                      <button style={sortBtn('margin', 'right')} onClick={() => summaryToggle('margin')}>
+                        Margin %<span style={{ fontSize: 8, opacity: 0.7 }}>{summaryIcon('margin')}</span>
+                      </button>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedSummary.map((s, i) => {
+                    const rowBg = i % 2 === 0 ? T.surface : T.bg
+                    return (
+                      <tr key={s.itemName} style={{ background: rowBg }}>
+                        <td style={td('left', { position: 'sticky', left: 0, background: rowBg, zIndex: 1, color: T.textDim })}>{s.category}</td>
+                        <td style={td('left', { fontWeight: 500 })}>{s.itemName}</td>
+                        <td style={td('right', { color: T.textMute })}>{s.totalQty}</td>
+                        <td style={td('right')}>{fmtPeso(s.gross)}</td>
+                        <td style={td('right', { color: T.textMute })}>{fmtPeso(s.cost)}</td>
+                        <td style={td('right', { color: s.net >= 0 ? T.ok : T.bad })}>{fmtPeso(s.net)}</td>
+                        <td style={td('right', { color: s.avgServeMin != null ? T.info : T.textMute })}>
+                          {s.avgServeMin != null ? `${s.avgServeMin}m` : '—'}
+                        </td>
+                        <td style={td('right', { color: s.margin >= 60 ? T.ok : s.margin >= 40 ? T.warn : s.gross > 0 ? T.bad : T.textMute })}>
+                          {s.gross > 0 ? `${s.margin.toFixed(1)}%` : '—'}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
           ) : (
             <div className="bp-no-scrollbar" style={{ flex: 1, overflow: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
