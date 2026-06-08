@@ -175,13 +175,13 @@ export default function ReportsTab() {
       }
     }))
 
-    const { data: closedOrders } = orderIds.length > 0
-      ? await sb.from('orders').select('opened_at, closed_at').eq('status', 'closed').in('id', orderIds).not('closed_at', 'is', null)
+    const { data: servedItems } = orderIds.length > 0
+      ? await sb.from('order_items').select('fired_at, completed_at').eq('status', 'served').in('order_id', orderIds).not('fired_at', 'is', null).not('completed_at', 'is', null)
       : { data: [] }
-    const ct: any[] = closedOrders ?? []
-    if (ct.length > 0) {
-      const totalMin = ct.reduce((s: number, o: any) => s + (new Date(o.closed_at).getTime() - new Date(o.opened_at).getTime()) / 60000, 0)
-      setAvgTurnMin(Math.round(totalMin / ct.length))
+    const si: any[] = servedItems ?? []
+    if (si.length > 0) {
+      const totalMin = si.reduce((s: number, i: any) => s + (new Date(i.completed_at).getTime() - new Date(i.fired_at).getTime()) / 60000, 0)
+      setAvgTurnMin(Math.round(totalMin / si.length))
     } else {
       setAvgTurnMin(null)
     }
@@ -259,7 +259,7 @@ export default function ReportsTab() {
           { label: `Net · ${suffix}`,      value: fmtPeso(net),      sub: gross > 0 ? `${((net/gross)*100).toFixed(1)}% margin` : '—',    color: net >= 0 ? T.ok : T.bad },
           { label: `Expenses · ${suffix}`, value: fmtPeso(expenses), sub: 'logged',                                                        color: T.bad },
           { label: 'Voided Items',         value: String(voidedCount), sub: voidedCount > 0 ? fmtPeso(voidedAmount) : 'none',            color: voidedCount > 0 ? T.bad : T.textMute },
-          { label: 'Avg Turn Time',        value: avgTurnMin != null ? `${avgTurnMin}m` : '—', sub: 'open → close',                color: T.info },
+          { label: 'Avg Turn Time',        value: avgTurnMin != null ? `${avgTurnMin}m` : '—', sub: 'fired → served',                color: T.info },
         ]
         return (
           <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none', flexShrink: 0 }}>

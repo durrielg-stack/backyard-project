@@ -281,17 +281,18 @@ function KpiStrip({ tables, tickets }: { tables: TableWithStatus[]; tickets: Kds
       setTodayRev(gross)
       setTxCount(txN)
 
-      const { data: orders } = await sb
-        .from('orders').select('opened_at, closed_at')
-        .eq('status', 'closed')
-        .gte('opened_at', shiftStart)
-        .lte('opened_at', shiftEnd)
-        .not('closed_at', 'is', null)
-      const os = orders ?? []
-      if (os.length > 0) {
-        const totalMin = os.reduce((s: number, o: any) =>
-          s + (new Date(o.closed_at).getTime() - new Date(o.opened_at).getTime()) / 60000, 0)
-        setAvgTurnMin(Math.round(totalMin / os.length))
+      const { data: servedItems } = await sb
+        .from('order_items').select('fired_at, completed_at')
+        .eq('status', 'served')
+        .gte('fired_at', shiftStart)
+        .lte('fired_at', shiftEnd)
+        .not('fired_at', 'is', null)
+        .not('completed_at', 'is', null)
+      const si = servedItems ?? []
+      if (si.length > 0) {
+        const totalMin = si.reduce((s: number, i: any) =>
+          s + (new Date(i.completed_at).getTime() - new Date(i.fired_at).getTime()) / 60000, 0)
+        setAvgTurnMin(Math.round(totalMin / si.length))
       }
     }
 
@@ -328,7 +329,7 @@ function KpiStrip({ tables, tickets }: { tables: TableWithStatus[]; tickets: Kds
       note: tickets.length > 0 ? `${tickets.filter(t => t.elapsedSec > 360).length} aging` : 'all clear',
       noteColor: tickets.filter(t => t.elapsedSec > 360).length > 0 ? T.warn : T.textDim },
     { label: 'Avg. Turn Time',    value: avgTurnMin != null ? `${avgTurnMin}m` : '—',
-      note: 'closed orders today', noteColor: T.textDim },
+      note: 'fired → served', noteColor: T.textDim },
   ]
 
   const kpiStyle: React.CSSProperties = isMobile
