@@ -47,7 +47,8 @@ export interface ReportsData {
   expenses:        number
   avgOrder:        number
   txCount:         number
-  avgTurnMin:      number | null
+  avgTurnMinBar:     number | null
+  avgTurnMinKitchen: number | null
   bars:            RevenueBar[]
   expenseDayBars:  RevenueBar[]
   transactions:    TransactionRow[]
@@ -63,7 +64,7 @@ type Action =
 
 const EMPTY: ReportsData = {
   revenue: 0, cost: 0, expenses: 0,
-  avgOrder: 0, txCount: 0, avgTurnMin: null,
+  avgOrder: 0, txCount: 0, avgTurnMinBar: null, avgTurnMinKitchen: null,
   bars: [], expenseDayBars: [],
   transactions: [], expenseRows: [],
   expCatBreakdown: [],
@@ -168,9 +169,10 @@ export function useReports({ start, end, mode }: { start: string; end: string; m
 
     const txCount = allOrderIds.length
 
-    // Avg turn time: fired_at → completed_at per item (kitchen receive → served)
+    // Avg turn time split by station: fired_at → completed_at per item
+    const BAR_CATS = new Set(['Beer', 'Cocktails', 'Hard Drinks', 'Palit Bote', 'Non-Alcohol'])
     const { data: servedItems } = await sb
-      .from('order_items').select('fired_at, completed_at')
+      .from('order_items').select('fired_at, completed_at, menu_items(category)')
       .eq('status', 'served')
       .gte('fired_at', start)
       .lte('fired_at', end)
@@ -178,12 +180,18 @@ export function useReports({ start, end, mode }: { start: string; end: string; m
       .not('completed_at', 'is', null)
     const allServed: any[] = servedItems ?? []
 
-    let avgTurnMin: number | null = null
-    if (allServed.length > 0) {
-      const totalMin = allServed.reduce((s: number, i: any) =>
+    const barServed     = allServed.filter(i => BAR_CATS.has(i.menu_items?.category))
+    const kitchenServed = allServed.filter(i => !BAR_CATS.has(i.menu_items?.category))
+
+    const calcAvg = (items: any[]): number | null => {
+      if (items.length === 0) return null
+      const total = items.reduce((s, i) =>
         s + (new Date(i.completed_at).getTime() - new Date(i.fired_at).getTime()) / 60000, 0)
-      avgTurnMin = Math.round(totalMin / allServed.length)
+      return Math.round(total / items.length)
     }
+
+    const avgTurnMinBar     = calcAvg(barServed)
+    const avgTurnMinKitchen = calcAvg(kitchenServed)
 
     // Build bars based on mode
     let bars: RevenueBar[]
@@ -301,7 +309,8 @@ export function useReports({ start, end, mode }: { start: string; end: string; m
         expenses,
         avgOrder:  txCount > 0 ? gross / txCount : 0,
         txCount,
-        avgTurnMin,
+        avgTurnMinBar,
+        avgTurnMinKitchen,
         bars,
         expenseDayBars,
         transactions: rp.map(mapTxRow),

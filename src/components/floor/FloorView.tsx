@@ -253,7 +253,8 @@ function KpiStrip({ tables, tickets }: { tables: TableWithStatus[]; tickets: Kds
   const isMobile = bp === 'mobile'
   const [todayRev,  setTodayRev]  = useState(0)
   const [txCount,   setTxCount]   = useState(0)
-  const [avgTurnMin, setAvgTurnMin] = useState<number | null>(null)
+  const [avgTurnMinBar,     setAvgTurnMinBar]     = useState<number | null>(null)
+  const [avgTurnMinKitchen, setAvgTurnMinKitchen] = useState<number | null>(null)
 
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -281,19 +282,23 @@ function KpiStrip({ tables, tickets }: { tables: TableWithStatus[]; tickets: Kds
       setTodayRev(gross)
       setTxCount(txN)
 
+      const BAR_CATS = new Set(['Beer', 'Cocktails', 'Hard Drinks', 'Palit Bote', 'Non-Alcohol'])
       const { data: servedItems } = await sb
-        .from('order_items').select('fired_at, completed_at')
+        .from('order_items').select('fired_at, completed_at, menu_items(category)')
         .eq('status', 'served')
         .gte('fired_at', shiftStart)
         .lte('fired_at', shiftEnd)
         .not('fired_at', 'is', null)
         .not('completed_at', 'is', null)
-      const si = servedItems ?? []
-      if (si.length > 0) {
-        const totalMin = si.reduce((s: number, i: any) =>
+      const si: any[] = servedItems ?? []
+      const calcAvg = (items: any[]): number | null => {
+        if (items.length === 0) return null
+        const total = items.reduce((s: number, i: any) =>
           s + (new Date(i.completed_at).getTime() - new Date(i.fired_at).getTime()) / 60000, 0)
-        setAvgTurnMin(Math.round(totalMin / si.length))
+        return Math.round(total / items.length)
       }
+      setAvgTurnMinBar(calcAvg(si.filter(i => BAR_CATS.has(i.menu_items?.category))))
+      setAvgTurnMinKitchen(calcAvg(si.filter(i => !BAR_CATS.has(i.menu_items?.category))))
     }
 
     refresh()
@@ -328,13 +333,15 @@ function KpiStrip({ tables, tickets }: { tables: TableWithStatus[]; tickets: Kds
     { label: 'KDS Open',          value: `${tickets.length}`,
       note: tickets.length > 0 ? `${tickets.filter(t => t.elapsedSec > 360).length} aging` : 'all clear',
       noteColor: tickets.filter(t => t.elapsedSec > 360).length > 0 ? T.warn : T.textDim },
-    { label: 'Avg. Turn Time',    value: avgTurnMin != null ? `${avgTurnMin}m` : '—',
+    { label: 'Bar Turn Time',     value: avgTurnMinBar != null ? `${avgTurnMinBar}m` : '—',
+      note: 'fired → served', noteColor: T.textDim },
+    { label: 'Kitchen Turn Time', value: avgTurnMinKitchen != null ? `${avgTurnMinKitchen}m` : '—',
       note: 'fired → served', noteColor: T.textDim },
   ]
 
   const kpiStyle: React.CSSProperties = isMobile
     ? { display: 'flex', flexDirection: 'row', overflowX: 'auto', touchAction: 'pan-x pan-y', WebkitOverflowScrolling: 'touch', height: 'auto', overscrollBehavior: 'contain' }
-    : { display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', height: 'clamp(80px, 9.3vh, 120px)' }
+    : { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', height: 'clamp(80px, 9.3vh, 120px)' }
 
   return (
     <div className="bp-no-scrollbar" style={{

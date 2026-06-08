@@ -24,14 +24,15 @@ function getCatColor(T: ReturnType<typeof useTheme>['T']): Record<string, string
 }
 
 // ── Sales KPI strip ────────────────────────────────────────────────────────────
-function SalesKpiStrip({ suffix, revenue, cost, expenses, txCount, avgOrder, avgTurnMin }: {
-  suffix:     string
-  revenue:    number
-  cost:       number
-  expenses:   number
-  txCount:    number
-  avgOrder:   number
-  avgTurnMin: number | null
+function SalesKpiStrip({ suffix, revenue, cost, expenses, txCount, avgOrder, avgTurnMinBar, avgTurnMinKitchen }: {
+  suffix:            string
+  revenue:           number
+  cost:              number
+  expenses:          number
+  txCount:           number
+  avgOrder:          number
+  avgTurnMinBar:     number | null
+  avgTurnMinKitchen: number | null
 }) {
   const { T } = useTheme()
   const net      = revenue - cost
@@ -44,13 +45,14 @@ function SalesKpiStrip({ suffix, revenue, cost, expenses, txCount, avgOrder, avg
     { label: `Expenses · ${suffix}`,  value: fp(expenses),                              note: 'logged',                                                         color: T.bad },
     { label: `Cashflow · ${suffix}`,  value: fp(cashflow),                              note: net > 0 ? `${((cashflow/net)*100).toFixed(1)}% of net` : '—',     color: cashflow >= 0 ? T.ok : T.bad },
     { label: 'Avg Order',             value: avgOrder > 0 ? fp(avgOrder) : '—',         note: `${txCount} closed`,                                              color: T.textDim },
-    { label: 'Avg Turn Time',         value: avgTurnMin != null ? `${avgTurnMin}m` : '—', note: 'fired → served',                                                 color: T.info },
+    { label: 'Bar Turn Time',         value: avgTurnMinBar != null ? `${avgTurnMinBar}m` : '—',         note: 'fired → served',                                 color: T.info },
+    { label: 'Kitchen Turn Time',     value: avgTurnMinKitchen != null ? `${avgTurnMinKitchen}m` : '—', note: 'fired → served',                                 color: T.info },
   ]
 
   const bp = useBreakpoint()
   const isMobile = bp === 'mobile'
   return (
-    <div className="bp-no-scrollbar" style={{ display: isMobile ? 'flex' : 'grid', gridTemplateColumns: isMobile ? undefined : 'repeat(7, 1fr)', overflowX: isMobile ? 'auto' : undefined, touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none', WebkitOverflowScrolling: 'touch', height: isMobile ? 'auto' : 88, borderBottom: `1px solid ${T.line}`, flexShrink: 0, background: T.bg }}>
+    <div className="bp-no-scrollbar" style={{ display: isMobile ? 'flex' : 'grid', gridTemplateColumns: isMobile ? undefined : 'repeat(8, 1fr)', overflowX: isMobile ? 'auto' : undefined, touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none', WebkitOverflowScrolling: 'touch', height: isMobile ? 'auto' : 88, borderBottom: `1px solid ${T.line}`, flexShrink: 0, background: T.bg }}>
       {kpis.map((k) => (
         <div key={k.label} style={{
           padding: '10px 18px',
@@ -340,7 +342,7 @@ export default function ReportsView({ tables: _tables }: { tables: TableWithStat
     : monthBounds(nav.year, nav.month)
 
   const {
-    revenue, cost, expenses, txCount, avgOrder, avgTurnMin,
+    revenue, cost, expenses, txCount, avgOrder, avgTurnMinBar, avgTurnMinKitchen,
     bars, expenseDayBars,
     transactions, expenseRows,
     expCatBreakdown,
@@ -385,7 +387,8 @@ export default function ReportsView({ tables: _tables }: { tables: TableWithStat
           expenses={expenses}
           txCount={txCount}
           avgOrder={avgOrder}
-          avgTurnMin={avgTurnMin}
+          avgTurnMinBar={avgTurnMinBar}
+          avgTurnMinKitchen={avgTurnMinKitchen}
         />
 
         {/* ── Expenses KPI ──────────────────────────────────────────────── */}

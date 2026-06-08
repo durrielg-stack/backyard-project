@@ -37,7 +37,8 @@ export default function ReportsTab() {
   const [voidedCount,  setVoidedCount]  = useState(0)
   const [voidedAmount, setVoidedAmount] = useState(0)
   const [voidedItems,  setVoidedItems]  = useState<VoidedItem[]>([])
-  const [avgTurnMin,   setAvgTurnMin]   = useState<number | null>(null)
+  const [avgTurnMinBar,     setAvgTurnMinBar]     = useState<number | null>(null)
+  const [avgTurnMinKitchen, setAvgTurnMinKitchen] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
   const fetchAll = useCallback(async (startISO: string, endISO: string, mode: ViewMode) => {
@@ -175,16 +176,18 @@ export default function ReportsTab() {
       }
     }))
 
+    const BAR_CATS = new Set(['Beer', 'Cocktails', 'Hard Drinks', 'Palit Bote', 'Non-Alcohol'])
     const { data: servedItems } = orderIds.length > 0
-      ? await sb.from('order_items').select('fired_at, completed_at').eq('status', 'served').in('order_id', orderIds).not('fired_at', 'is', null).not('completed_at', 'is', null)
+      ? await sb.from('order_items').select('fired_at, completed_at, menu_items(category)').eq('status', 'served').in('order_id', orderIds).not('fired_at', 'is', null).not('completed_at', 'is', null)
       : { data: [] }
     const si: any[] = servedItems ?? []
-    if (si.length > 0) {
-      const totalMin = si.reduce((s: number, i: any) => s + (new Date(i.completed_at).getTime() - new Date(i.fired_at).getTime()) / 60000, 0)
-      setAvgTurnMin(Math.round(totalMin / si.length))
-    } else {
-      setAvgTurnMin(null)
+    const calcAvg = (items: any[]): number | null => {
+      if (items.length === 0) return null
+      const total = items.reduce((s: number, i: any) => s + (new Date(i.completed_at).getTime() - new Date(i.fired_at).getTime()) / 60000, 0)
+      return Math.round(total / items.length)
     }
+    setAvgTurnMinBar(calcAvg(si.filter(i => BAR_CATS.has(i.menu_items?.category))))
+    setAvgTurnMinKitchen(calcAvg(si.filter(i => !BAR_CATS.has(i.menu_items?.category))))
 
     setLoading(false)
   }, [])
@@ -259,13 +262,14 @@ export default function ReportsTab() {
           { label: `Net · ${suffix}`,      value: fmtPeso(net),      sub: gross > 0 ? `${((net/gross)*100).toFixed(1)}% margin` : '—',    color: net >= 0 ? T.ok : T.bad },
           { label: `Expenses · ${suffix}`, value: fmtPeso(expenses), sub: 'logged',                                                        color: T.bad },
           { label: 'Voided Items',         value: String(voidedCount), sub: voidedCount > 0 ? fmtPeso(voidedAmount) : 'none',            color: voidedCount > 0 ? T.bad : T.textMute },
-          { label: 'Avg Turn Time',        value: avgTurnMin != null ? `${avgTurnMin}m` : '—', sub: 'fired → served',                color: T.info },
+          { label: 'Bar Turn Time',         value: avgTurnMinBar != null ? `${avgTurnMinBar}m` : '—',         sub: 'fired → served', color: T.info },
+          { label: 'Kitchen Turn Time',     value: avgTurnMinKitchen != null ? `${avgTurnMinKitchen}m` : '—', sub: 'fired → served', color: T.info },
         ]
         return (
           <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none', flexShrink: 0 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', borderBottom: `1px solid ${T.line}`, minWidth: 720 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', borderBottom: `1px solid ${T.line}`, minWidth: 840 }}>
             {kpis.map((k, i) => (
-              <div key={k.label} style={{ padding: '14px 20px', borderRight: i < 5 ? `1px solid ${T.line}` : 'none' }}>
+              <div key={k.label} style={{ padding: '14px 20px', borderRight: i < 6 ? `1px solid ${T.line}` : 'none' }}>
                 <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, marginBottom: 6 }}>{k.label}</div>
                 <div style={{ fontFamily: T.mono, fontSize: 18, fontWeight: 700, color: k.color, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
                 <div style={{ fontSize: 11, color: T.textMute, marginTop: 4 }}>{k.sub}</div>
