@@ -7,16 +7,19 @@ import { getClient } from '@/lib/supabase'
 import { SectionHd, fmtPeso } from './ownerShared'
 import DateRangeNav, { useDateNav } from '@/components/shared/DateRangeNav'
 import { dayBounds, weekBounds, monthBounds } from '@/lib/dateNav'
+import { useSortable } from '@/lib/useSortable'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface SaleRow {
-  id:         string
-  qty:        number
-  unit_price: number
-  status:     string
-  orders:     { table_id: string; opened_at: string } | null
-  menu_items: { name: string; category: string; cost: number | null } | null
+  id:           string
+  qty:          number
+  unit_price:   number
+  status:       string
+  fired_at:     string | null
+  completed_at: string | null
+  orders:       { table_id: string; opened_at: string } | null
+  menu_items:   { name: string; category: string; cost: number | null } | null
 }
 
 interface LineItem {
@@ -29,6 +32,7 @@ interface LineItem {
   gross:     number
   cost:      number
   net:       number
+  serveMin:  number | null
 }
 
 interface CategorySummary {
@@ -57,7 +61,7 @@ export default function SalesTab() {
     setLoading(true)
     const { data, error } = await sb
       .from('order_items')
-      .select('id, qty, unit_price, status, orders(table_id, opened_at), menu_items(name, category, cost)')
+      .select('id, qty, unit_price, status, fired_at, completed_at, orders(table_id, opened_at), menu_items(name, category, cost)')
       .gte('orders.opened_at', start)
       .lte('orders.opened_at', end)
       .neq('status', 'voided')
@@ -72,12 +76,15 @@ export default function SalesTab() {
 
     const rows: SaleRow[] = (data ?? []).filter((r: SaleRow) => r.orders !== null)
     setLines(rows.map((r: SaleRow) => {
-      const gross = r.qty * r.unit_price
-      const cost  = r.qty * (r.menu_items?.cost ?? 0)
+      const gross    = r.qty * r.unit_price
+      const cost     = r.qty * (r.menu_items?.cost ?? 0)
+      const serveMin = r.fired_at && r.completed_at
+        ? Math.round((new Date(r.completed_at).getTime() - new Date(r.fired_at).getTime()) / 60000)
+        : null
       return {
         id: r.id, tableId: r.orders?.table_id ?? '—',
         itemName: r.menu_items?.name ?? '—', category: r.menu_items?.category ?? '—',
-        qty: r.qty, unitPrice: r.unit_price, gross, cost, net: gross - cost,
+        qty: r.qty, unitPrice: r.unit_price, gross, cost, net: gross - cost, serveMin,
       }
     }))
     setLoading(false)
@@ -96,9 +103,11 @@ export default function SalesTab() {
     fetchSales(start, end)
   }, [nav.mode, nav.date, nav.weekRef, nav.month, nav.year, fetchSales])
 
+  const { sorted: sortedLines, toggle: sortToggle, icon: sortIcon } = useSortable(lines, 'id' as keyof LineItem, 'asc')
+
   const filteredLines = search.trim()
-    ? lines.filter(l => l.itemName.toLowerCase().includes(search.toLowerCase()))
-    : lines
+    ? sortedLines.filter(l => l.itemName.toLowerCase().includes(search.toLowerCase()))
+    : sortedLines
 
   // ── Category summary ──────────────────────────────────────────────────────
   const SUMMARY_CATS = ['Food', 'Beer', 'Cocktails/Hard', 'Non-Alcohol', 'Cigarettes']
@@ -160,6 +169,15 @@ export default function SalesTab() {
     fontVariantNumeric: 'tabular-nums',
     whiteSpace: 'nowrap',
     ...extra,
+  })
+
+  const sortBtn = (k: keyof LineItem, align: 'left' | 'right' = 'left'): React.CSSProperties => ({
+    background: 'transparent', border: 'none', padding: 0, cursor: 'pointer',
+    fontFamily: 'inherit', fontSize: 10, fontWeight: 600, letterSpacing: '0.1em',
+    textTransform: 'uppercase', color: T.textMute,
+    display: 'flex', alignItems: 'center', gap: 3,
+    justifyContent: align === 'right' ? 'flex-end' : 'flex-start',
+    width: '100%',
   })
 
   return (
@@ -264,20 +282,55 @@ export default function SalesTab() {
               {search ? `No items match "${search}"` : 'No sales on this date'}
             </div>
           ) : (
-            // Single scroll container for both header and rows — they move together
             <div className="bp-no-scrollbar" style={{ flex: 1, overflow: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
-              <table style={{ borderCollapse: 'collapse', minWidth: 920 }}>
+              <table style={{ borderCollapse: 'collapse', minWidth: 1040 }}>
                 <thead>
                   <tr>
-                    {/* Category — sticky left + sticky top */}
-                    <th style={th('left', { position: 'sticky', top: 0, left: 0, zIndex: 4, minWidth: 140 })}>Category</th>
-                    <th style={th('left', { minWidth: 80 })}>Table</th>
-                    <th style={th('left', { minWidth: 220 })}>Item Name</th>
-                    <th style={th('right', { minWidth: 64 })}>Qty</th>
-                    <th style={th('right', { minWidth: 120 })}>Unit Price</th>
-                    <th style={th('right', { minWidth: 120 })}>Gross</th>
-                    <th style={th('right', { minWidth: 120 })}>Cost</th>
-                    <th style={th('right', { minWidth: 120 })}>Net</th>
+                    <th style={th('left', { position: 'sticky', top: 0, left: 0, zIndex: 4, minWidth: 140 })}>
+                      <button style={sortBtn('category')} onClick={() => sortToggle('category')}>
+                        Category<span style={{ fontSize: 8, opacity: 0.7 }}>{sortIcon('category')}</span>
+                      </button>
+                    </th>
+                    <th style={th('left', { minWidth: 80 })}>
+                      <button style={sortBtn('tableId')} onClick={() => sortToggle('tableId')}>
+                        Table<span style={{ fontSize: 8, opacity: 0.7 }}>{sortIcon('tableId')}</span>
+                      </button>
+                    </th>
+                    <th style={th('left', { minWidth: 220 })}>
+                      <button style={sortBtn('itemName')} onClick={() => sortToggle('itemName')}>
+                        Item Name<span style={{ fontSize: 8, opacity: 0.7 }}>{sortIcon('itemName')}</span>
+                      </button>
+                    </th>
+                    <th style={th('right', { minWidth: 64 })}>
+                      <button style={sortBtn('qty', 'right')} onClick={() => sortToggle('qty')}>
+                        Qty<span style={{ fontSize: 8, opacity: 0.7 }}>{sortIcon('qty')}</span>
+                      </button>
+                    </th>
+                    <th style={th('right', { minWidth: 120 })}>
+                      <button style={sortBtn('unitPrice', 'right')} onClick={() => sortToggle('unitPrice')}>
+                        Unit Price<span style={{ fontSize: 8, opacity: 0.7 }}>{sortIcon('unitPrice')}</span>
+                      </button>
+                    </th>
+                    <th style={th('right', { minWidth: 120 })}>
+                      <button style={sortBtn('gross', 'right')} onClick={() => sortToggle('gross')}>
+                        Gross<span style={{ fontSize: 8, opacity: 0.7 }}>{sortIcon('gross')}</span>
+                      </button>
+                    </th>
+                    <th style={th('right', { minWidth: 120 })}>
+                      <button style={sortBtn('cost', 'right')} onClick={() => sortToggle('cost')}>
+                        Cost<span style={{ fontSize: 8, opacity: 0.7 }}>{sortIcon('cost')}</span>
+                      </button>
+                    </th>
+                    <th style={th('right', { minWidth: 120 })}>
+                      <button style={sortBtn('net', 'right')} onClick={() => sortToggle('net')}>
+                        Net<span style={{ fontSize: 8, opacity: 0.7 }}>{sortIcon('net')}</span>
+                      </button>
+                    </th>
+                    <th style={th('right', { minWidth: 110 })}>
+                      <button style={sortBtn('serveMin', 'right')} onClick={() => sortToggle('serveMin')}>
+                        Fire→Serve<span style={{ fontSize: 8, opacity: 0.7 }}>{sortIcon('serveMin')}</span>
+                      </button>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -293,6 +346,9 @@ export default function SalesTab() {
                         <td style={td('right')}>{fmtPeso(l.gross)}</td>
                         <td style={td('right', { color: T.textMute })}>{fmtPeso(l.cost)}</td>
                         <td style={td('right', { color: l.net >= 0 ? T.ok : T.bad })}>{fmtPeso(l.net)}</td>
+                        <td style={td('right', { color: l.serveMin != null ? T.info : T.textMute })}>
+                          {l.serveMin != null ? `${l.serveMin}m` : '—'}
+                        </td>
                       </tr>
                     )
                   })}

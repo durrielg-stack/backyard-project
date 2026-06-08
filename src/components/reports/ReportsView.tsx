@@ -44,7 +44,7 @@ function SalesKpiStrip({ suffix, revenue, cost, expenses, txCount, avgOrder, avg
     { label: `Expenses · ${suffix}`,  value: fp(expenses),                              note: 'logged',                                                         color: T.bad },
     { label: `Cashflow · ${suffix}`,  value: fp(cashflow),                              note: net > 0 ? `${((cashflow/net)*100).toFixed(1)}% of net` : '—',     color: cashflow >= 0 ? T.ok : T.bad },
     { label: 'Avg Order',             value: avgOrder > 0 ? fp(avgOrder) : '—',         note: `${txCount} closed`,                                              color: T.textDim },
-    { label: 'Avg Turn Time',         value: avgTurnMin != null ? `${avgTurnMin}m` : '—', note: 'open → close',                                                 color: T.info },
+    { label: 'Avg Turn Time',         value: avgTurnMin != null ? `${avgTurnMin}m` : '—', note: 'fired → served',                                                 color: T.info },
   ]
 
   const bp = useBreakpoint()

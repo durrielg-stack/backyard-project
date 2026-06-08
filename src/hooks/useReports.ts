@@ -168,20 +168,21 @@ export function useReports({ start, end, mode }: { start: string; end: string; m
 
     const txCount = allOrderIds.length
 
-    // Avg turn time
-    const { data: closedOrders } = await sb
-      .from('orders').select('opened_at, closed_at')
-      .eq('status', 'closed')
-      .gte('opened_at', start)
-      .lte('opened_at', end)
-      .not('closed_at', 'is', null)
-    const allClosed: any[] = closedOrders ?? []
+    // Avg turn time: fired_at → completed_at per item (kitchen receive → served)
+    const { data: servedItems } = await sb
+      .from('order_items').select('fired_at, completed_at')
+      .eq('status', 'served')
+      .gte('fired_at', start)
+      .lte('fired_at', end)
+      .not('fired_at', 'is', null)
+      .not('completed_at', 'is', null)
+    const allServed: any[] = servedItems ?? []
 
     let avgTurnMin: number | null = null
-    if (allClosed.length > 0) {
-      const totalMin = allClosed.reduce((s: number, o: any) =>
-        s + (new Date(o.closed_at).getTime() - new Date(o.opened_at).getTime()) / 60000, 0)
-      avgTurnMin = Math.round(totalMin / allClosed.length)
+    if (allServed.length > 0) {
+      const totalMin = allServed.reduce((s: number, i: any) =>
+        s + (new Date(i.completed_at).getTime() - new Date(i.fired_at).getTime()) / 60000, 0)
+      avgTurnMin = Math.round(totalMin / allServed.length)
     }
 
     // Build bars based on mode
