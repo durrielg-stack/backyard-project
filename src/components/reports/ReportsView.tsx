@@ -1,16 +1,15 @@
 'use client'
 
-import { useCallback, useRef } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useTheme } from '@/lib/ThemeContext'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { useReports } from '@/hooks/useReports'
 import type { TableWithStatus } from '@/lib/types'
-import type { RevenueBar, TransactionRow, ExpenseRow } from '@/hooks/useReports'
+import type { RevenueBar, TransactionRow, SaleItemRow, ExpenseRow } from '@/hooks/useReports'
 import { PanelHd } from '@/components/floor/FloorView'
 import StockAlertsStrip from '@/components/floor/InventoryPanel'
 import DateRangeNav, { useDateNav } from '@/components/shared/DateRangeNav'
 import { dayBounds, weekBounds, monthBounds } from '@/lib/dateNav'
-import { useState } from 'react'
 
 function fp(v: number) {
   return `₱${v.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -199,44 +198,98 @@ function ExpensesChartPanel({ expenseDayBars, expenses, mobile }: { expenseDayBa
   )
 }
 
-// ── Sales transactions list ────────────────────────────────────────────────────
-const TX_COLS = '60px 64px 46px 1fr 28px 90px 64px'
-const TX_HDRS = ['Time', 'ID', 'Tbl', 'Server', '×', 'Total', 'Pay']
+// ── Sales transactions / per-item list ────────────────────────────────────────
+const TX_COLS   = '60px 64px 46px 1fr 28px 90px 64px'
+const TX_HDRS   = ['Time', 'ID', 'Tbl', 'Server', '×', 'Total', 'Pay']
+const ITEM_COLS = '60px 46px 120px 1fr 32px 90px'
+const ITEM_HDRS = ['Time', 'Tbl', 'Category', 'Item', 'Qty', 'Amount']
 
-function TransactionsPanel({ transactions }: { transactions: TransactionRow[] }) {
+function TransactionsPanel({ transactions, saleItems }: { transactions: TransactionRow[]; saleItems: SaleItemRow[] }) {
   const { T } = useTheme()
+  const [view, setView] = useState<'tx' | 'items'>('tx')
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, borderRight: `1px solid ${T.line}` }}>
-      <PanelHd title="Sales Transactions" badge={`${transactions.length}`} />
+      {/* Header with toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 14px', height: 36, borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
+        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.textMute }}>
+          Sales Transactions
+          <span style={{ marginLeft: 6, fontFamily: T.mono, color: T.accent, background: `${T.accent}18`, border: `1px solid ${T.accent}33`, padding: '1px 6px', borderRadius: 99, fontSize: 9 }}>
+            {view === 'tx' ? transactions.length : saleItems.length}
+          </span>
+        </span>
+        <div style={{ display: 'flex', gap: 2 }}>
+          {(['tx', 'items'] as const).map(v => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              style={{
+                padding: '2px 8px', fontSize: 9, fontWeight: 700,
+                letterSpacing: '0.08em', textTransform: 'uppercase',
+                borderRadius: 99, cursor: 'pointer', fontFamily: 'inherit',
+                border: `1px solid ${view === v ? T.accent : T.line2}`,
+                background: view === v ? `${T.accent}18` : 'transparent',
+                color: view === v ? T.accent : T.textMute,
+              }}
+            >{v === 'tx' ? 'Transactions' : 'Per Item'}</button>
+          ))}
+        </div>
+      </div>
+
       <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none', WebkitOverflowScrolling: 'touch' }}>
-        <div style={{ minWidth: 420 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: TX_COLS, padding: '0 14px', height: 30, alignItems: 'center', borderBottom: `1px solid ${T.line}`, flexShrink: 0, position: 'sticky', top: 0, background: T.surface2, zIndex: 1 }}>
-          {TX_HDRS.map(h => <span key={h} style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>)}
-        </div>
-        {transactions.length === 0 ? (
-          <div style={{ padding: '20px 14px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No transactions</div>
-        ) : transactions.map((tx, i) => (
-          <div key={tx.id} style={{
-            display: 'grid', gridTemplateColumns: TX_COLS,
-            padding: '0 14px', height: 36, alignItems: 'center',
-            borderBottom: `1px solid ${T.line}`,
-            background: i % 2 === 0 ? T.surface2 : 'transparent',
-            opacity: tx.isRefund ? 0.55 : 1,
-          }}>
-            <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute, fontVariantNumeric: 'tabular-nums' }}>{tx.time}</span>
-            <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute }}>#{tx.id}</span>
-            <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textDim }}>{tx.tableId}</span>
-            <span style={{ fontSize: 11, color: T.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tx.server}</span>
-            <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute }}>{tx.itemCount}</span>
-            <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 700, color: tx.isRefund ? T.bad : T.accent, fontVariantNumeric: 'tabular-nums' }}>
-              {tx.isRefund ? '−' : ''}₱{tx.amount.toFixed(2)}
-            </span>
-            <span style={{ fontFamily: T.mono, fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: T.textDim }}>
-              {tx.method === 'GCASH' ? 'QR' : tx.method}
-            </span>
+        {view === 'tx' ? (
+          <div style={{ minWidth: 420 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: TX_COLS, padding: '0 14px', height: 30, alignItems: 'center', borderBottom: `1px solid ${T.line}`, flexShrink: 0, position: 'sticky', top: 0, background: T.surface2, zIndex: 1 }}>
+              {TX_HDRS.map(h => <span key={h} style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>)}
+            </div>
+            {transactions.length === 0 ? (
+              <div style={{ padding: '20px 14px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No transactions</div>
+            ) : transactions.map((tx, i) => (
+              <div key={tx.id} style={{
+                display: 'grid', gridTemplateColumns: TX_COLS,
+                padding: '0 14px', height: 36, alignItems: 'center',
+                borderBottom: `1px solid ${T.line}`,
+                background: i % 2 === 0 ? T.surface2 : 'transparent',
+                opacity: tx.isRefund ? 0.55 : 1,
+              }}>
+                <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute, fontVariantNumeric: 'tabular-nums' }}>{tx.time}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute }}>#{tx.id}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textDim }}>{tx.tableId}</span>
+                <span style={{ fontSize: 11, color: T.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tx.server}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute }}>{tx.itemCount}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 700, color: tx.isRefund ? T.bad : T.accent, fontVariantNumeric: 'tabular-nums' }}>
+                  {tx.isRefund ? '−' : ''}₱{tx.amount.toFixed(2)}
+                </span>
+                <span style={{ fontFamily: T.mono, fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: T.textDim }}>
+                  {tx.method === 'GCASH' ? 'QR' : tx.method}
+                </span>
+              </div>
+            ))}
           </div>
-        ))}
-        </div>
+        ) : (
+          <div style={{ minWidth: 420 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: ITEM_COLS, padding: '0 14px', height: 30, alignItems: 'center', borderBottom: `1px solid ${T.line}`, flexShrink: 0, position: 'sticky', top: 0, background: T.surface2, zIndex: 1 }}>
+              {ITEM_HDRS.map(h => <span key={h} style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>)}
+            </div>
+            {saleItems.length === 0 ? (
+              <div style={{ padding: '20px 14px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No items</div>
+            ) : saleItems.map((row, i) => (
+              <div key={row.id} style={{
+                display: 'grid', gridTemplateColumns: ITEM_COLS,
+                padding: '0 14px', height: 36, alignItems: 'center',
+                borderBottom: `1px solid ${T.line}`,
+                background: i % 2 === 0 ? T.surface2 : 'transparent',
+              }}>
+                <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute, fontVariantNumeric: 'tabular-nums' }}>{row.time}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textDim }}>{row.tableId}</span>
+                <span style={{ fontSize: 10, color: T.textDim, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.category}</span>
+                <span style={{ fontSize: 11, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.name}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute, textAlign: 'right' }}>{row.qty}</span>
+                <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 700, color: T.accent, fontVariantNumeric: 'tabular-nums', textAlign: 'right' }}>₱{row.amount.toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -344,7 +397,7 @@ export default function ReportsView({ tables: _tables }: { tables: TableWithStat
   const {
     revenue, cost, expenses, txCount, avgOrder, avgTurnMinBar, avgTurnMinKitchen,
     bars, expenseDayBars,
-    transactions, expenseRows,
+    transactions, saleItems, expenseRows,
     expCatBreakdown,
   } = useReports({ start, end, mode: nav.mode })
 
@@ -412,7 +465,7 @@ export default function ReportsView({ tables: _tables }: { tables: TableWithStat
 
         {/* ── Resizable lists row ───────────────────────────────────────── */}
         <ResizableSplit
-          left={<TransactionsPanel transactions={transactions} />}
+          left={<TransactionsPanel transactions={transactions} saleItems={saleItems} />}
           right={<ExpensesListPanel expenseRows={expenseRows} />}
         />
 

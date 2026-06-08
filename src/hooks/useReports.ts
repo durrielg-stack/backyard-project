@@ -41,6 +41,16 @@ export interface CatBreakdown {
   amount:   number
 }
 
+export interface SaleItemRow {
+  id:       number
+  time:     string
+  tableId:  string
+  name:     string
+  category: string
+  qty:      number
+  amount:   number
+}
+
 export interface ReportsData {
   revenue:         number
   cost:            number
@@ -52,6 +62,7 @@ export interface ReportsData {
   bars:            RevenueBar[]
   expenseDayBars:  RevenueBar[]
   transactions:    TransactionRow[]
+  saleItems:       SaleItemRow[]
   expenseRows:     ExpenseRow[]
   expCatBreakdown: CatBreakdown[]
   loading:         boolean
@@ -66,7 +77,7 @@ const EMPTY: ReportsData = {
   revenue: 0, cost: 0, expenses: 0,
   avgOrder: 0, txCount: 0, avgTurnMinBar: null, avgTurnMinKitchen: null,
   bars: [], expenseDayBars: [],
-  transactions: [], expenseRows: [],
+  transactions: [], saleItems: [], expenseRows: [],
   expCatBreakdown: [],
   loading: true,
 }
@@ -131,23 +142,29 @@ export function useReports({ start, end, mode }: { start: string; end: string; m
 
     // ── Sales: order-items via orders.opened_at ────────────────────────────
     const { data: allOrders } = await sb
-      .from('orders').select('id, opened_at')
+      .from('orders').select('id, table_id, opened_at')
       .gte('opened_at', start)
       .lte('opened_at', end)
     const allOrderIds = (allOrders ?? []).map((o: any) => o.id as number)
-    const orderOpenedMap: Record<number, Date> = {}
-    for (const o of (allOrders ?? [])) orderOpenedMap[o.id] = new Date(o.opened_at)
+    const orderOpenedMap: Record<number, Date>   = {}
+    const orderTableMap:  Record<number, string> = {}
+    for (const o of (allOrders ?? [])) {
+      orderOpenedMap[o.id] = new Date(o.opened_at)
+      orderTableMap[o.id]  = o.table_id
+    }
 
     let gross = 0; let cost = 0
     const hourBuckets: Record<number, number> = {}
     const dayBuckets:  Record<string, number> = {}
+    const saleItems: SaleItemRow[] = []
 
     if (allOrderIds.length > 0) {
       const { data: lines } = await sb
         .from('order_items')
-        .select('order_id, qty, unit_price, menu_items(cost)')
+        .select('id, order_id, qty, unit_price, menu_items(name, category, cost)')
         .in('order_id', allOrderIds)
         .neq('status', 'voided')
+        .order('id', { ascending: false })
 
       for (const row of (lines ?? [])) {
         const openedAt = orderOpenedMap[row.order_id as number]
@@ -164,6 +181,16 @@ export function useReports({ start, end, mode }: { start: string; end: string; m
           const h = openedAt.getHours()
           hourBuckets[h] = (hourBuckets[h] ?? 0) + val
         }
+
+        saleItems.push({
+          id:       row.id as number,
+          time:     `${String(openedAt.getHours()).padStart(2,'0')}:${String(openedAt.getMinutes()).padStart(2,'0')}`,
+          tableId:  orderTableMap[row.order_id as number] ?? '—',
+          name:     (mi as any)?.name ?? '—',
+          category: (mi as any)?.category ?? '—',
+          qty:      row.qty as number,
+          amount:   val,
+        })
       }
     }
 
@@ -314,6 +341,7 @@ export function useReports({ start, end, mode }: { start: string; end: string; m
         bars,
         expenseDayBars,
         transactions: rp.map(mapTxRow),
+        saleItems,
         expenseRows:  expAll.map(mapExpRow),
         expCatBreakdown,
       },
