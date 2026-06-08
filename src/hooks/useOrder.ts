@@ -409,9 +409,18 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
       if (updErr) { setError(updErr.message); return false }
     }
 
-    setLines(prev => prev.filter(l => !lineIds.includes(l.lineId)))
+    const remainingLines = lines.filter(l => !lineIds.includes(l.lineId) && l.status !== 'voided')
+    if (remainingLines.length === 0 && orderId) {
+      // All items moved out — close the source order and free the table
+      await sb.from('orders').update({ status: 'closed', closed_at: new Date().toISOString() }).eq('id', orderId)
+      await sb.from('restaurant_tables').update({ status: 'available' }).eq('id', tableId)
+      setLines([])
+      setOrderId(null)
+    } else {
+      setLines(prev => prev.filter(l => !lineIds.includes(l.lineId)))
+    }
     return true
-  }, [lines])
+  }, [lines, orderId, tableId])
 
   return { orderId, lines, loading, error, clearError: () => setError(null), addItem, updateQty, removeItem, voidItem, setNote, setOrderType, closeOrder, payPartial, moveItems }
 
