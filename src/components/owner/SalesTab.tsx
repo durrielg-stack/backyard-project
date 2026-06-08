@@ -32,6 +32,7 @@ interface LineItem {
   gross:     number
   cost:      number
   net:       number
+  margin:    number
   serveMin:  number | null
 }
 
@@ -81,10 +82,13 @@ export default function SalesTab() {
       const serveMin = r.fired_at && r.completed_at
         ? Math.round((new Date(r.completed_at).getTime() - new Date(r.fired_at).getTime()) / 60000)
         : null
+      const net = gross - cost
       return {
         id: r.id, tableId: r.orders?.table_id ?? '—',
         itemName: r.menu_items?.name ?? '—', category: r.menu_items?.category ?? '—',
-        qty: r.qty, unitPrice: r.unit_price, gross, cost, net: gross - cost, serveMin,
+        qty: r.qty, unitPrice: r.unit_price, gross, cost, net,
+        margin: gross > 0 ? (net / gross) * 100 : 0,
+        serveMin,
       }
     }))
     setLoading(false)
@@ -283,7 +287,7 @@ export default function SalesTab() {
             </div>
           ) : (
             <div className="bp-no-scrollbar" style={{ flex: 1, overflow: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
-              <table style={{ borderCollapse: 'collapse', minWidth: 1040 }}>
+              <table style={{ borderCollapse: 'collapse', minWidth: 1160 }}>
                 <thead>
                   <tr>
                     <th style={th('left', { position: 'sticky', top: 0, left: 0, zIndex: 4, minWidth: 140 })}>
@@ -331,6 +335,11 @@ export default function SalesTab() {
                         Fire→Serve<span style={{ fontSize: 8, opacity: 0.7 }}>{sortIcon('serveMin')}</span>
                       </button>
                     </th>
+                    <th style={th('right', { minWidth: 90 })}>
+                      <button style={sortBtn('margin', 'right')} onClick={() => sortToggle('margin')}>
+                        Margin %<span style={{ fontSize: 8, opacity: 0.7 }}>{sortIcon('margin')}</span>
+                      </button>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -348,6 +357,9 @@ export default function SalesTab() {
                         <td style={td('right', { color: l.net >= 0 ? T.ok : T.bad })}>{fmtPeso(l.net)}</td>
                         <td style={td('right', { color: l.serveMin != null ? T.info : T.textMute })}>
                           {l.serveMin != null ? `${l.serveMin}m` : '—'}
+                        </td>
+                        <td style={td('right', { color: l.margin >= 60 ? T.ok : l.margin >= 40 ? T.warn : l.gross > 0 ? T.bad : T.textMute })}>
+                          {l.gross > 0 ? `${l.margin.toFixed(1)}%` : '—'}
                         </td>
                       </tr>
                     )
