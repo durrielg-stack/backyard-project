@@ -484,7 +484,7 @@ function SiteHeader({ summary, theme, onToggleTheme }: { summary: Summary; theme
 /* ============================================================
    HERO
    ============================================================ */
-function Hero({ summary, currentMsg, totalTables, preOpen, theme }: { summary: Summary; currentMsg: string; totalTables: number; preOpen: PreOpenState; theme: 'dark' | 'light' }) {
+function Hero({ summary, currentMsg, totalTables, preOpen, theme, isTuesday }: { summary: Summary; currentMsg: string; totalTables: number; preOpen: PreOpenState; theme: 'dark' | 'light'; isTuesday: boolean }) {
   return (
     <section className="byp-hero" id="top">
       <div className="byp-hero-glow" />
@@ -507,7 +507,7 @@ function Hero({ summary, currentMsg, totalTables, preOpen, theme }: { summary: S
             </span>
             <span className="byp-op-meta">
               <IcClock width={15} height={15} />
-              {summary.open ? 'Closes 12 MN tonight' : 'Opens 4 PM'}
+              {summary.open ? 'Closes 12 MN tonight' : isTuesday ? 'Opens tomorrow' : 'Opens 4 PM'}
             </span>
           </div>
         </div>
@@ -684,7 +684,7 @@ function BusyMeter({ openNow, totalTables }: { openNow: boolean; totalTables: nu
         <span className="byp-busy-now">
           {openNow
             ? usingFallback ? 'Typical night' : `Typical ${DAY_NAMES[manilaWeekday]} nights`
-            : 'Opens at 4 PM'}
+            : manilaWeekday === 2 ? 'Opens tomorrow' : 'Opens at 4 PM'}
         </span>
       </div>
       <div className="byp-busy-bars">
@@ -1069,7 +1069,7 @@ export default function TablesPage() {
   return (
     <div className={'byp-page' + (theme === 'light' ? ' byp-light' : '')}>
       <SiteHeader summary={summary} theme={theme} onToggleTheme={toggleTheme} />
-      <Hero summary={summary} currentMsg={currentMsg} totalTables={rawTables.length} preOpen={preOpen} theme={theme} />
+      <Hero summary={summary} currentMsg={currentMsg} totalTables={rawTables.length} preOpen={preOpen} theme={theme} isTuesday={new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' })).getDay() === 2} />
 
       {/* <TablesSection tables={tables} /> */}
       <MenuSection onZoom={onZoom} />
