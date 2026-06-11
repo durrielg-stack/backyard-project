@@ -298,7 +298,7 @@ function getCountdownText(now: Date, isTuesday: boolean): string {
   return fmt('Opens', minsLeft)
 }
 
-function getAvailState(now: Date, isOpen: boolean, free: number): AvailState {
+function getAvailState(now: Date, isOpen: boolean, free: number, total: number): AvailState {
   const manila = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' }))
   const day  = manila.getDay()
   const hour = manila.getHours()
@@ -311,9 +311,10 @@ function getAvailState(now: Date, isOpen: boolean, free: number): AvailState {
     return 'opening_very_soon'
   }
   if (hour >= 23) return 'closing_soon'
-  if (free === 0) return 'open_full'
-  if (free <= 5)  return 'open_almost'
-  if (free <= 9)  return 'open_filling'
+  const occPct = total > 0 ? Math.round(((total - free) / total) * 100) : 0
+  if (occPct === 100) return 'open_full'
+  if (occPct >= 51)   return 'open_almost'
+  if (occPct >= 21)   return 'open_filling'
   return 'open_plenty'
 }
 
@@ -1084,10 +1085,10 @@ export default function TablesPage() {
   const preOpen = useMemo(() => getPreOpenAccent(now), [now])
 
   const currentMsg = useMemo(() => {
-    const state = getAvailState(now, summary.open, summary.free)
+    const state = getAvailState(now, summary.open, summary.free, summary.total)
     const pool = MSG[state]
     return pool[msgTick % pool.length]
-  }, [now, summary.open, summary.free, msgTick])
+  }, [now, summary.open, summary.free, summary.total, msgTick])
 
   return (
     <div className={'byp-page' + (theme === 'light' ? ' byp-light' : '')}>
