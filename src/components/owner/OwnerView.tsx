@@ -1352,7 +1352,7 @@ export default function OwnerView({ tables, staffName }: OwnerViewProps) {
   )
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: T.surface }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: T.bg }}>
 
       {/* ── Owner header ──────────────────────────────────────────────────── */}
       {isMobile ? (
