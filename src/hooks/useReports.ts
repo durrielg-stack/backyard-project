@@ -293,7 +293,7 @@ export function useReports({ start, end, mode }: { start: string; end: string; m
     // ── Transactions ──────────────────────────────────────────────────────
     const { data: recentPmts } = await sb
       .from('payments')
-      .select(`id, order_id, amount, method, processed_at, notes, orders!inner(table_id, opened_by, opened_at)`)
+      .select(`id, order_id, amount, method, processed_at, notes, orders!inner(table_id, opened_by, opened_at, users(name))`)
       .gte('processed_at', start)
       .lte('processed_at', end)
       .order('processed_at', { ascending: false })
@@ -320,7 +320,7 @@ export function useReports({ start, end, mode }: { start: string; end: string; m
         id:        p.id as number,
         time:      `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`,
         tableId:   order?.table_id ?? '—',
-        server:    order?.opened_by ?? 'Staff',
+        server:    (Array.isArray(order?.users) ? order.users[0]?.name : order?.users?.name) ?? order?.opened_by ?? 'Staff',
         itemCount: itemCountMap[p.order_id as number] ?? 0,
         method:    (p.method as string).toUpperCase(),
         amount:    p.amount as number,
