@@ -16,8 +16,9 @@
   --oc:      #D56454;
   --rs:      #5E94CF;
   --cl:      #D9A23F;
+  --busy:    #4F9E65;
   --coral:   #D4607A;
-  --gold:    #E8A020;
+  --gold:    #E83E8C;
 }
 
 /* ---- undo POS full-screen overflow lock for this route ---- */
@@ -177,8 +178,8 @@ body:has(.byp-page) {
   transform: translateY(0);
 }
 .byp-head-pill.st-open   { color: var(--av); border-color: rgba(111,190,133,.4); background: rgba(111,190,133,.08); }
-.byp-head-pill.st-busy   { color: var(--cl);     border-color: rgba(217,162,63,.4); background: rgba(217,162,63,.08); }
-.byp-head-pill.st-almost { color: var(--gold);   border-color: rgba(232,160,32,.4); background: rgba(232,160,32,.08); }
+.byp-head-pill.st-busy   { color: var(--busy);   border-color: rgba(79,158,101,.4);  background: rgba(79,158,101,.08);  }
+.byp-head-pill.st-almost { color: var(--gold);   border-color: rgba(232,62,140,.4);  background: rgba(232,62,140,.08);  }
 .byp-head-pill.st-full   { color: var(--copper); border-color: rgba(201,130,78,.4); background: rgba(201,130,78,.08); }
 .byp-head-pill.st-closed { color: var(--oc); border-color: rgba(213,100,84,.4); background: rgba(213,100,84,.08); }
 
@@ -333,7 +334,7 @@ html.byp-hero-past .byp-hero-logo {
   transition: background 600ms;
 }
 .byp-sum-card.st-open::before   { background: var(--card-accent, var(--av)); }
-.byp-sum-card.st-busy::before   { background: var(--card-accent, var(--cl)); }
+.byp-sum-card.st-busy::before   { background: var(--card-accent, var(--busy)); }
 .byp-sum-card.st-almost::before { background: var(--card-accent, var(--gold)); }
 .byp-sum-card.st-full::before   { background: var(--card-accent, var(--copper)); }
 .byp-sum-card.st-closed::before { background: var(--card-accent, var(--oc)); }
@@ -348,7 +349,7 @@ html.byp-hero-past .byp-hero-logo {
 .byp-sum-eyebrow .byp-eyebrow { color: inherit; }
 
 .byp-sum-card.st-open   .byp-sum-eyebrow { color: var(--av); }
-.byp-sum-card.st-busy   .byp-sum-eyebrow { color: var(--cl); }
+.byp-sum-card.st-busy   .byp-sum-eyebrow { color: var(--busy); }
 .byp-sum-card.st-almost .byp-sum-eyebrow { color: var(--gold); }
 .byp-sum-card.st-full   .byp-sum-eyebrow { color: var(--copper); }
 .byp-sum-card.st-closed .byp-sum-eyebrow { color: var(--oc); }
@@ -368,7 +369,7 @@ html.byp-hero-past .byp-hero-logo {
   transition: color 600ms;
 }
 .byp-sum-card.st-open   .byp-sum-number { color: var(--card-accent, var(--av)); }
-.byp-sum-card.st-busy   .byp-sum-number { color: var(--card-accent, var(--cl)); }
+.byp-sum-card.st-busy   .byp-sum-number { color: var(--card-accent, var(--busy)); }
 .byp-sum-card.st-almost .byp-sum-number { color: var(--card-accent, var(--gold)); }
 .byp-sum-card.st-full   .byp-sum-number { color: var(--card-accent, var(--copper)); }
 .byp-sum-card.st-closed .byp-sum-number { color: var(--card-accent, var(--oc)); }
@@ -959,7 +960,7 @@ html.byp-hero-past .byp-hero-logo {
   font-weight: 600;
 }
 .byp-mcta-status.st-open   { color: var(--av); }
-.byp-mcta-status.st-busy   { color: var(--cl); }
+.byp-mcta-status.st-busy   { color: var(--busy); }
 .byp-mcta-status.st-almost { color: var(--gold); }
 .byp-mcta-status.st-full   { color: var(--copper); }
 .byp-mcta-status.st-closed { color: var(--oc); }
@@ -1002,7 +1003,8 @@ html.byp-hero-past .byp-hero-logo {
 .byp-page.byp-light {
   --bg:      #F4EEE3;
   --coral:   #A03060;
-  --gold:    #8A6010;
+  --gold:    #E83E8C;
+  --busy:    #4F9E65;
   --panel:   #FFFFFF;
   --panel-2: #FBF6EC;
   --line:    rgba(48,36,18,.13);
@@ -1036,9 +1038,9 @@ html.byp-hero-past .byp-hero-logo {
 
 /* status pill borders + backgrounds */
 .byp-page.byp-light .byp-head-pill.st-open   { border-color: rgba(46,139,89,.35);  background: rgba(46,139,89,.10); }
-.byp-page.byp-light .byp-head-pill.st-busy   { border-color: rgba(154,116,21,.35); background: rgba(154,116,21,.10); }
-.byp-page.byp-light .byp-head-pill.st-almost { border-color: rgba(138,96,16,.35);  background: rgba(138,96,16,.10); }
-.byp-page.byp-light .byp-head-pill.st-full   { border-color: rgba(168,99,30,.35);  background: rgba(168,99,30,.10); }
+.byp-page.byp-light .byp-head-pill.st-busy   { border-color: rgba(79,158,101,.35);  background: rgba(79,158,101,.10);  }
+.byp-page.byp-light .byp-head-pill.st-almost { border-color: rgba(232,62,140,.35);  background: rgba(232,62,140,.10);  }
+.byp-page.byp-light .byp-head-pill.st-full   { border-color: rgba(180,83,9,.35);    background: rgba(180,83,9,.10);    }
 .byp-page.byp-light .byp-head-pill.st-closed { border-color: rgba(192,70,58,.35);  background: rgba(192,70,58,.10); }
 
 /* hero open/closed pill */
@@ -1056,18 +1058,22 @@ html.byp-hero-past .byp-hero-logo {
   box-shadow: 0 0 10px rgba(168,99,30,.3);
 }
 
+/* st-full light overrides — scoped so --copper isn't changed globally */
+.byp-page.byp-light .byp-sum-card.st-full   .byp-sum-eyebrow { color: #B45309; }
+.byp-page.byp-light .byp-mcta-status.st-full { color: #B45309; }
+
 /* status card large label — same vibrant values as dark mode */
 .byp-page.byp-light .byp-sum-card.st-open   .byp-sum-number { color: #6FBE85; }
-.byp-page.byp-light .byp-sum-card.st-busy   .byp-sum-number { color: #D9A23F; }
-.byp-page.byp-light .byp-sum-card.st-almost .byp-sum-number { color: #E8A020; }
-.byp-page.byp-light .byp-sum-card.st-full   .byp-sum-number { color: #C9824E; }
+.byp-page.byp-light .byp-sum-card.st-busy   .byp-sum-number { color: #4F9E65; }
+.byp-page.byp-light .byp-sum-card.st-almost .byp-sum-number { color: #E83E8C; }
+.byp-page.byp-light .byp-sum-card.st-full   .byp-sum-number { color: #B45309; }
 .byp-page.byp-light .byp-sum-card.st-closed .byp-sum-number { color: #D56454; }
 
 /* card glow blob — decorative, use original vibrant dark-mode colors */
 .byp-page.byp-light .byp-sum-card.st-open::before   { background: #6FBE85; }
-.byp-page.byp-light .byp-sum-card.st-busy::before   { background: #D9A23F; }
-.byp-page.byp-light .byp-sum-card.st-almost::before { background: #E8A020; }
-.byp-page.byp-light .byp-sum-card.st-full::before   { background: #C9824E; }
+.byp-page.byp-light .byp-sum-card.st-busy::before   { background: #4F9E65; }
+.byp-page.byp-light .byp-sum-card.st-almost::before { background: #E83E8C; }
+.byp-page.byp-light .byp-sum-card.st-full::before   { background: #B45309; }
 .byp-page.byp-light .byp-sum-card.st-closed::before { background: #D56454; }
 
 /* menu image caption */
