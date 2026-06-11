@@ -450,7 +450,7 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
               ['Date',       'expenseDate'],
               ['Category',   'category'],
               ['Name',       'description'],
-              ['Qty × Unit', null],
+              ['Qty × Price', null],
               ['Amount',     'amount'],
               ['',           null],
             ] as [string, keyof ExpenseRow | null][]).map(([h, k]) => k ? (
