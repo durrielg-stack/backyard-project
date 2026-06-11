@@ -249,7 +249,7 @@ function TransactionsPanel({ transactions, saleItems }: { transactions: Transact
                 display: 'grid', gridTemplateColumns: TX_COLS,
                 padding: '0 14px', height: 36, alignItems: 'center',
                 borderBottom: `1px solid ${T.line}`,
-                background: i % 2 === 0 ? T.surface2 : 'transparent',
+                background: i % 2 === 0 ? T.surface : T.bg,
                 opacity: tx.isRefund ? 0.55 : 1,
               }}>
                 <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute, fontVariantNumeric: 'tabular-nums' }}>{tx.time}</span>
@@ -278,7 +278,7 @@ function TransactionsPanel({ transactions, saleItems }: { transactions: Transact
                 display: 'grid', gridTemplateColumns: ITEM_COLS,
                 padding: '0 14px', height: 36, alignItems: 'center',
                 borderBottom: `1px solid ${T.line}`,
-                background: i % 2 === 0 ? T.surface2 : 'transparent',
+                background: i % 2 === 0 ? T.surface : T.bg,
               }}>
                 <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute, fontVariantNumeric: 'tabular-nums' }}>{row.time}</span>
                 <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textDim }}>{row.tableId}</span>
@@ -316,7 +316,7 @@ function ExpensesListPanel({ expenseRows }: { expenseRows: ExpenseRow[] }) {
             display: 'grid', gridTemplateColumns: EX_COLS,
             padding: '0 14px', height: 36, alignItems: 'center',
             borderBottom: `1px solid ${T.line}`,
-            background: i % 2 === 0 ? T.surface2 : 'transparent',
+            background: i % 2 === 0 ? T.surface : T.bg,
           }}>
             <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute, fontVariantNumeric: 'tabular-nums' }}>{row.time}</span>
             <span style={{ fontSize: 10, fontWeight: 600, color: getCatColor(T)[row.category] ?? T.textDim }}>{row.category}</span>
