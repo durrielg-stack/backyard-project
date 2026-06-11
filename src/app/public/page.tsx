@@ -275,6 +275,29 @@ function getPreOpenAccent(now: Date): PreOpenState {
   return { color, label: hour < 15 ? 'preparing' : 'opening-soon' }
 }
 
+function getCountdownText(now: Date, isTuesday: boolean): string {
+  if (isTuesday) return 'Opens tomorrow'
+  const manila = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' }))
+  const hour = manila.getHours()
+  const min  = manila.getMinutes()
+  const totalMin = hour * 60 + min
+
+  function fmt(prefix: string, minsLeft: number): string {
+    const h = Math.floor(minsLeft / 60)
+    const m = minsLeft % 60
+    return h >= 1 ? `${prefix} in ${h}h ${m}m` : `${prefix} in ${m}m`
+  }
+
+  // Bar open: 16:00–24:00 (midnight)
+  if (hour >= 16) {
+    const minsLeft = Math.max(0, 24 * 60 - totalMin)
+    return fmt('Closes', minsLeft)
+  }
+  // Closed: count up to 16:00 today
+  const minsLeft = Math.max(0, 16 * 60 - totalMin)
+  return fmt('Opens', minsLeft)
+}
+
 function getAvailState(now: Date, isOpen: boolean, free: number): AvailState {
   const manila = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' }))
   const day  = manila.getDay()
@@ -484,7 +507,7 @@ function SiteHeader({ summary, theme, onToggleTheme }: { summary: Summary; theme
 /* ============================================================
    HERO
    ============================================================ */
-function Hero({ summary, currentMsg, totalTables, preOpen, theme, isTuesday }: { summary: Summary; currentMsg: string; totalTables: number; preOpen: PreOpenState; theme: 'dark' | 'light'; isTuesday: boolean }) {
+function Hero({ summary, currentMsg, totalTables, preOpen, theme, countdownText }: { summary: Summary; currentMsg: string; totalTables: number; preOpen: PreOpenState; theme: 'dark' | 'light'; countdownText: string }) {
   return (
     <section className="byp-hero" id="top">
       <div className="byp-hero-glow" />
@@ -507,7 +530,7 @@ function Hero({ summary, currentMsg, totalTables, preOpen, theme, isTuesday }: {
             </span>
             <span className="byp-op-meta">
               <IcClock width={15} height={15} />
-              {summary.open ? 'Closes 12 MN tonight' : isTuesday ? 'Opens tomorrow' : 'Opens 4 PM'}
+              {countdownText}
             </span>
           </div>
         </div>
@@ -684,7 +707,7 @@ function BusyMeter({ openNow, totalTables }: { openNow: boolean; totalTables: nu
         <span className="byp-busy-now">
           {openNow
             ? usingFallback ? 'Typical night' : `Typical ${DAY_NAMES[manilaWeekday]} nights`
-            : manilaWeekday === 2 ? 'Opens tomorrow' : 'Opens at 4 PM'}
+            : getCountdownText(new Date(), manilaWeekday === 2)}
         </span>
       </div>
       <div className="byp-busy-bars">
@@ -1069,7 +1092,7 @@ export default function TablesPage() {
   return (
     <div className={'byp-page' + (theme === 'light' ? ' byp-light' : '')}>
       <SiteHeader summary={summary} theme={theme} onToggleTheme={toggleTheme} />
-      <Hero summary={summary} currentMsg={currentMsg} totalTables={rawTables.length} preOpen={preOpen} theme={theme} isTuesday={new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' })).getDay() === 2} />
+      <Hero summary={summary} currentMsg={currentMsg} totalTables={rawTables.length} preOpen={preOpen} theme={theme} countdownText={getCountdownText(now, new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' })).getDay() === 2)} />
 
       {/* <TablesSection tables={tables} /> */}
       <MenuSection onZoom={onZoom} />
