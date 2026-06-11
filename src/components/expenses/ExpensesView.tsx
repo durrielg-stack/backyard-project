@@ -485,7 +485,7 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
                 display: 'grid', gridTemplateColumns: '90px 80px 120px 1fr 180px 100px 36px',
                 padding: '0 24px', height: 44, alignItems: 'center',
                 borderBottom: `1px solid ${T.line}`,
-                background: i % 2 === 0 ? 'transparent' : T.surface,
+                background: i % 2 === 0 ? T.surface : T.bg,
               }}>
                 <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute, fontVariantNumeric: 'tabular-nums' }}>{time}</span>
                 <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute }}>{row.expenseDate.slice(5)}</span>
