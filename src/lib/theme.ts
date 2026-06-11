@@ -52,10 +52,10 @@ export const THEME: Theme = {
 }
 
 export const LIGHT_THEME: Theme = {
-  bg:        '#F5F5F7',
+  bg:        '#F4EEE3',
   surface:   '#FFFFFF',
-  surface2:  '#E5E7EB',
-  surface3:  '#D1D5DB',
+  surface2:  '#FBF6EC',
+  surface3:  '#F0E9DC',
 
   line:      '#D1D5DB',
   line2:     '#C0C4CC',
