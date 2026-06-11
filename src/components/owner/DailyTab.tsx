@@ -4,7 +4,7 @@ import { useTheme } from '@/lib/ThemeContext'
 import { useState, useCallback, useEffect } from 'react'
 import { getClient } from '@/lib/supabase'
 import { SectionHd, fmtPeso } from './ownerShared'
-import { localDateStr, parseLocalDate, currentShiftDate } from '@/lib/dateNav'
+import { localDateStr, shiftLocalDate, parseLocalDate, currentShiftDate } from '@/lib/dateNav'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { BUDGET_CATS, SALES_CAT_MAP, EXP_CAT_MAP, emptyBycat } from './BudgetTab'
 import { computeDailyOpex } from './OpexTab'
@@ -103,10 +103,10 @@ export default function DailyTab({ staffName }: { staffName: string }) {
 
     // ── Group daily data ───────────────────────────────────────────────────
 
-    // Sales: sum payments by local date
+    // Sales: sum payments by shift date (midnight–3 AM counts as previous day)
     const salesByDate: Record<string, number> = {}
     for (const r of (payRows ?? [])) {
-      const d = localDateStr(new Date(r.processed_at as string))
+      const d = shiftLocalDate(new Date(r.processed_at as string))
       salesByDate[d] = (salesByDate[d] ?? 0) + (r.amount as number)
     }
 
@@ -199,8 +199,9 @@ export default function DailyTab({ staffName }: { staffName: string }) {
       catchupDates.pop() // exclude the first daily date (handled in main loop)
       for (const d of catchupDates) {
         const cogs    = cogsByDate[d] ?? 0
-        const dayOpex = Math.ceil(computeDailyOpex(opexItems, opexConfigs[d.slice(0, 7)] ?? null))
         const bExp    = budgetExpByDate[d] ?? 0
+        const hasActivity = cogs > 0 || bExp > 0
+        const dayOpex = hasActivity ? Math.ceil(computeDailyOpex(opexItems, opexConfigs[d.slice(0, 7)] ?? null)) : 0
         runningBudget += cogs + dayOpex - bExp
       }
     }
@@ -214,10 +215,11 @@ export default function DailyTab({ staffName }: { staffName: string }) {
       const adjNet     = adjDetails.reduce((s, a) => s + a.amount, 0)
       const ending     = starting + sales - expenses - savings + adjNet
 
-      // Budget running total for this day
+      // Budget running total for this day — only allocate OPEX on days with activity
       const cogs    = cogsByDate[date] ?? 0
-      const dayOpex = Math.ceil(computeDailyOpex(opexItems, opexConfigs[date.slice(0, 7)] ?? null))
       const bExp    = budgetExpByDate[date] ?? 0
+      const hasActivity = (salesByDate[date] ?? 0) > 0 || (expByDate[date] ?? 0) > 0
+      const dayOpex = hasActivity ? Math.ceil(computeDailyOpex(opexItems, opexConfigs[date.slice(0, 7)] ?? null)) : 0
       runningBudget += cogs + dayOpex - bExp
       const budgetEnd = runningBudget
 
