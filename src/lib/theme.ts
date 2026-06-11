@@ -53,7 +53,7 @@ export const THEME: Theme = {
 
 export const LIGHT_THEME: Theme = {
   bg:        '#F4EEE3',
-  surface:   '#FFFFFF',
+  surface:   '#FAF9F6',
   surface2:  '#E5E7EB',
   surface3:  '#F0E9DC',
 
