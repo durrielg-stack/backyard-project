@@ -378,9 +378,9 @@ function deriveSummary(tables: { status: Status }[], closed: boolean, updatedAt:
   const occPct = (!open || total === 0) ? 0 : Math.round(((total - free) / total) * 100)
   let tone: Summary['tone'] = 'open'
   if (!open) tone = 'closed'
-  else if (free === 0) tone = 'full'
-  else if (free <= 3) tone = 'almost'
-  else if (free <= 8) tone = 'busy'
+  else if (occPct === 100) tone = 'full'
+  else if (occPct >= 51)  tone = 'almost'
+  else if (occPct >= 21)  tone = 'busy'
   let wait = ''
   if (!open) wait = '--'
   else if (free >= 10) wait = 'No wait'
