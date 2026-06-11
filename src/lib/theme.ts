@@ -54,15 +54,15 @@ export const THEME: Theme = {
 export const LIGHT_THEME: Theme = {
   bg:        '#F4EEE3',
   surface:   '#FAF9F6',
-  surface2:  '#E5E7EB',
+  surface2:  '#B8A898',
   surface3:  '#F0E9DC',
 
   line:      '#D1D5DB',
   line2:     '#C0C4CC',
 
   text:      '#111827',
-  textDim:   '#6B7280',
-  textMute:  '#9CA3AF',
+  textDim:   '#4B5563',
+  textMute:  '#6B7280',
 
   accent:    '#2563EB',
   accentInk: '#FFFFFF',
