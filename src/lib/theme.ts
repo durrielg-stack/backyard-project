@@ -5,7 +5,7 @@
 export interface Theme {
   bg: string; surface: string; surface2: string; surface3: string
   line: string; line2: string
-  text: string; textDim: string; textMute: string
+  text: string; textDim: string; textMute: string; headerText: string
   accent: string; accentInk: string
   ok: string; warn: string; bad: string; info: string
   chip: string; chipBd: string
@@ -28,6 +28,7 @@ export const THEME: Theme = {
   text:      '#E5E7EB',
   textDim:   '#9CA3AF',
   textMute:  '#6B7280',
+  headerText: '#6B7280',
 
   accent:    '#5EEAD4',
   accentInk: '#0F1115',
@@ -63,6 +64,7 @@ export const LIGHT_THEME: Theme = {
   text:      '#111827',
   textDim:   '#4B5563',
   textMute:  '#6B7280',
+  headerText: '#111827',
 
   accent:    '#2563EB',
   accentInk: '#FFFFFF',

@@ -242,7 +242,7 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
       {isMobile ? (
         <div style={{ flexShrink: 0, background: T.bg, borderBottom: `1px solid ${T.line}` }}>
           <div style={{ height: 44, padding: '0 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>Expenses</span>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText }}>Expenses</span>
             <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: T.bad, background: `${T.bad}18`, border: `1px solid ${T.bad}44`, padding: '2px 8px', borderRadius: T.radius }}>
               {fmtPeso(totalShown)}
             </span>
@@ -294,7 +294,7 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
           background: T.bg, borderBottom: `1px solid ${T.line}`,
           display: 'flex', alignItems: 'center', gap: 12,
         }}>
-          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>Expenses</span>
+          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText }}>Expenses</span>
           <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: T.bad, background: `${T.bad}18`, border: `1px solid ${T.bad}44`, padding: '2px 8px', borderRadius: T.radius }}>
             {fmtPeso(totalShown)}
           </span>
@@ -454,11 +454,11 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
               ['Amount',     'amount'],
               ['',           null],
             ] as [string, keyof ExpenseRow | null][]).map(([h, k]) => k ? (
-              <button key={h} onClick={() => sortToggle(k)} style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, display: 'flex', alignItems: 'center', gap: 3, textAlign: 'left' }}>
+              <button key={h} onClick={() => sortToggle(k)} style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText, display: 'flex', alignItems: 'center', gap: 3, textAlign: 'left' }}>
                 {h}<span style={{ fontSize: 8, opacity: 0.7 }}>{sortIcon(k)}</span>
               </button>
             ) : (
-              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
+              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText }}>{h}</span>
             ))}
           </div>
           {loading ? (
@@ -514,7 +514,7 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
               {filteredRows.length} of {rows.length} expenses
             </span>
           )}
-          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute }}>
+          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.headerText }}>
             {search ? `Total for "${search}"` : `Total ${nav.mode === 'today' ? 'Today' : nav.mode === 'week' ? 'This Week' : 'This Month'}`}
           </span>
           <span style={{ fontFamily: T.mono, fontSize: 18, fontWeight: 700, color: T.bad, fontVariantNumeric: 'tabular-nums' }}>

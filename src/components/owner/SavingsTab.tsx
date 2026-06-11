@@ -181,11 +181,11 @@ export default function SavingsTab() {
           ['Paid Out', null],
           ['',         null],
         ] as [string, keyof Remittance | null][]).map(([h, k]) => k ? (
-          <button key={h} onClick={() => sortToggle(k)} style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, display: 'flex', alignItems: 'center', gap: 3 }}>
+          <button key={h} onClick={() => sortToggle(k)} style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText, display: 'flex', alignItems: 'center', gap: 3 }}>
             {h}<span style={{ fontSize: 8, opacity: 0.7 }}>{sortIcon(k)}</span>
           </button>
         ) : (
-          <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
+          <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText }}>{h}</span>
         ))}
       </div>
 
@@ -216,7 +216,7 @@ export default function SavingsTab() {
                   <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y' }}>
                   <div style={{ minWidth: 560 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: `140px repeat(${PARTNERS.length}, 1fr)`, gap: 0, marginBottom: 8 }}>
-                    <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute }}></span>
+                    <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.headerText }}></span>
                     {PARTNERS.map(p => (
                       <span key={p} style={{ fontSize: 11, fontWeight: 700, color: T.textDim, textAlign: 'right' }}>{p}</span>
                     ))}

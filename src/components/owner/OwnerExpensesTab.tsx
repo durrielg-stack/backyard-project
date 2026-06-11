@@ -211,7 +211,7 @@ export default function OwnerExpensesTab() {
         borderBottom: `1px solid ${T.line}`, background: T.surface2,
       }}>
         {['Time','Category','Description','Qty × Unit','Paid To','Receipt','Amount',''].map(h => (
-          <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
+          <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText }}>{h}</span>
         ))}
       </div>
         </div>
@@ -268,7 +268,7 @@ export default function OwnerExpensesTab() {
           display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10,
           flexShrink: 0,
         }}>
-          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute }}>
+          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.headerText }}>
             Total Expenses Today
           </span>
           <span style={{ fontFamily: T.mono, fontSize: 18, fontWeight: 700, color: T.bad, fontVariantNumeric: 'tabular-nums' }}>

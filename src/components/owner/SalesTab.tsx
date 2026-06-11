@@ -188,7 +188,7 @@ export default function SalesTab() {
     fontWeight: 700,
     letterSpacing: '0.1em',
     textTransform: 'uppercase',
-    color: T.textMute,
+    color: T.headerText,
     textAlign: align,
     background: T.surface2,
     borderBottom: `1px solid ${T.line}`,
@@ -226,7 +226,7 @@ export default function SalesTab() {
       {isMobile ? (
         <div style={{ borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
           <div style={{ height: 44, padding: '0 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>Sales</span>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText }}>Sales</span>
             {lines.length > 0 && (
               <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: T.accent, background: `${T.accent}18`, border: `1px solid ${T.accent}44`, padding: '2px 8px', borderRadius: T.radius }}>
                 {lines.length} items
@@ -314,7 +314,7 @@ export default function SalesTab() {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           {/* Toggle header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', height: 34, borderBottom: `1px solid ${T.line}`, flexShrink: 0, background: T.surface2 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.textMute }}>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.headerText }}>
               {`${sortedSummary.length} unique item${sortedSummary.length !== 1 ? 's' : ''}`}
             </span>
             <div style={{ display: 'flex', gap: 2 }}>

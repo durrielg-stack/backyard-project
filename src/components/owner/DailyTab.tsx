@@ -345,7 +345,7 @@ export default function DailyTab({ staffName }: { staffName: string }) {
             borderBottom: `1px solid ${T.line}`, background: T.surface2,
           }}>
             {(['Date','Starting','Expenses','Sales','Savings','Ending','Budget','vs Cash','Cash Flow',''] as string[]).map((h, i) => (
-              <span key={h || `col-${i}`} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, textAlign: h === 'Date' ? 'left' : 'right' }}>{h}</span>
+              <span key={h || `col-${i}`} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.headerText, textAlign: h === 'Date' ? 'left' : 'right' }}>{h}</span>
             ))}
           </div>
         </div>

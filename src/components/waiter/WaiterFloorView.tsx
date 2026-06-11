@@ -142,7 +142,7 @@ export default function WaiterFloorView({ waiterName, onTableSelect, onSignOut }
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>{table.label}</span>
               </div>
-              <div style={{ fontSize: 11, color: isOccupied ? dotColor : T.textMute, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <div style={{ fontSize: 11, color: isOccupied ? dotColor : T.headerText, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 {statusLabel}
               </div>
               {order && (

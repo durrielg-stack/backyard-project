@@ -97,7 +97,7 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: StaffPickerProps) {
             <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.01em', color: T.text }}>
               The Backyard Project
             </div>
-            <div style={{ fontSize: 11, color: T.textMute, fontFamily: T.mono, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: 11, color: T.headerText, fontFamily: T.mono, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
               POS · Sign In
             </div>
           </div>

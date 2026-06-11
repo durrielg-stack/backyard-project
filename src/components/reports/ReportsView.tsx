@@ -60,7 +60,7 @@ function SalesKpiStrip({ suffix, revenue, cost, expenses, txCount, avgOrder, avg
           minWidth: isMobile ? 140 : undefined, flexShrink: 0,
           gap: isMobile ? 4 : undefined,
         }}>
-          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, whiteSpace: 'nowrap' }}>{k.label}</div>
+          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText, whiteSpace: 'nowrap' }}>{k.label}</div>
           <div style={{ fontSize: 19, fontWeight: 700, fontFamily: T.mono, letterSpacing: '-0.02em', color: k.color, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{k.value}</div>
           <div style={{ fontSize: 10, color: T.textMute, fontWeight: 500 }}>{k.note}</div>
         </div>
@@ -94,7 +94,7 @@ function ExpensesKpiStrip({ expenses, expCatBreakdown }: {
             minWidth: isMobile2 ? 130 : undefined, flexShrink: 0,
             gap: isMobile2 ? 4 : undefined,
           }}>
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: getCatColor(T)[cat] ?? T.textMute }}>{cat}</div>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: getCatColor(T)[cat] ?? T.headerText }}>{cat}</div>
             <div style={{ fontSize: 17, fontWeight: 700, fontFamily: T.mono, color: val > 0 ? T.bad : T.textMute, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{fp(val)}</div>
             <div style={{ fontSize: 10, color: T.textMute }}>{fp(expenses)} total</div>
           </div>
@@ -212,7 +212,7 @@ function TransactionsPanel({ transactions, saleItems }: { transactions: Transact
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, borderRight: `1px solid ${T.line}` }}>
       {/* Header with toggle */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 14px', height: 36, borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
-        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.textMute }}>
+        <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.headerText }}>
           Sales Transactions
           <span style={{ marginLeft: 6, fontFamily: T.mono, color: T.accent, background: `${T.accent}18`, border: `1px solid ${T.accent}33`, padding: '1px 6px', borderRadius: 99, fontSize: 9 }}>
             {view === 'tx' ? transactions.length : saleItems.length}
@@ -240,7 +240,7 @@ function TransactionsPanel({ transactions, saleItems }: { transactions: Transact
         {view === 'tx' ? (
           <div style={{ minWidth: 420 }}>
             <div style={{ display: 'grid', gridTemplateColumns: TX_COLS, padding: '0 14px', height: 30, alignItems: 'center', borderBottom: `1px solid ${T.line}`, flexShrink: 0, position: 'sticky', top: 0, background: T.surface2, zIndex: 1 }}>
-              {TX_HDRS.map(h => <span key={h} style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>)}
+              {TX_HDRS.map(h => <span key={h} style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText }}>{h}</span>)}
             </div>
             {transactions.length === 0 ? (
               <div style={{ padding: '20px 14px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No transactions</div>
@@ -269,7 +269,7 @@ function TransactionsPanel({ transactions, saleItems }: { transactions: Transact
         ) : (
           <div style={{ minWidth: 420 }}>
             <div style={{ display: 'grid', gridTemplateColumns: ITEM_COLS, padding: '0 14px', height: 30, alignItems: 'center', borderBottom: `1px solid ${T.line}`, flexShrink: 0, position: 'sticky', top: 0, background: T.surface2, zIndex: 1 }}>
-              {ITEM_HDRS.map(h => <span key={h} style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>)}
+              {ITEM_HDRS.map(h => <span key={h} style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText }}>{h}</span>)}
             </div>
             {saleItems.length === 0 ? (
               <div style={{ padding: '20px 14px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No items</div>
@@ -307,7 +307,7 @@ function ExpensesListPanel({ expenseRows }: { expenseRows: ExpenseRow[] }) {
       <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none', WebkitOverflowScrolling: 'touch' }}>
         <div style={{ minWidth: 300 }}>
         <div style={{ display: 'grid', gridTemplateColumns: EX_COLS, padding: '0 14px', height: 30, alignItems: 'center', borderBottom: `1px solid ${T.line}`, flexShrink: 0, position: 'sticky', top: 0, background: T.surface2, zIndex: 1 }}>
-          {EX_HDRS.map(h => <span key={h} style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>)}
+          {EX_HDRS.map(h => <span key={h} style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText }}>{h}</span>)}
         </div>
         {expenseRows.length === 0 ? (
           <div style={{ padding: '20px 14px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No expenses</div>

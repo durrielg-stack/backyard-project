@@ -93,7 +93,7 @@ export default function MenuTab() {
               ['Cost',      'cost'],
               ['Available', 'isAvailable'],
             ] as [string, keyof MenuRow][]).map(([h, k]) => (
-              <button key={h} onClick={() => sortToggle(k)} style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, display: 'flex', alignItems: 'center', gap: 3, textAlign: 'left' }}>
+              <button key={h} onClick={() => sortToggle(k)} style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText, display: 'flex', alignItems: 'center', gap: 3, textAlign: 'left' }}>
                 {h}<span style={{ fontSize: 8, opacity: 0.7 }}>{sortIcon(k)}</span>
               </button>
             ))}

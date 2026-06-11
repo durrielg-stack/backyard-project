@@ -191,7 +191,7 @@ export default function KitchenView({ session, onSignOut }: { session: Session; 
           display: 'flex', alignItems: 'center', gap: 10,
           background: T.bg, borderBottom: `1px solid ${T.line}`,
         }}>
-          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>
+          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText }}>
             Kitchen
           </span>
           {cards.length > 0 && (

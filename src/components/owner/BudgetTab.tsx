@@ -398,7 +398,7 @@ export default function BudgetTab() {
         <div style={{ flexShrink: 0, borderBottom: `1px solid ${T.line}` }}>
           {/* Row 1: title + badge */}
           <div style={{ height: 44, padding: '0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText }}>
               {budgetView === 'day' ? 'Daily Budget' : 'Running Ledger'}
             </span>
             <span style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 600, color: T.accent, background: `${T.accent}18`, border: `1px solid ${T.accent}44`, padding: '2px 8px', borderRadius: T.radius }}>
@@ -468,7 +468,7 @@ export default function BudgetTab() {
               {/* Column header */}
               <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr 1fr 1fr 1fr', padding: '0 24px', height: 36, alignItems: 'center', borderBottom: `1px solid ${T.line}`, background: T.surface2, position: 'sticky', top: 0, zIndex: 1 }}>
                 {['Category', 'Starting', 'COGS+OPEX', 'Expenses', 'Ending'].map(h => (
-                  <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
+                  <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText }}>{h}</span>
                 ))}
               </div>
               {BUDGET_CATS.map((cat, i) => {
@@ -488,7 +488,7 @@ export default function BudgetTab() {
               })}
               {/* Totals row — close inner divs after this */}
               <div style={{ display: 'grid', gridTemplateColumns: '180px 1fr 1fr 1fr 1fr', padding: '0 24px', height: 52, alignItems: 'center', background: T.surface2 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: T.textMute }}>Total</span>
+                <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: T.headerText }}>Total</span>
                 <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: totalStarting >= 0 ? T.ok : T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(totalStarting)}</span>
                 <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: T.ok, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(totalIncoming)}</span>
                 <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtSign(totalExpenses)}</span>
@@ -527,7 +527,7 @@ export default function BudgetTab() {
                   </div>
                   <div style={{ display: 'flex', borderBottom: `2px solid ${T.line}` }}>
                     <div style={{ width: DATE_W, flexShrink: 0, height: 30, display: 'flex', alignItems: 'center', paddingLeft: 14, position: 'sticky', left: 0, background: T.surface2, zIndex: 4 }}>
-                      <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.textMute }}>Date</span>
+                      <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.headerText }}>Date</span>
                     </div>
                     {GROUPS_L.map(g => (
                       <div key={g.key} style={{ display: 'flex', borderLeft: `1px solid ${T.line}` }}>

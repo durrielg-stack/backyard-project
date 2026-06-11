@@ -77,7 +77,7 @@ export default function TablesTab({
             borderBottom: `1px solid ${T.line}`, background: T.surface2, flexShrink: 0,
           }}>
             {['Table','Section','Seats','Status','Open','Check','Actions'].map(h => (
-              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
+              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText }}>{h}</span>
             ))}
           </div>
 

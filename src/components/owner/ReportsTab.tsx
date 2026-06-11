@@ -242,7 +242,7 @@ export default function ReportsTab() {
       {isMobile ? (
         <div style={{ borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
           <div style={{ height: 44, padding: '0 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>Reports</span>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText }}>Reports</span>
           </div>
           <div className="bp-no-scrollbar" style={{ padding: '0 16px 10px', overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
             <DateRangeNav mode={nav.mode} date={nav.date} weekRef={nav.weekRef} month={nav.month} year={nav.year} onModeChange={nav.setMode} onDateChange={nav.setDate} onWeekChange={nav.setWeekRef} onMonthChange={nav.setMonth} />
@@ -474,11 +474,11 @@ export default function ReportsTab() {
               <table style={{ borderCollapse: 'collapse', minWidth: 580, width: '100%' }}>
                 <thead>
                   <tr>
-                    <th style={{ padding: '8px 16px', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.textMute, textAlign: 'left', background: T.surface2, borderBottom: `1px solid ${T.line}`, position: 'sticky', top: 0, left: 0, zIndex: 4, minWidth: 160, whiteSpace: 'nowrap' }}>Category</th>
-                    <th style={{ padding: '8px 16px', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.textMute, textAlign: 'right', background: T.surface2, borderBottom: `1px solid ${T.line}`, position: 'sticky', top: 0, zIndex: 2, minWidth: 130, whiteSpace: 'nowrap' }}>Gross</th>
-                    <th style={{ padding: '8px 16px', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.textMute, textAlign: 'right', background: T.surface2, borderBottom: `1px solid ${T.line}`, position: 'sticky', top: 0, zIndex: 2, minWidth: 130, whiteSpace: 'nowrap' }}>Cost</th>
-                    <th style={{ padding: '8px 16px', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.textMute, textAlign: 'right', background: T.surface2, borderBottom: `1px solid ${T.line}`, position: 'sticky', top: 0, zIndex: 2, minWidth: 130, whiteSpace: 'nowrap' }}>Net</th>
-                    <th style={{ padding: '8px 16px', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.textMute, textAlign: 'right', background: T.surface2, borderBottom: `1px solid ${T.line}`, position: 'sticky', top: 0, zIndex: 2, minWidth: 90, whiteSpace: 'nowrap' }}>Margin</th>
+                    <th style={{ padding: '8px 16px', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.headerText, textAlign: 'left', background: T.surface2, borderBottom: `1px solid ${T.line}`, position: 'sticky', top: 0, left: 0, zIndex: 4, minWidth: 160, whiteSpace: 'nowrap' }}>Category</th>
+                    <th style={{ padding: '8px 16px', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.headerText, textAlign: 'right', background: T.surface2, borderBottom: `1px solid ${T.line}`, position: 'sticky', top: 0, zIndex: 2, minWidth: 130, whiteSpace: 'nowrap' }}>Gross</th>
+                    <th style={{ padding: '8px 16px', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.headerText, textAlign: 'right', background: T.surface2, borderBottom: `1px solid ${T.line}`, position: 'sticky', top: 0, zIndex: 2, minWidth: 130, whiteSpace: 'nowrap' }}>Cost</th>
+                    <th style={{ padding: '8px 16px', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.headerText, textAlign: 'right', background: T.surface2, borderBottom: `1px solid ${T.line}`, position: 'sticky', top: 0, zIndex: 2, minWidth: 130, whiteSpace: 'nowrap' }}>Net</th>
+                    <th style={{ padding: '8px 16px', fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.headerText, textAlign: 'right', background: T.surface2, borderBottom: `1px solid ${T.line}`, position: 'sticky', top: 0, zIndex: 2, minWidth: 90, whiteSpace: 'nowrap' }}>Margin</th>
                   </tr>
                 </thead>
                 <tbody>

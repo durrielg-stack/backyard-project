@@ -236,7 +236,7 @@ export default function OpexTab() {
           {/* Header */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px 120px 90px 36px', padding: '0 16px', height: 36, alignItems: 'center', borderBottom: `1px solid ${T.line}`, background: T.surface2, flexShrink: 0 }}>
             {['Name','Type','Amount','Band Day',''].map(h => (
-              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>{h}</span>
+              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText }}>{h}</span>
             ))}
           </div>
           <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
@@ -279,7 +279,7 @@ export default function OpexTab() {
               <span style={{ fontSize: 11, color: T.textMute }}>{items.filter(i => i.isActive).length} active items</span>
               <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 10, color: T.textMute, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Monthly Total</div>
+                  <div style={{ fontSize: 10, color: T.headerText, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Monthly Total</div>
                   <div style={{ fontFamily: T.mono, fontSize: 15, fontWeight: 700, color: T.ok }}>{fmtPeso(monthlyTotal)}</div>
                 </div>
               </div>
@@ -300,7 +300,7 @@ export default function OpexTab() {
           {/* Monthly config card */}
           <div style={{ background: T.surface2, border: `1px solid ${T.line}`, borderRadius: T.radiusLg, padding: 14, marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>Monthly Config</span>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText }}>Monthly Config</span>
               {!cfgEdit && (
                 <button onClick={() => setCfgEdit(true)} style={{ fontSize: 11, padding: '2px 8px', background: T.chip, border: `1px solid ${T.line2}`, color: T.textDim, borderRadius: T.radius, cursor: 'pointer' }}>
                   {cfg ? 'Edit' : 'Set Up'}

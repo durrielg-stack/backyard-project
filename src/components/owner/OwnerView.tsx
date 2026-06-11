@@ -441,7 +441,7 @@ function TablesTab({ liveTableStatuses }: { liveTableStatuses: TableWithStatus[]
             position: 'sticky', top: 0, zIndex: 1,
           }}>
             {['Table','Section','Seats','Status','Open','Check','Actions'].map(h => (
-              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>
+              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText }}>
                 {h}
               </span>
             ))}
@@ -582,7 +582,7 @@ function MenuTab() {
             position: 'sticky', top: 0, zIndex: 1,
           }}>
             {['Name','Category','Price','Cost','Available'].map(h => (
-              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>
+              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText }}>
                 {h}
               </span>
             ))}
@@ -723,7 +723,7 @@ function InventoryTab() {
             position: 'sticky', top: 0, zIndex: 1,
           }}>
             {['Item','Category','Qty','Unit','Threshold','Adjust'].map(h => (
-              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>
+              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText }}>
                 {h}
               </span>
             ))}
@@ -993,7 +993,7 @@ function ExpensesTab() {
         position: 'sticky', top: 0, zIndex: 1,
       }}>
         {['Time','Category','Description','Qty × Unit','Paid To','Receipt','Amount',''].map(h => (
-          <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute }}>
+          <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText }}>
             {h}
           </span>
         ))}
@@ -1048,7 +1048,7 @@ function ExpensesTab() {
           display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10,
           flexShrink: 0,
         }}>
-          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute }}>
+          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.headerText }}>
             Total Expenses Today
           </span>
           <span style={{ fontFamily: T.mono, fontSize: 18, fontWeight: 700, color: T.bad, fontVariantNumeric: 'tabular-nums' }}>
@@ -1267,7 +1267,7 @@ function SavingsTab() {
                   <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
                   <div style={{ minWidth: 480, padding: '12px 24px 16px' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: `140px repeat(${PARTNERS.length}, 1fr)`, gap: 0, marginBottom: 8 }}>
-                    <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute }}></span>
+                    <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.headerText }}></span>
                     {PARTNERS.map(p => (
                       <span key={p} style={{ fontSize: 11, fontWeight: 700, color: T.textDim, textAlign: 'right' }}>{p}</span>
                     ))}

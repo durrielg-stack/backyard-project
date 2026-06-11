@@ -78,7 +78,7 @@ export default function WaiterLogin({ onLogin }: Props) {
             fontSize: 20, fontWeight: 800, marginBottom: 12,
           }}>B</div>
           <div style={{ fontSize: 18, fontWeight: 700, color: T.text }}>The Backyard Project</div>
-          <div style={{ fontSize: 11, color: T.textMute, fontFamily: T.mono, letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 4 }}>
+          <div style={{ fontSize: 11, color: T.headerText, fontFamily: T.mono, letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 4 }}>
             Waiter Access
           </div>
         </div>
