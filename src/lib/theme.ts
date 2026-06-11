@@ -64,13 +64,13 @@ export const LIGHT_THEME: Theme = {
   textDim:   '#6B7280',
   textMute:  '#9CA3AF',
 
-  accent:    '#0A84FF',
+  accent:    '#2563EB',
   accentInk: '#FFFFFF',
 
-  ok:        '#30D158',
-  warn:      '#FF9F0A',
-  bad:       '#FF453A',
-  info:      '#38BDF8',
+  ok:        '#16A34A',
+  warn:      '#D97706',
+  bad:       '#DC2626',
+  info:      '#0284C7',
 
   chip:      'rgba(10,132,255,0.08)',
   chipBd:    'rgba(10,132,255,0.16)',
