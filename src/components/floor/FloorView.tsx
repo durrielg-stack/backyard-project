@@ -382,7 +382,7 @@ function TableCard({
   onRemove?: () => void
 }) {
   const { T } = useTheme()
-  const color     = statusColor(table.status)
+  const color     = statusColor(table.status, T)
   const isAttn    = table.status === 'attention'
   const isAging   = table.status === 'aging'
   const isActive  = ['occupied','aging','attention'].includes(table.status)
