@@ -79,7 +79,7 @@ function TablePin({
 }) {
   const { T } = useTheme()
   const isBar   = table.section === 'bar'
-  const color   = statusColor(table.status)
+  const color   = statusColor(table.status, T)
   const isAttn  = table.status === 'attention'
   const isAging = table.status === 'aging'
   const isActive = ['occupied','aging','attention'].includes(table.status)

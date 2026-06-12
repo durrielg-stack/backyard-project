@@ -91,13 +91,13 @@ export const LIGHT_THEME: Theme = {
 // Status color helper — used by table cards, nav dots, ticket headers
 export type TableStatus = 'available' | 'occupied' | 'aging' | 'attention' | 'reserved'
 
-export function statusColor(status: TableStatus): string {
+export function statusColor(status: TableStatus, T: Theme = THEME): string {
   switch (status) {
-    case 'available':  return THEME.textMute
-    case 'occupied':   return THEME.accent
-    case 'aging':      return THEME.warn
-    case 'attention':  return THEME.bad
-    case 'reserved':   return THEME.info
+    case 'available':  return T.textMute
+    case 'occupied':   return T.accent
+    case 'aging':      return T.warn
+    case 'attention':  return T.bad
+    case 'reserved':   return T.info
   }
 }
 

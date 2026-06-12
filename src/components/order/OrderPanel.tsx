@@ -76,7 +76,7 @@ export default function OrderPanel({
   }, [lines.length])
 
   const disabled    = lines.length === 0
-  const statusC     = statusColor(table.status)
+  const statusC     = statusColor(table.status, T)
   const isAttn      = table.status === 'attention'
   const openMin     = table.openMin
   const hours       = Math.floor(openMin / 60)
@@ -183,7 +183,7 @@ export default function OrderPanel({
                 ['occupied',  'Occupied'],
                 ['reserved',  'Reserved'],
               ] as [ManualStatus, string][]).map(([s, label]) => {
-                const c = statusColor(s)
+                const c = statusColor(s, T)
                 const isCurrent = table.status === s || (table.status === 'aging' && s === 'occupied') || (table.status === 'attention' && s === 'occupied')
                 return (
                   <button
