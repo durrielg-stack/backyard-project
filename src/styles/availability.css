@@ -224,7 +224,7 @@ body:has(.byp-page) {
   .byp-hero-logo-row {
     display: flex;
     flex-direction: row;
-    align-items: stretch;
+    align-items: center;
     gap: 14px;
     text-align: center;
   }
@@ -233,9 +233,9 @@ body:has(.byp-page) {
     width: auto;
     max-width: 30vw;
     flex-shrink: 1;
-    align-self: stretch;
+    align-self: center;
     object-fit: contain;
-    object-position: left top;
+    object-position: left center;
   }
 }
 .byp-hero-logo {
