@@ -538,7 +538,10 @@ function Hero({ summary, currentMsg, totalTables, preOpen, theme, countdownText,
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <div className="byp-hero-logo-row">
             <img className="byp-hero-logo" src={theme === 'light' ? '/logo-square.png' : '/byp-logo.png'} alt="The Backyard Project · bar + kitchen" />
-            <h1 className="byp-hero-title">{heroTitle}</h1>
+            <h1 className="byp-hero-title">
+              {heroTitle.slice(0, heroTitle.lastIndexOf(' ') + 1)}
+              <span className="byp-amp">{heroTitle.slice(heroTitle.lastIndexOf(' ') + 1)}</span>
+            </h1>
           </div>
           <p className="byp-hero-sub">
             We refresh the page every few seconds, so you know before heading over.
