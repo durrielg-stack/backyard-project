@@ -362,9 +362,6 @@ function getHeroTitle(now: Date): string {
   return titles[slot]
 }
 
-// TESTING — flat list of all 21 titles in Sun→Sat order for rapid cycling.
-// Remove this array and the heroTick state/interval below to restore production rotation.
-const ALL_HERO_TITLES = ([0,1,2,3,4,5,6] as const).flatMap(d => HERO_TITLES[d])
 
 /* ---- types ---- */
 type Status = 'av' | 'oc' | 'rs' | 'cl'
@@ -1116,15 +1113,9 @@ export default function TablesPage() {
     return pool[msgTick % pool.length]
   }, [now, summary.open, summary.free, summary.total, msgTick])
 
-  // TESTING — cycles all 21 titles every 10 s. Remove heroTick state + interval
-  // and restore the useMemo below for production 30-min rotation.
-  const [heroTick, setHeroTick] = useState(0)
-  useEffect(() => {
-    const id = setInterval(() => setHeroTick(t => t + 1), 10_000)
-    return () => clearInterval(id)
-  }, [])
-  const heroTitle = ALL_HERO_TITLES[heroTick % ALL_HERO_TITLES.length]
-  // Production: const heroTitle = useMemo(() => getHeroTitle(now), [now])
+  // Derived from `now` (ticks every second) so it updates automatically when
+  // the 30-minute slot boundary is crossed, without needing its own interval.
+  const heroTitle = useMemo(() => getHeroTitle(now), [now])
 
   return (
     <div className={'byp-page' + (theme === 'light' ? ' byp-light' : '')}>
