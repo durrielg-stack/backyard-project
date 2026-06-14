@@ -341,6 +341,27 @@ function slotStartUTC(manilaHour: number, year: number, month: number, day: numb
   return Date.UTC(year, month, d, manilaHour) - MANILA_OFFSET_MS
 }
 
+/* ---- day-of-week hero titles ---- */
+// Keys follow Date.getDay(): 0 = Sunday … 6 = Saturday (visitor's local timezone).
+// Each day has 3 titles; the active one is chosen by 30-minute time slot:
+//   slot = floor((hours * 60 + minutes) / 30) % 3
+// Example: 12:00→slot 0, 12:30→slot 1, 1:00→slot 2, 1:30→slot 0, …
+const HERO_TITLES: Record<number, [string, string, string]> = {
+  0: ['Sunday serenity starts here',        'Unwind this Sunday',              'Make Sunday special'],
+  1: ['Start the week your way',             'Motivate your Monday',            'Make Monday your day'],
+  2: ["We're resting today, back tomorrow",  'Taking a pause, back tomorrow',   'Closed today, open for you tomorrow'],
+  3: ['Midweek magic awaits',                'Wednesday wonders ahead',         'Find your midweek spark'],
+  4: ['Thrive this Thursday',                'Your Thursday escape',            'Thursday is the new Friday'],
+  5: ['Celebrate the weekend early',         'Feel-good Friday',                'Your Friyay begins here'],
+  6: ['Savor your Saturday',                 'Saturday vibes only',             'Your Saturday adventure awaits'],
+}
+
+function getHeroTitle(now: Date): string {
+  const titles = HERO_TITLES[now.getDay()]
+  const slot = Math.floor((now.getHours() * 60 + now.getMinutes()) / 30) % titles.length
+  return titles[slot]
+}
+
 /* ---- types ---- */
 type Status = 'av' | 'oc' | 'rs' | 'cl'
 interface TableRow { id: string; label: string; status: string }
@@ -508,7 +529,7 @@ function SiteHeader({ summary, theme, onToggleTheme }: { summary: Summary; theme
 /* ============================================================
    HERO
    ============================================================ */
-function Hero({ summary, currentMsg, totalTables, preOpen, theme, countdownText }: { summary: Summary; currentMsg: string; totalTables: number; preOpen: PreOpenState; theme: 'dark' | 'light'; countdownText: string }) {
+function Hero({ summary, currentMsg, totalTables, preOpen, theme, countdownText, heroTitle }: { summary: Summary; currentMsg: string; totalTables: number; preOpen: PreOpenState; theme: 'dark' | 'light'; countdownText: string; heroTitle: string }) {
   return (
     <section className="byp-hero" id="top">
       <div className="byp-hero-glow" />
@@ -517,9 +538,7 @@ function Hero({ summary, currentMsg, totalTables, preOpen, theme, countdownText 
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <div className="byp-hero-logo-row">
             <img className="byp-hero-logo" src={theme === 'light' ? '/logo-square.png' : '/byp-logo.png'} alt="The Backyard Project · bar + kitchen" />
-            <h1 className="byp-hero-title">
-            Find your<br/>spot<br className="byp-mobile-br"/>{' '}<span className="byp-amp">tonight</span>
-          </h1>
+            <h1 className="byp-hero-title">{heroTitle}</h1>
           </div>
           <p className="byp-hero-sub">
             We refresh the page every few seconds, so you know before heading over.
@@ -1090,10 +1109,14 @@ export default function TablesPage() {
     return pool[msgTick % pool.length]
   }, [now, summary.open, summary.free, summary.total, msgTick])
 
+  // Derived from `now` (ticks every second) so it updates automatically when
+  // the 30-minute slot boundary is crossed, without needing its own interval.
+  const heroTitle = useMemo(() => getHeroTitle(now), [now])
+
   return (
     <div className={'byp-page' + (theme === 'light' ? ' byp-light' : '')}>
       <SiteHeader summary={summary} theme={theme} onToggleTheme={toggleTheme} />
-      <Hero summary={summary} currentMsg={currentMsg} totalTables={rawTables.length} preOpen={preOpen} theme={theme} countdownText={getCountdownText(now, new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' })).getDay() === 2)} />
+      <Hero summary={summary} currentMsg={currentMsg} totalTables={rawTables.length} preOpen={preOpen} theme={theme} countdownText={getCountdownText(now, new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' })).getDay() === 2)} heroTitle={heroTitle} />
 
       {/* <TablesSection tables={tables} /> */}
       <MenuSection onZoom={onZoom} />
