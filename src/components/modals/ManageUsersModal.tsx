@@ -218,7 +218,7 @@ export default function ManageUsersModal({ actorId, actorRole, onClose }: Props)
               </div>
             </div>
             <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-              {user.id !== actorId && (
+              {user.id !== actorId && !(actorRole === 'owner' && user.role === 'owner') && (
                 <button
                   onClick={() => { setResetTarget(user); setResetPw(''); setResetError(null); setResetSuccess(false) }}
                   style={{
