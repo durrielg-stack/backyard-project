@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { useTheme } from '@/lib/ThemeContext'
+import { getClient } from '@/lib/supabase'
 import WaiterFloorView from './WaiterFloorView'
 import WaiterTableView from './WaiterTableView'
 import WaiterMenuPicker from './WaiterMenuPicker'
+import WaiterLogin from './WaiterLogin'
 
 type Screen =
   | { kind: 'floor' }
@@ -22,7 +24,7 @@ function loadSession(): WaiterSession | null {
 
 export default function WaiterApp() {
   const { T } = useTheme()
-  const [session] = useState<WaiterSession | null>(() => loadSession())
+  const [session, setSession] = useState<WaiterSession | null>(() => loadSession())
   const [screen, setScreen] = useState<Screen>({ kind: 'floor' })
 
   useEffect(() => {
@@ -33,9 +35,16 @@ export default function WaiterApp() {
     } catch { /* silently ignore if browser doesn't support */ }
   }, [])
 
-  function handleSignOut() {
+  async function handleSignOut() {
+    await getClient().auth.signOut()
     localStorage.removeItem('bp_waiter')
     window.location.href = '/'
+  }
+
+  function handleLogin(userId: string, name: string) {
+    const s = { userId, name }
+    localStorage.setItem('bp_waiter', JSON.stringify(s))
+    setSession(s)
   }
 
   // CSS-based landscape block — shown via @media when API lock isn't supported
@@ -59,27 +68,7 @@ export default function WaiterApp() {
   let content: React.ReactNode
 
   if (!session) {
-    content = (
-      <div style={{
-        background: T.bg, height: '100dvh',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        flexDirection: 'column', gap: 16,
-      }}>
-        <div style={{ color: T.textMute, fontSize: 13, fontFamily: T.mono }}>
-          No active session.
-        </div>
-        <button
-          onClick={() => { window.location.href = '/' }}
-          style={{
-            background: T.accent, color: T.accentInk, border: 'none',
-            borderRadius: T.radius, padding: '10px 20px', fontSize: 13,
-            fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-          }}
-        >
-          Go to Sign In
-        </button>
-      </div>
-    )
+    content = <WaiterLogin onLogin={handleLogin} />
   } else if (screen.kind === 'floor') {
     content = (
       <WaiterFloorView

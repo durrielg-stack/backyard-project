@@ -4,23 +4,17 @@ import { useState, useRef, useEffect, memo } from 'react'
 import { useTheme } from '@/lib/ThemeContext'
 import { getClient } from '@/lib/supabase'
 
-interface StaffUser { id: string; name: string; role: string; password: string }
+interface StaffUser { id: string; name: string; role: string }
 
-// Hardcoded staff list — ids must match public.users.id (uuid)
-const STAFF: StaffUser[] = [
-  { id: 'd5e857a0-2444-40b0-b770-64387d8766ea', name: 'Melvin',  role: 'owner',   password: 'melvin'  },
-  { id: '5b128d82-96ee-4783-afae-704d1ef8f9d6', name: 'Albert',  role: 'owner',   password: 'albert'  },
-  { id: '2589c685-b32f-430c-9317-18139c7a59c8', name: 'Ramon',   role: 'owner',   password: 'ramon'   },
-  { id: '1ea6db68-b713-43ec-abed-b3e7d1ab56fb', name: 'Arvin',   role: 'owner',   password: 'arvin'   },
-  { id: 'd20a8f80-68b5-4309-a79d-0c7514503851', name: 'Marvin',  role: 'owner',   password: 'marvin'  },
-  { id: 'e897578e-5ffd-48f1-b80d-c4ccb3910aca', name: 'Durriel', role: 'owner',   password: 'durriel' },
-  { id: '49dfc6c2-910c-46bd-9fe0-7032c03f45a7', name: 'Booba',   role: 'manager', password: 'booba'   },
-  { id: '9567524a-52e7-4f33-ae2e-20af6558f714', name: 'RJ',      role: 'waiter',  password: 'rj'      },
-  { id: '0bc47a89-05d1-45ec-b369-b01f453e0a67', name: 'Angeli',  role: 'waiter',  password: 'angeli'  },
-  { id: '8b9aa87d-df79-4786-9710-d3719b865fb7', name: 'Ed',      role: 'kitchen', password: 'ed'      },
-  { id: 'de2fbd61-762d-49e4-879f-6a7b9854d312', name: 'Dang',    role: 'kitchen', password: 'dang'    },
-  { id: 'a3617c4f-5fc5-44e9-8b55-0edb6bf38cf3', name: 'Cenon',   role: 'kitchen', password: 'cenon'   },
-]
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/)
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+  return name.slice(0, 2).toUpperCase()
+}
+
+function staffEmail(name: string): string {
+  return `thebackyardprojectph+${name.toLowerCase().replace(/\s+/g, '')}@gmail.com`
+}
 
 type Category = 'owners' | 'staff'
 const CATEGORIES: { id: Category; label: string }[] = [
@@ -31,49 +25,78 @@ function categoryOf(u: StaffUser): Category {
   return u.role === 'owner' ? 'owners' : 'staff'
 }
 
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/)
-  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-  return name.slice(0, 2).toUpperCase()
-}
-
-interface StaffPickerProps {
+interface Props {
   onSelect: (userId: string, name: string, initials: string, role: string) => void
 }
 
-const StaffPicker = memo(function StaffPicker({ onSelect }: StaffPickerProps) {
+const StaffPicker = memo(function StaffPicker({ onSelect }: Props) {
   const { T } = useTheme()
-  const [category, setCategory] = useState<Category>('staff')
-  const [selected, setSelected] = useState<StaffUser | null>(null)
-  const [password, setPassword] = useState('')
-  const [error, setError]       = useState(false)
+  const [users, setUsers]           = useState<StaffUser[]>([])
+  const [loadingUsers, setLoadingUsers] = useState(true)
+  const [category, setCategory]     = useState<Category>('staff')
+  const [selected, setSelected]     = useState<StaffUser | null>(null)
+  const [password, setPassword]     = useState('')
+  const [error, setError]           = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [forgotSent, setForgotSent] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    getClient()
+      .from('users')
+      .select('id, name, role')
+      .eq('account_status', 'active')
+      .order('name')
+      .then(({ data }) => {
+        setUsers(data ?? [])
+        setLoadingUsers(false)
+      })
+  }, [])
 
   useEffect(() => {
     if (selected) {
       setPassword('')
-      setError(false)
+      setError(null)
+      setForgotSent(false)
       setTimeout(() => inputRef.current?.focus(), 50)
     }
   }, [selected])
 
-  // Keep Supabase anon session alive (needed for DB queries elsewhere in the app)
-  useEffect(() => {
-    getClient() // initialise singleton
-  }, [])
-
-  function handleLogin() {
-    if (!selected || !password) return
-    if (password !== selected.password) {
-      setError(true)
+  async function handleLogin() {
+    if (!selected || !password || submitting) return
+    setSubmitting(true)
+    setError(null)
+    const sb = getClient()
+    const { data, error: authErr } = await sb.auth.signInWithPassword({
+      email: staffEmail(selected.name),
+      password,
+    })
+    if (authErr || !data.user) {
+      setError('Incorrect password.')
       setPassword('')
       setTimeout(() => inputRef.current?.focus(), 50)
+      setSubmitting(false)
       return
     }
+    await sb.from('audit_logs').insert({
+      user_id: selected.id,
+      actor_id: selected.id,
+      event: 'sign_in',
+    })
     onSelect(selected.id, selected.name, initials(selected.name), selected.role)
+    setSubmitting(false)
+  }
+
+  async function handleForgotPassword() {
+    if (!selected) return
+    await getClient().auth.resetPasswordForEmail(staffEmail(selected.name), {
+      redirectTo: 'https://pos.theserverprojectph.cc/reset-password',
+    })
+    setForgotSent(true)
   }
 
   const roleLabel = (role: string) => role.charAt(0).toUpperCase() + role.slice(1)
+  const filtered = users.filter(u => categoryOf(u) === category)
 
   return (
     <div style={{
@@ -85,7 +108,6 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: StaffPickerProps) {
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         gap: 36, maxWidth: 480, width: '100%', padding: '0 40px',
       }}>
-
         {/* Brand */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
@@ -103,34 +125,29 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: StaffPickerProps) {
           </div>
         </div>
 
-        {!selected ? (
+        {loadingUsers ? (
+          <div style={{ fontSize: 13, color: T.textMute, fontFamily: T.mono }}>Loading...</div>
+        ) : !selected ? (
           <div style={{ width: '100%' }}>
-            {/* Category tabs */}
             <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
               {CATEGORIES.map(cat => {
                 const active = category === cat.id
                 return (
-                  <button
-                    key={cat.id}
-                    onClick={() => setCategory(cat.id)}
-                    style={{
-                      flex: 1, padding: '9px 0', fontSize: 13, fontWeight: 700,
-                      background: active ? T.accent : T.surface,
-                      color: active ? T.accentInk : T.textMute,
-                      border: `1px solid ${active ? T.accent : T.line2}`,
-                      borderRadius: T.radius, cursor: 'pointer',
-                      fontFamily: 'inherit', transition: 'background 0.12s ease',
-                    }}
-                  >
+                  <button key={cat.id} onClick={() => setCategory(cat.id)} style={{
+                    flex: 1, padding: '9px 0', fontSize: 13, fontWeight: 700,
+                    background: active ? T.accent : T.surface,
+                    color: active ? T.accentInk : T.textMute,
+                    border: `1px solid ${active ? T.accent : T.line2}`,
+                    borderRadius: T.radius, cursor: 'pointer',
+                    fontFamily: 'inherit', transition: 'background 0.12s ease',
+                  }}>
                     {cat.label}
                   </button>
                 )
               })}
             </div>
-
-            {/* Name cards */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {STAFF.filter(u => categoryOf(u) === category).map(u => (
+              {filtered.map(u => (
                 <button
                   key={u.id}
                   onClick={() => setSelected(u)}
@@ -171,7 +188,7 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: StaffPickerProps) {
           <div style={{ width: '100%' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
               <button
-                onClick={() => { setSelected(null); setError(false) }}
+                onClick={() => { setSelected(null); setError(null) }}
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer',
                   color: T.textMute, fontSize: 13, padding: '4px 0',
@@ -194,44 +211,78 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: StaffPickerProps) {
               </div>
             </div>
 
-            <div style={{
-              fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
-              textTransform: 'uppercase', color: T.textMute, marginBottom: 8,
-            }}>
-              Password
-            </div>
-            <input
-              ref={inputRef}
-              type="password"
-              value={password}
-              onChange={e => { setPassword(e.target.value); setError(false) }}
-              onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              placeholder="Enter password…"
-              style={{
-                width: '100%', padding: '12px 14px', fontSize: 14, boxSizing: 'border-box',
-                background: T.surface, border: `1px solid ${error ? T.bad : T.line2}`,
-                color: T.text, fontFamily: 'inherit', borderRadius: T.radius, outline: 'none',
-              }}
-            />
-            {error && (
-              <div style={{ marginTop: 8, fontSize: 12, color: T.bad, fontFamily: T.mono }}>
-                Incorrect password. Try again.
+            {forgotSent ? (
+              <div style={{
+                padding: 16, background: T.surface2, borderRadius: T.radiusLg,
+                fontSize: 13, color: T.text, textAlign: 'center', lineHeight: 1.6,
+              }}>
+                Reset link sent to the admin email.
+                <br />
+                <button
+                  onClick={() => setForgotSent(false)}
+                  style={{
+                    marginTop: 10, background: 'none', border: 'none',
+                    color: T.accent, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+                    textDecoration: 'underline',
+                  }}
+                >
+                  Back to sign in
+                </button>
               </div>
+            ) : (
+              <>
+                <div style={{
+                  fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
+                  textTransform: 'uppercase', color: T.textMute, marginBottom: 8,
+                }}>
+                  Password
+                </div>
+                <input
+                  ref={inputRef}
+                  type="password"
+                  value={password}
+                  onChange={e => { setPassword(e.target.value); setError(null) }}
+                  onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                  placeholder="Enter password..."
+                  style={{
+                    width: '100%', padding: '12px 14px', fontSize: 14, boxSizing: 'border-box',
+                    background: T.surface, border: `1px solid ${error ? T.bad : T.line2}`,
+                    color: T.text, fontFamily: 'inherit', borderRadius: T.radius, outline: 'none',
+                  }}
+                />
+                {error && (
+                  <div style={{ marginTop: 8, fontSize: 12, color: T.bad, fontFamily: T.mono }}>
+                    {error}
+                  </div>
+                )}
+                <button
+                  onClick={handleLogin}
+                  disabled={!password || submitting}
+                  style={{
+                    marginTop: 16, width: '100%', padding: '12px', fontSize: 14, fontWeight: 700,
+                    background: password && !submitting ? T.accent : T.chip,
+                    color: password && !submitting ? T.accentInk : T.textMute,
+                    border: 'none', borderRadius: T.radius,
+                    cursor: password && !submitting ? 'pointer' : 'default',
+                    fontFamily: 'inherit', transition: 'background 0.12s ease',
+                  }}
+                >
+                  {submitting ? 'Signing in...' : 'Sign In'}
+                </button>
+                <div style={{ textAlign: 'center', marginTop: 16 }}>
+                  <button
+                    onClick={handleForgotPassword}
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      color: T.textMute, fontSize: 12, fontFamily: 'inherit',
+                      textDecoration: 'underline',
+                    }}
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              </>
             )}
-            <button
-              onClick={handleLogin}
-              disabled={!password}
-              style={{
-                marginTop: 16, width: '100%', padding: '12px', fontSize: 14, fontWeight: 700,
-                background: password ? T.accent : T.chip,
-                color: password ? T.accentInk : T.textMute,
-                border: 'none', borderRadius: T.radius,
-                cursor: password ? 'pointer' : 'default',
-                fontFamily: 'inherit', transition: 'background 0.12s ease',
-              }}
-            >
-              Sign In
-            </button>
           </div>
         )}
       </div>

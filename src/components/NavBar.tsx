@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect, useRef } from 'react'
 import { statusColor } from '@/lib/theme'
 import { useTheme } from '@/lib/ThemeContext'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
@@ -23,6 +24,8 @@ interface NavBarProps {
   onOrder: (tableId: string) => void
   onCloseTab: (tableId: string) => void
   onSignOut: () => void
+  onChangePassword: () => void
+  onManageUsers: () => void
 }
 
 // ── Icon atoms (SVG inline, currentColor, 1.5px stroke) ─────────────────────
@@ -136,11 +139,25 @@ function NavTab({ active, onClick, label, sub, dot, dashed, dimmed, onClose, isM
 // ── NavBar ───────────────────────────────────────────────────────────────────
 export default function NavBar({
   view, openTabs, tables, carts,
-  attnCount, now, staff, onFloor, onExpenses, onReports, onSales, onOwner, onOrder, onCloseTab, onSignOut,
+  attnCount, now, staff, onFloor, onExpenses, onReports, onSales, onOwner, onOrder, onCloseTab,
+  onSignOut, onChangePassword, onManageUsers,
 }: NavBarProps) {
   const { T, mode, toggle } = useTheme()
   const bp = useBreakpoint()
   const isMobile = bp === 'mobile'
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!dropdownOpen) return
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [dropdownOpen])
   const time    = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
   const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
 
@@ -324,24 +341,60 @@ export default function NavBar({
 
         {!isMobile && <div style={{ width: 1, height: 20, background: T.line }} />}
 
-        {/* Avatar + name */}
-        <div
-          onClick={onSignOut}
-          title="Sign out"
-          style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
-        >
-          <div style={{
-            width: 22, height: 22, borderRadius: '50%',
-            background: T.chip, border: `1px solid ${T.line2}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 10, fontWeight: 600, color: T.text, flexShrink: 0,
-          }}>
-            {staff.initials}
+        {/* Avatar + dropdown */}
+        <div ref={dropdownRef} style={{ position: 'relative' }}>
+          <div
+            onClick={() => setDropdownOpen(o => !o)}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+          >
+            <div style={{
+              width: 22, height: 22, borderRadius: '50%',
+              background: dropdownOpen ? T.accent : T.chip,
+              border: `1px solid ${dropdownOpen ? T.accent : T.line2}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 10, fontWeight: 600,
+              color: dropdownOpen ? T.accentInk : T.text, flexShrink: 0,
+              transition: 'background 0.12s, border-color 0.12s',
+            }}>
+              {staff.initials}
+            </div>
+            {!isMobile && (
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 500, color: T.text, lineHeight: 1 }}>{staff.name}</div>
+                <div style={{ fontSize: 10, color: T.textMute, lineHeight: 1, marginTop: 2 }}>· {staff.role.charAt(0).toUpperCase() + staff.role.slice(1)}</div>
+              </div>
+            )}
           </div>
-          {!isMobile && (
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 500, color: T.text, lineHeight: 1 }}>{staff.name}</div>
-              <div style={{ fontSize: 10, color: T.textMute, lineHeight: 1, marginTop: 2 }}>· {staff.role.charAt(0).toUpperCase() + staff.role.slice(1)}</div>
+          {dropdownOpen && (
+            <div style={{
+              position: 'absolute', right: 0, top: 'calc(100% + 8px)', zIndex: 200,
+              background: T.surface, border: `1px solid ${T.line2}`,
+              borderRadius: T.radiusLg, boxShadow: T.shadowModal,
+              minWidth: 180, overflow: 'hidden',
+            }}>
+              {[
+                { label: 'Change Password', action: () => { setDropdownOpen(false); onChangePassword() } },
+                ...(staff.role === 'owner' || staff.role === 'manager'
+                  ? [{ label: 'Manage Users', action: () => { setDropdownOpen(false); onManageUsers() } }]
+                  : []),
+                { label: 'Sign Out', action: () => { setDropdownOpen(false); onSignOut() }, danger: true },
+              ].map(item => (
+                <button
+                  key={item.label}
+                  onClick={item.action}
+                  style={{
+                    width: '100%', padding: '11px 16px', fontSize: 13, fontWeight: 500,
+                    background: 'none', border: 'none', textAlign: 'left',
+                    color: (item as { danger?: boolean }).danger ? T.bad : T.text,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                    borderBottom: item.label !== 'Sign Out' ? `1px solid ${T.line}` : 'none',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = T.surface2)}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                >
+                  {item.label}
+                </button>
+              ))}
             </div>
           )}
         </div>

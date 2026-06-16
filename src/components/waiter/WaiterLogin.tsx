@@ -1,75 +1,93 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { getClient } from '@/lib/supabase'
 import { useTheme } from '@/lib/ThemeContext'
+
+interface StaffUser { id: string; name: string }
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/)
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+  return name.slice(0, 2).toUpperCase()
+}
+
+function staffEmail(name: string): string {
+  return `thebackyardprojectph+${name.toLowerCase().replace(/\s+/g, '')}@gmail.com`
+}
 
 interface Props { onLogin: (userId: string, name: string) => void }
 
 export default function WaiterLogin({ onLogin }: Props) {
   const { T, mode, toggle } = useTheme()
-  const [email, setEmail]   = useState('')
-  const [pw, setPw]         = useState('')
-  const [error, setError]   = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [users, setUsers]           = useState<StaffUser[]>([])
+  const [loading, setLoading]       = useState(true)
+  const [selected, setSelected]     = useState<StaffUser | null>(null)
+  const [password, setPassword]     = useState('')
+  const [error, setError]           = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  useEffect(() => {
+    getClient()
+      .from('users')
+      .select('id, name')
+      .eq('role', 'waiter')
+      .eq('account_status', 'active')
+      .order('name')
+      .then(({ data }) => { setUsers(data ?? []); setLoading(false) })
+  }, [])
+
+  useEffect(() => {
+    if (selected) {
+      setPassword('')
+      setError(null)
+      setTimeout(() => inputRef.current?.focus(), 50)
+    }
+  }, [selected])
+
+  async function handleLogin() {
+    if (!selected || !password || submitting) return
+    setSubmitting(true)
     setError(null)
-    setLoading(true)
     const sb = getClient()
-
-    const { data: authData, error: authErr } = await sb.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password: pw,
+    const { data, error: authErr } = await sb.auth.signInWithPassword({
+      email: staffEmail(selected.name),
+      password,
     })
-
-    if (authErr || !authData.user) {
-      setError('Incorrect email or password.')
-      setLoading(false)
+    if (authErr || !data.user) {
+      setError('Incorrect password.')
+      setPassword('')
+      setTimeout(() => inputRef.current?.focus(), 50)
+      setSubmitting(false)
       return
     }
-
-    const { data: user } = await sb
-      .from('users').select('name, role').eq('id', authData.user.id).single()
-
-    if (!user || user.role !== 'waiter') {
-      await sb.auth.signOut()
-      setError('This account does not have waiter access.')
-      setLoading(false)
-      return
-    }
-
-    onLogin(authData.user.id, user.name)
+    await sb.from('audit_logs').insert({
+      user_id: selected.id, actor_id: selected.id, event: 'sign_in',
+    })
+    onLogin(selected.id, selected.name)
+    setSubmitting(false)
   }
 
   return (
     <div style={{
       background: T.bg, minHeight: '100dvh',
-      display: 'flex', flexDirection: 'column',
-      fontFamily: T.sansBody,
+      display: 'flex', flexDirection: 'column', fontFamily: T.sansBody,
     }}>
-      {/* Theme toggle */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 16px' }}>
-        <button
-          onClick={toggle}
-          style={{
-            background: T.surface, border: `1px solid ${T.line2}`,
-            borderRadius: T.radiusLg, padding: '6px 10px',
-            color: T.textDim, fontSize: 16, cursor: 'pointer', lineHeight: 1,
-          }}
-        >
+        <button onClick={toggle} style={{
+          background: T.surface, border: `1px solid ${T.line2}`,
+          borderRadius: T.radiusLg, padding: '6px 10px',
+          color: T.textDim, fontSize: 16, cursor: 'pointer', lineHeight: 1,
+        }}>
           {mode === 'dark' ? '☀️' : '🌙'}
         </button>
       </div>
 
-      {/* Form */}
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        padding: '0 32px 48px',
+        alignItems: 'center', justifyContent: 'center', padding: '0 32px 48px',
       }}>
-        {/* Brand */}
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
           <div style={{
             width: 44, height: 44, background: T.accent, color: T.accentInk,
@@ -83,65 +101,92 @@ export default function WaiterLogin({ onLogin }: Props) {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ width: '100%', maxWidth: 360, display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: T.textMute, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>
-              Email
+        {loading ? (
+          <div style={{ fontSize: 13, color: T.textMute, fontFamily: T.mono }}>Loading...</div>
+        ) : !selected ? (
+          <div style={{ width: '100%', maxWidth: 360 }}>
+            <div style={{
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
+              textTransform: 'uppercase', color: T.textMute, marginBottom: 12,
+            }}>
+              Select your name
             </div>
-            <input
-              type="email"
-              value={email}
-              onChange={e => { setEmail(e.target.value); setError(null) }}
-              placeholder="name@backyard.pos"
-              required
-              autoComplete="email"
-              style={{
-                width: '100%', padding: '13px 14px', fontSize: 15,
-                background: T.surface, border: `1px solid ${error ? T.bad : T.line2}`,
-                color: T.text, borderRadius: T.radius, fontFamily: 'inherit',
-                outline: 'none', boxSizing: 'border-box',
-              }}
-            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {users.map(u => (
+                <button key={u.id} onClick={() => setSelected(u)} style={{
+                  padding: '14px 16px', background: T.surface, border: `1px solid ${T.line2}`,
+                  borderRadius: T.radiusLg, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  fontFamily: 'inherit', textAlign: 'left',
+                  transition: 'background 0.12s ease',
+                }}>
+                  <div style={{
+                    width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+                    background: T.chip, border: `1px solid ${T.line2}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 13, fontWeight: 700, color: T.text,
+                  }}>
+                    {initials(u.name)}
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{u.name}</div>
+                </button>
+              ))}
+            </div>
           </div>
-
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: T.textMute, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>
+        ) : (
+          <div style={{ width: '100%', maxWidth: 360 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+              <button onClick={() => { setSelected(null); setError(null) }} style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: T.textMute, fontSize: 13, padding: '4px 0', fontFamily: 'inherit',
+              }}>← Back</button>
+              <div style={{ width: 1, height: 16, background: T.line }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: '50%',
+                  background: T.chip, border: `1px solid ${T.line2}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 11, fontWeight: 700, color: T.text,
+                }}>
+                  {initials(selected.name)}
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: T.text }}>{selected.name}</div>
+              </div>
+            </div>
+            <div style={{
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
+              textTransform: 'uppercase', color: T.textMute, marginBottom: 8,
+            }}>
               Password
             </div>
             <input
+              ref={inputRef}
               type="password"
-              value={pw}
-              onChange={e => { setPw(e.target.value); setError(null) }}
-              placeholder="Enter password"
-              required
-              autoComplete="current-password"
+              value={password}
+              onChange={e => { setPassword(e.target.value); setError(null) }}
+              onKeyDown={e => e.key === 'Enter' && handleLogin()}
+              placeholder="Enter password..."
               style={{
-                width: '100%', padding: '13px 14px', fontSize: 15,
+                width: '100%', padding: '12px 14px', fontSize: 14, boxSizing: 'border-box',
                 background: T.surface, border: `1px solid ${error ? T.bad : T.line2}`,
-                color: T.text, borderRadius: T.radius, fontFamily: 'inherit',
-                outline: 'none', boxSizing: 'border-box',
+                color: T.text, fontFamily: 'inherit', borderRadius: T.radius, outline: 'none',
               }}
             />
+            {error && (
+              <div style={{ marginTop: 8, fontSize: 12, color: T.bad, fontFamily: T.mono }}>{error}</div>
+            )}
+            <button onClick={handleLogin} disabled={!password || submitting} style={{
+              marginTop: 16, width: '100%', padding: '12px', fontSize: 14, fontWeight: 700,
+              background: password && !submitting ? T.accent : T.chip,
+              color: password && !submitting ? T.accentInk : T.textMute,
+              border: 'none', borderRadius: T.radius,
+              cursor: password && !submitting ? 'pointer' : 'default',
+              fontFamily: 'inherit', transition: 'background 0.12s ease',
+            }}>
+              {submitting ? 'Signing in...' : 'Sign In'}
+            </button>
           </div>
-
-          {error && (
-            <div style={{ fontSize: 12, color: T.bad, fontFamily: T.mono }}>{error}</div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading || !email || !pw}
-            style={{
-              marginTop: 4, padding: '14px', fontSize: 15, fontWeight: 700,
-              background: (loading || !email || !pw) ? T.surface2 : T.accent,
-              color: (loading || !email || !pw) ? T.textMute : T.accentInk,
-              border: 'none', borderRadius: T.radius, cursor: (loading || !email || !pw) ? 'default' : 'pointer',
-              fontFamily: 'inherit', transition: 'background 0.12s',
-            }}
-          >
-            {loading ? 'Signing in…' : 'Sign In'}
-          </button>
-        </form>
+        )}
       </div>
     </div>
   )

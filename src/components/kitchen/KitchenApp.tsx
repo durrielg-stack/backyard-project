@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useTheme } from '@/lib/ThemeContext'
+import { getClient } from '@/lib/supabase'
 import KitchenView from './KitchenView'
+import KitchenLogin from './KitchenLogin'
 
 interface KitchenSession { userId: string; name: string }
 
@@ -30,9 +32,16 @@ export default function KitchenApp() {
     } catch { /* ignore */ }
   }, [])
 
-  function handleSignOut() {
+  async function handleSignOut() {
+    await getClient().auth.signOut()
     localStorage.removeItem('bp_kitchen')
     window.location.href = '/'
+  }
+
+  function handleLogin(userId: string, name: string) {
+    const s = { userId, name }
+    localStorage.setItem('bp_kitchen', JSON.stringify(s))
+    setSession(s)
   }
 
   const landscapeOverlay = (
@@ -49,8 +58,12 @@ export default function KitchenApp() {
   if (!ready) return null
 
   if (!session) {
-    window.location.href = '/'
-    return null
+    return (
+      <>
+        {landscapeOverlay}
+        <KitchenLogin onLogin={handleLogin} />
+      </>
+    )
   }
 
   return (

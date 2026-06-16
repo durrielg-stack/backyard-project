@@ -136,10 +136,16 @@ export interface TableWithStatus {
 export interface Database {
   public: {
     Tables: {
+      audit_logs: {
+        Row: { id: string; user_id: string | null; actor_id: string | null; event: string; detail: Record<string, unknown> | null; created_at: string }
+        Insert: { id?: string; user_id?: string | null; actor_id?: string | null; event: string; detail?: Record<string, unknown> | null; created_at?: string }
+        Update: { event?: string; detail?: Record<string, unknown> | null }
+        Relationships: []
+      }
       users: {
-        Row: { id: string; name: string; role: string; is_active: boolean | null; created_at: string | null }
-        Insert: { id: string; name: string; role: string; is_active?: boolean | null; created_at?: string | null }
-        Update: { name?: string; role?: string; is_active?: boolean | null }
+        Row: { id: string; name: string; role: string; account_status: string; is_active: boolean | null; created_at: string | null }
+        Insert: { id: string; name: string; role: string; account_status?: string; is_active?: boolean | null; created_at?: string | null }
+        Update: { name?: string; role?: string; account_status?: string; is_active?: boolean | null }
         Relationships: []
       }
       restaurant_tables: {

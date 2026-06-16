@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { getClient }      from '@/lib/supabase'
 import { useTables }      from '@/hooks/useTables'
 import { useOpenOrders }  from '@/hooks/useOpenOrders'
 import { useMenuItems }   from '@/hooks/useMenuItems'
@@ -15,8 +16,10 @@ import ReportsView  from '@/components/reports/ReportsView'
 import OwnerView    from '@/components/owner/OwnerView'
 import ExpensesView from '@/components/expenses/ExpensesView'
 import SalesView    from '@/components/owner/SalesTab'
-import StaffPicker     from '@/components/StaffPicker'
-import MessengerBadge  from '@/components/floor/MessengerBadge'
+import StaffPicker        from '@/components/StaffPicker'
+import MessengerBadge     from '@/components/floor/MessengerBadge'
+import ChangePasswordModal from '@/components/modals/ChangePasswordModal'
+import ManageUsersModal   from '@/components/modals/ManageUsersModal'
 
 // ── View discriminant ──────────────────────────────────────────────────────
 type View =
@@ -61,6 +64,10 @@ export default function POSApp() {
     localStorage.setItem('bp_staff', JSON.stringify(s))
     setStaff(s)
   }, [])
+
+  // ── Modals ────────────────────────────────────────────────────────────────
+  const [showChangePassword, setShowChangePassword] = useState(false)
+  const [showManageUsers, setShowManageUsers]       = useState(false)
 
   // ── View router ───────────────────────────────────────────────────────────
   const [view, setView]         = useState<View>('floor')
@@ -204,7 +211,9 @@ export default function POSApp() {
         onOwner={goOwner}
         onOrder={goOrder}
         onCloseTab={closeTab}
-        onSignOut={() => { localStorage.removeItem('bp_staff'); setStaff(null) }}
+        onSignOut={async () => { await getClient().auth.signOut(); localStorage.removeItem('bp_staff'); setStaff(null) }}
+        onChangePassword={() => setShowChangePassword(true)}
+        onManageUsers={() => setShowManageUsers(true)}
       />
 
       <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
@@ -247,6 +256,21 @@ export default function POSApp() {
           )
         })()}
       </div>
+
+      {showChangePassword && staff && (
+        <ChangePasswordModal
+          staffId={staff.userId}
+          staffName={staff.name}
+          onClose={() => setShowChangePassword(false)}
+        />
+      )}
+      {showManageUsers && staff && (
+        <ManageUsersModal
+          actorId={staff.userId}
+          actorRole={staff.role}
+          onClose={() => setShowManageUsers(false)}
+        />
+      )}
     </div>
   )
 }
