@@ -177,7 +177,7 @@ export default function NavBar({
       height: 64, flexShrink: 0,
       background: T.bg, borderBottom: `1px solid ${T.line}`,
       display: 'flex', alignItems: 'stretch',
-      overflow: 'hidden',
+      overflowX: 'clip', overflowY: 'visible',
     }}>
       {/* ── Brand ──────────────────────────────────────────────────────────── */}
       <div style={{
