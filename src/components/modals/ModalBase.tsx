@@ -14,11 +14,14 @@ export default function ModalBase({ width, onBackdropClick, children }: ModalBas
   const { T } = useTheme()
   const cardRef = useRef<HTMLDivElement>(null)
 
+  const onBackdropClickRef = useRef(onBackdropClick)
+  useEffect(() => { onBackdropClickRef.current = onBackdropClick })
+
   useEffect(() => {
     const FOCUSABLE = 'a[href],button:not([disabled]),input,select,textarea,[tabindex]:not([tabindex="-1"])'
 
     function trapFocus(e: KeyboardEvent) {
-      if (e.key === 'Escape') { onBackdropClick?.(); return }
+      if (e.key === 'Escape') { onBackdropClickRef.current?.(); return }
       if (e.key !== 'Tab') return
       const el = cardRef.current
       if (!el) return
@@ -39,7 +42,8 @@ export default function ModalBase({ width, onBackdropClick, children }: ModalBas
 
     document.addEventListener('keydown', trapFocus)
     return () => document.removeEventListener('keydown', trapFocus)
-  }, [onBackdropClick])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div

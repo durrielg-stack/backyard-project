@@ -28,7 +28,7 @@ export default function ChangePasswordModal({ staffId, staffName, onClose }: Pro
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (newPw !== confirmPw) { setError('New passwords do not match.'); return }
-    if (newPw.length < 8)    { setError('New password must be at least 8 characters.'); return }
+    if (newPw.length < 6)    { setError('New password must be at least 6 characters.'); return }
     setLoading(true)
     setError(null)
     const sb = getClient()
@@ -104,7 +104,7 @@ export default function ChangePasswordModal({ staffId, staffName, onClose }: Pro
               <input
                 type="password" value={newPw} required
                 onChange={e => { setNewPw(e.target.value); setError(null) }}
-                placeholder="Min. 8 characters"
+                placeholder="Min. 6 characters"
                 style={inputStyle(false)}
               />
             </div>
