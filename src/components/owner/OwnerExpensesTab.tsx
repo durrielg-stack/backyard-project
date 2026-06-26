@@ -93,6 +93,28 @@ export default function OwnerExpensesTab() {
     'Wages': T.ok, 'Marketing': T.accent, 'Other': T.textMute,
   }
 
+  const catSummaries = EXPENSE_CATS.map(cat => ({
+    category: cat,
+    amount: rows.filter(r => r.category === cat).reduce((s, r) => s + r.amount, 0),
+  }))
+
+  const th = (align: 'left' | 'right' = 'left', extra: React.CSSProperties = {}): React.CSSProperties => ({
+    padding: '10px 16px', fontSize: 10, fontWeight: 700,
+    letterSpacing: '0.1em', textTransform: 'uppercase',
+    color: T.headerText, textAlign: align,
+    background: T.surface2, borderBottom: `1px solid ${T.line}`,
+    position: 'sticky', top: 0, zIndex: 2, whiteSpace: 'nowrap',
+    ...extra,
+  })
+
+  const td = (align: 'left' | 'right' = 'left', extra: React.CSSProperties = {}): React.CSSProperties => ({
+    padding: '9px 16px', fontSize: 12,
+    fontFamily: align === 'right' ? T.mono : 'inherit',
+    color: T.text, textAlign: align,
+    fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
+    ...extra,
+  })
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <SectionHd
@@ -110,6 +132,39 @@ export default function OwnerExpensesTab() {
           </button>
         }
       />
+
+      {/* ── Category summary ──────────────────────────────────────────────── */}
+      <div style={{ flexShrink: 0, borderBottom: `2px solid ${T.line2}` }}>
+        <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+          <table style={{ borderCollapse: 'collapse', minWidth: 400, width: '100%' }}>
+            <thead>
+              <tr>
+                <th style={th('left', { position: 'sticky', left: 0, zIndex: 3, minWidth: 150 })}>Category</th>
+                <th style={th('right', { minWidth: 130 })}>Amount</th>
+                <th style={th('right', { minWidth: 100 })}>Share</th>
+              </tr>
+            </thead>
+            <tbody>
+              {catSummaries.map((c, i) => {
+                const share = totalToday > 0 ? (c.amount / totalToday) * 100 : 0
+                const rowBg = i % 2 === 0 ? T.surface : T.bg
+                return (
+                  <tr key={c.category} style={{ background: rowBg }}>
+                    <td style={td('left', { position: 'sticky', left: 0, background: rowBg, zIndex: 1, fontWeight: 600, color: catColor[c.category] ?? T.textDim })}>{c.category}</td>
+                    <td style={td('right', { color: c.amount > 0 ? T.bad : T.textMute })}>{c.amount > 0 ? fmtPeso(c.amount) : '—'}</td>
+                    <td style={td('right', { color: T.textMute })}>{c.amount > 0 ? `${share.toFixed(1)}%` : '—'}</td>
+                  </tr>
+                )
+              })}
+              <tr style={{ background: T.surface2, borderTop: `1px solid ${T.line2}` }}>
+                <td style={td('left', { position: 'sticky', left: 0, background: T.surface2, zIndex: 1, fontWeight: 700, color: T.text })}>Total</td>
+                <td style={td('right', { fontWeight: 700, color: totalToday > 0 ? T.bad : T.textMute })}>{totalToday > 0 ? fmtPeso(totalToday) : '—'}</td>
+                <td style={td('right', { color: T.textMute })}>{totalToday > 0 ? '100%' : '—'}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       {showForm && (() => {
         const qty     = parseFloat(fQty) || 1

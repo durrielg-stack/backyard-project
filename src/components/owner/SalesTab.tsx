@@ -24,6 +24,7 @@ interface SaleRow {
 
 interface LineItem {
   id:        string
+  time:      string
   tableId:   string
   itemName:  string
   category:  string
@@ -66,7 +67,7 @@ export default function SalesTab() {
   const [lines, setLines] = useState<LineItem[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
-  const [tableView, setTableView] = useState<'lines' | 'summary'>('lines')
+  const [tableView, setTableView] = useState<'orders' | 'lines' | 'summary'>('orders')
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = getClient() as any
@@ -77,13 +78,18 @@ export default function SalesTab() {
     // Two-step fetch to avoid unreliable PostgREST embedded resource filter
     const { data: matchingOrders } = await sb
       .from('orders')
-      .select('id, table_id')
+      .select('id, table_id, opened_at')
       .gte('opened_at', start)
       .lte('opened_at', end)
 
     const orderIds: string[] = (matchingOrders ?? []).map((o: any) => o.id)
     const orderTableMap: Record<string, string> = {}
-    for (const o of (matchingOrders ?? [])) orderTableMap[o.id] = o.table_id
+    const orderTimeMap:  Record<string, string> = {}
+    for (const o of (matchingOrders ?? [])) {
+      orderTableMap[o.id] = o.table_id
+      const dt = new Date(o.opened_at)
+      orderTimeMap[o.id] = `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`
+    }
 
     if (orderIds.length === 0) {
       setLines([])
@@ -114,7 +120,7 @@ export default function SalesTab() {
         : null
       const net = gross - cost
       return {
-        id: r.id, tableId: orderTableMap[r.order_id] ?? '—',
+        id: r.id, time: orderTimeMap[r.order_id] ?? '—', tableId: orderTableMap[r.order_id] ?? '—',
         itemName: r.menu_items?.name ?? '—', category: r.menu_items?.category ?? '—',
         qty: r.qty, unitPrice: r.unit_price, gross, cost, net,
         margin: gross > 0 ? (net / gross) * 100 : 0,
@@ -332,10 +338,12 @@ export default function SalesTab() {
           {/* Toggle header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', height: 34, borderBottom: `1px solid ${T.line}`, flexShrink: 0, background: T.surface2 }}>
             <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: T.headerText }}>
-              {`${sortedSummary.length} unique item${sortedSummary.length !== 1 ? 's' : ''}`}
+              {tableView === 'orders'
+                ? `${filteredLines.length} line${filteredLines.length !== 1 ? 's' : ''}`
+                : `${sortedSummary.length} unique item${sortedSummary.length !== 1 ? 's' : ''}`}
             </span>
             <div style={{ display: 'flex', gap: 2 }}>
-              {(['lines', 'summary'] as const).map(v => (
+              {(['orders', 'lines', 'summary'] as const).map(v => (
                 <button
                   key={v}
                   onClick={() => setTableView(v)}
@@ -347,7 +355,7 @@ export default function SalesTab() {
                     background: tableView === v ? `${T.accent}18` : 'transparent',
                     color: tableView === v ? T.accent : T.textMute,
                   }}
-                >{v === 'lines' ? 'Per Line' : 'Per Item'}</button>
+                >{v === 'orders' ? 'Orders' : v === 'lines' ? 'Per Line' : 'Per Item'}</button>
               ))}
             </div>
           </div>
@@ -358,6 +366,55 @@ export default function SalesTab() {
           ) : sortedSummary.length === 0 ? (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>
               {search ? `No items match "${search}"` : 'No sales on this date'}
+            </div>
+          ) : tableView === 'orders' ? (
+            <div className="bp-no-scrollbar" style={{ flex: 1, overflow: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+              <table style={{ borderCollapse: 'collapse', minWidth: 1100 }}>
+                <thead>
+                  <tr>
+                    <th style={th('left', { position: 'sticky', top: 0, left: 0, zIndex: 4, minWidth: 72 })}>Time</th>
+                    <th style={th('left', { minWidth: 72 })}>Table</th>
+                    <th style={th('left', { minWidth: 130 })}>Category</th>
+                    <th style={th('left', { minWidth: 220 })}>Item Name</th>
+                    <th style={th('right', { minWidth: 56 })}>Qty</th>
+                    <th style={th('right', { minWidth: 110 })}>Amount</th>
+                    <th style={th('right', { minWidth: 110 })}>Cost</th>
+                    <th style={th('right', { minWidth: 110 })}>Net</th>
+                    <th style={th('right', { minWidth: 90 })}>Margin %</th>
+                    <th style={th('right', { minWidth: 100 })}>Fire→Serve</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...filteredLines].sort((a, b) => {
+                    const toMin = (t: string) => {
+                      const parts = t === '—' ? [0, 0] : t.split(':').map(Number)
+                      const h = parts[0] < 4 ? parts[0] + 24 : parts[0]
+                      return h * 60 + (parts[1] ?? 0)
+                    }
+                    return toMin(a.time) - toMin(b.time)
+                  }).map((l, i) => {
+                    const rowBg = i % 2 === 0 ? T.surface : T.bg
+                    return (
+                      <tr key={l.id} style={{ background: rowBg }}>
+                        <td style={td('left', { position: 'sticky', left: 0, background: rowBg, zIndex: 1, fontFamily: T.mono, color: T.textMute })}>{l.time}</td>
+                        <td style={td('left', { color: T.textDim })}>{l.tableId}</td>
+                        <td style={td('left', { color: T.textDim })}>{l.category}</td>
+                        <td style={td('left', { fontWeight: 500 })}>{l.itemName}</td>
+                        <td style={td('right', { color: T.textMute })}>{l.qty}</td>
+                        <td style={td('right')}>{fmtPeso(l.gross)}</td>
+                        <td style={td('right', { color: T.textMute })}>{fmtPeso(l.cost)}</td>
+                        <td style={td('right', { color: l.net >= 0 ? T.ok : T.bad })}>{fmtPeso(l.net)}</td>
+                        <td style={td('right', { color: l.margin >= 60 ? T.ok : l.margin >= 40 ? T.warn : l.gross > 0 ? T.bad : T.textMute })}>
+                          {l.gross > 0 ? `${l.margin.toFixed(1)}%` : '—'}
+                        </td>
+                        <td style={td('right', { color: l.serveMin != null ? T.info : T.textMute })}>
+                          {l.serveMin != null ? `${l.serveMin}m` : '—'}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
           ) : tableView === 'summary' ? (
             <div className="bp-no-scrollbar" style={{ flex: 1, overflow: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
