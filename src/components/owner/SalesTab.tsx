@@ -13,12 +13,12 @@ import { useSortable } from '@/lib/useSortable'
 
 interface SaleRow {
   id:           string
+  order_id:     string
   qty:          number
   unit_price:   number
   status:       string
   fired_at:     string | null
   completed_at: string | null
-  orders:       { table_id: string; opened_at: string } | null
   menu_items:   { name: string; category: string; cost: number | null } | null
 }
 
@@ -73,11 +73,28 @@ export default function SalesTab() {
 
   const fetchSales = useCallback(async (start: string, end: string) => {
     setLoading(true)
+
+    // Two-step fetch to avoid unreliable PostgREST embedded resource filter
+    const { data: matchingOrders } = await sb
+      .from('orders')
+      .select('id, table_id')
+      .gte('opened_at', start)
+      .lte('opened_at', end)
+
+    const orderIds: string[] = (matchingOrders ?? []).map((o: any) => o.id)
+    const orderTableMap: Record<string, string> = {}
+    for (const o of (matchingOrders ?? [])) orderTableMap[o.id] = o.table_id
+
+    if (orderIds.length === 0) {
+      setLines([])
+      setLoading(false)
+      return
+    }
+
     const { data, error } = await sb
       .from('order_items')
-      .select('id, qty, unit_price, status, fired_at, completed_at, orders(table_id, opened_at), menu_items(name, category, cost)')
-      .gte('orders.opened_at', start)
-      .lte('orders.opened_at', end)
+      .select('id, order_id, qty, unit_price, status, fired_at, completed_at, menu_items(name, category, cost)')
+      .in('order_id', orderIds)
       .neq('status', 'voided')
       .order('id', { ascending: true })
 
@@ -88,7 +105,7 @@ export default function SalesTab() {
       return
     }
 
-    const rows: SaleRow[] = (data ?? []).filter((r: SaleRow) => r.orders !== null)
+    const rows: SaleRow[] = data ?? []
     setLines(rows.map((r: SaleRow) => {
       const gross    = r.qty * r.unit_price
       const cost     = r.qty * (r.menu_items?.cost ?? 0)
@@ -97,7 +114,7 @@ export default function SalesTab() {
         : null
       const net = gross - cost
       return {
-        id: r.id, tableId: r.orders?.table_id ?? '—',
+        id: r.id, tableId: orderTableMap[r.order_id] ?? '—',
         itemName: r.menu_items?.name ?? '—', category: r.menu_items?.category ?? '—',
         qty: r.qty, unitPrice: r.unit_price, gross, cost, net,
         margin: gross > 0 ? (net / gross) * 100 : 0,

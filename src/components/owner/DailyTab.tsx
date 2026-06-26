@@ -85,7 +85,6 @@ export default function DailyTab({ staffName }: { staffName: string }) {
       { data: budgetSeedRows },
       { data: opexItemRows },
       { data: opexCfgRows },
-      { data: allOrders },
     ] = await Promise.all([
       sb.from('daily_summary_seed').select('*').order('created_at', { ascending: false }).limit(1),
       sb.from('payments').select('amount, processed_at'),
@@ -95,11 +94,24 @@ export default function DailyTab({ staffName }: { staffName: string }) {
       sb.from('budget_seed').select('*').order('seed_date', { ascending: false }).limit(6),
       sb.from('opex_items').select('*').eq('is_active', true),
       sb.from('opex_monthly_config').select('*'),
-      sb.from('orders').select('id, opened_at'),
     ])
 
     const seed = seedRows?.[0] ?? null
     if (!seed) { setLoading(false); return }
+
+    // Paginate orders from seed date onwards to avoid the server's default row cap
+    const PAGE = 1000
+    const seedStartISO = new Date(seed.seed_date as string).toISOString()
+    let allOrders: any[] = []
+    for (let from = 0; ; from += PAGE) {
+      const { data } = await sb
+        .from('orders').select('id, opened_at')
+        .gte('opened_at', seedStartISO)
+        .range(from, from + PAGE - 1)
+      if (!data || data.length === 0) break
+      allOrders = allOrders.concat(data)
+      if (data.length < PAGE) break
+    }
 
     // ── Group daily data ───────────────────────────────────────────────────
 
@@ -155,22 +167,27 @@ export default function DailyTab({ staffName }: { staffName: string }) {
 
     // COGS per date (from order_items × menu_items.cost)
     const orderDateMap: Record<number, string> = {}
-    for (const o of (allOrders ?? [])) {
+    for (const o of allOrders) {
       orderDateMap[o.id as number] = localDateStr(new Date(o.opened_at as string))
     }
     const orderIds = Object.keys(orderDateMap).map(Number)
     const cogsByDate: Record<string, number> = {}
     if (orderIds.length > 0) {
-      const { data: itemRows } = await sb
-        .from('order_items').select('order_id, qty, menu_items(category, cost)')
-        .in('order_id', orderIds).neq('status', 'voided')
-      for (const row of (itemRows ?? [])) {
-        const dk = orderDateMap[row.order_id as number]
-        if (!dk) continue
-        const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
-        const cat = SALES_CAT_MAP[mi?.category ?? '']
-        if (!cat) continue
-        cogsByDate[dk] = (cogsByDate[dk] ?? 0) + (row.qty as number) * ((mi?.cost ?? 0) as number)
+      for (let from = 0; ; from += PAGE) {
+        const { data: itemRows } = await sb
+          .from('order_items').select('order_id, qty, menu_items(category, cost)')
+          .in('order_id', orderIds).neq('status', 'voided')
+          .range(from, from + PAGE - 1)
+        if (!itemRows || itemRows.length === 0) break
+        for (const row of itemRows) {
+          const dk = orderDateMap[row.order_id as number]
+          if (!dk) continue
+          const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
+          const cat = SALES_CAT_MAP[mi?.category ?? '']
+          if (!cat) continue
+          cogsByDate[dk] = (cogsByDate[dk] ?? 0) + (row.qty as number) * ((mi?.cost ?? 0) as number)
+        }
+        if (itemRows.length < PAGE) break
       }
     }
 

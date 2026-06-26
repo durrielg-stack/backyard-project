@@ -205,25 +205,44 @@ export default function BudgetTab() {
 
   // ── Fetch all-time data for ledger ───────────────────────────────────────
   const fetchLedger = useCallback(async () => {
-    // Step 1: all orders → date map
-    const { data: allOrders, error: ordErr } = await sb.from('orders').select('id, opened_at')
-    if (ordErr) console.error('[BudgetTab/ledger] orders error', ordErr)
-    const orderDateMap: Record<number, string> = {}
-    for (const o of (allOrders ?? [])) orderDateMap[o.id] = localDateStr(new Date(o.opened_at))
+    const PAGE = 1000
+    // Filter from seed date onwards — ledger doesn't need earlier data,
+    // and without this filter the query hits the server's default row cap.
+    const seedStartISO = seed?.date ? new Date(seed.date).toISOString() : '1970-01-01'
 
-    // Step 2: all order_items — select cost from menu_items for COGS
+    // Step 1: paginate orders from seed date → date map
+    let allOrderRows: any[] = []
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await sb
+        .from('orders').select('id, opened_at')
+        .gte('opened_at', seedStartISO)
+        .range(from, from + PAGE - 1)
+      if (error) { console.error('[BudgetTab/ledger] orders error', error); break }
+      if (!data || data.length === 0) break
+      allOrderRows = allOrderRows.concat(data)
+      if (data.length < PAGE) break
+    }
+    const orderDateMap: Record<number, string> = {}
+    for (const o of allOrderRows) orderDateMap[o.id] = localDateStr(new Date(o.opened_at))
+
+    // Step 2: paginate order_items for those orders — COGS from menu_items.cost
     const orderIds = Object.keys(orderDateMap).map(Number)
     const allIncoming: Record<string, Record<string, number>> = {}
     if (orderIds.length > 0) {
-      const { data: items, error: itemsErr } = await sb
-        .from('order_items').select('order_id, qty, menu_items(category, cost)')
-        .in('order_id', orderIds).neq('status', 'voided')
-      if (itemsErr) console.error('[BudgetTab/ledger] items error', itemsErr)
-      for (const row of (items ?? [])) {
-        const dk = orderDateMap[row.order_id]
-        if (!dk) continue
-        if (!allIncoming[dk]) allIncoming[dk] = emptyBycat()
-        accumulateItems([row], allIncoming[dk])
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await sb
+          .from('order_items').select('order_id, qty, menu_items(category, cost)')
+          .in('order_id', orderIds).neq('status', 'voided')
+          .range(from, from + PAGE - 1)
+        if (error) { console.error('[BudgetTab/ledger] items error', error); break }
+        if (!data || data.length === 0) break
+        for (const row of data) {
+          const dk = orderDateMap[row.order_id]
+          if (!dk) continue
+          if (!allIncoming[dk]) allIncoming[dk] = emptyBycat()
+          accumulateItems([row], allIncoming[dk])
+        }
+        if (data.length < PAGE) break
       }
     }
 
