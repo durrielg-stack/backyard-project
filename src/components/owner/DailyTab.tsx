@@ -115,10 +115,13 @@ export default function DailyTab({ staffName }: { staffName: string }) {
 
     // ── Group daily data ───────────────────────────────────────────────────
 
-    // Sales: sum payments by shift date (midnight–3 AM counts as previous day)
+    // Sales: sum payments by shift date (2 PM open; midnight–3 AM counts as previous day)
     const salesByDate: Record<string, number> = {}
     for (const r of (payRows ?? [])) {
-      const d = shiftLocalDate(new Date(r.processed_at as string))
+      const dt = new Date(r.processed_at as string)
+      const h  = dt.getHours()
+      if (h >= 4 && h < 14) continue  // outside shift window (4 AM – 1:59 PM)
+      const d = shiftLocalDate(dt)
       salesByDate[d] = (salesByDate[d] ?? 0) + (r.amount as number)
     }
 
