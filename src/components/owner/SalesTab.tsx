@@ -67,7 +67,7 @@ export default function SalesTab() {
   const [lines, setLines] = useState<LineItem[]>([])
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
-  const [tableView, setTableView] = useState<'orders' | 'lines' | 'summary'>('orders')
+  const [tableView, setTableView] = useState<'orders' | 'summary'>('orders')
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = getClient() as any
@@ -343,7 +343,7 @@ export default function SalesTab() {
                 : `${sortedSummary.length} unique item${sortedSummary.length !== 1 ? 's' : ''}`}
             </span>
             <div style={{ display: 'flex', gap: 2 }}>
-              {(['orders', 'lines', 'summary'] as const).map(v => (
+              {(['orders', 'summary'] as const).map(v => (
                 <button
                   key={v}
                   onClick={() => setTableView(v)}
@@ -355,7 +355,7 @@ export default function SalesTab() {
                     background: tableView === v ? `${T.accent}18` : 'transparent',
                     color: tableView === v ? T.accent : T.textMute,
                   }}
-                >{v === 'orders' ? 'Orders' : v === 'lines' ? 'Per Line' : 'Per Item'}</button>
+                >{v === 'orders' ? 'Per Order' : 'Per Item'}</button>
               ))}
             </div>
           </div>
@@ -416,7 +416,7 @@ export default function SalesTab() {
                 </tbody>
               </table>
             </div>
-          ) : tableView === 'summary' ? (
+          ) : (
             <div className="bp-no-scrollbar" style={{ flex: 1, overflow: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
               <table style={{ borderCollapse: 'collapse', minWidth: 900 }}>
                 <thead>
@@ -471,82 +471,6 @@ export default function SalesTab() {
                         <td style={td('left', { position: 'sticky', left: 0, background: rowBg, zIndex: 1, color: T.textDim })}>{s.category}</td>
                         <td style={td('left', { fontWeight: 500 })}>{s.itemName}</td>
                         <td style={td('right', { color: T.textMute })}>{s.totalQty}</td>
-                        <td style={td('right')}>{fmtPeso(s.gross)}</td>
-                        <td style={td('right', { color: T.textMute })}>{fmtPeso(s.cost)}</td>
-                        <td style={td('right', { color: s.net >= 0 ? T.ok : T.bad })}>{fmtPeso(s.net)}</td>
-                        <td style={td('right', { color: s.avgServeMin != null ? T.info : T.textMute })}>
-                          {s.avgServeMin != null ? `${s.avgServeMin}m` : '—'}
-                        </td>
-                        <td style={td('right', { color: s.margin >= 60 ? T.ok : s.margin >= 40 ? T.warn : s.gross > 0 ? T.bad : T.textMute })}>
-                          {s.gross > 0 ? `${s.margin.toFixed(1)}%` : '—'}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="bp-no-scrollbar" style={{ flex: 1, overflow: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
-              <table style={{ borderCollapse: 'collapse', minWidth: 1040 }}>
-                <thead>
-                  <tr>
-                    <th style={th('left', { position: 'sticky', top: 0, left: 0, zIndex: 4, minWidth: 140 })}>
-                      <button style={sortBtn('category')} onClick={() => summaryToggle('category')}>
-                        Category<span style={{ fontSize: 8, opacity: 0.7 }}>{summaryIcon('category')}</span>
-                      </button>
-                    </th>
-                    <th style={th('left', { minWidth: 220 })}>
-                      <button style={sortBtn('itemName')} onClick={() => summaryToggle('itemName')}>
-                        Item Name<span style={{ fontSize: 8, opacity: 0.7 }}>{summaryIcon('itemName')}</span>
-                      </button>
-                    </th>
-                    <th style={th('right', { minWidth: 64 })}>
-                      <button style={sortBtn('totalQty', 'right')} onClick={() => summaryToggle('totalQty')}>
-                        Qty<span style={{ fontSize: 8, opacity: 0.7 }}>{summaryIcon('totalQty')}</span>
-                      </button>
-                    </th>
-                    <th style={th('right', { minWidth: 120 })}>
-                      <button style={sortBtn('unitPrice', 'right')} onClick={() => summaryToggle('unitPrice')}>
-                        Unit Price<span style={{ fontSize: 8, opacity: 0.7 }}>{summaryIcon('unitPrice')}</span>
-                      </button>
-                    </th>
-                    <th style={th('right', { minWidth: 120 })}>
-                      <button style={sortBtn('gross', 'right')} onClick={() => summaryToggle('gross')}>
-                        Gross<span style={{ fontSize: 8, opacity: 0.7 }}>{summaryIcon('gross')}</span>
-                      </button>
-                    </th>
-                    <th style={th('right', { minWidth: 120 })}>
-                      <button style={sortBtn('cost', 'right')} onClick={() => summaryToggle('cost')}>
-                        Cost<span style={{ fontSize: 8, opacity: 0.7 }}>{summaryIcon('cost')}</span>
-                      </button>
-                    </th>
-                    <th style={th('right', { minWidth: 120 })}>
-                      <button style={sortBtn('net', 'right')} onClick={() => summaryToggle('net')}>
-                        Net<span style={{ fontSize: 8, opacity: 0.7 }}>{summaryIcon('net')}</span>
-                      </button>
-                    </th>
-                    <th style={th('right', { minWidth: 110 })}>
-                      <button style={sortBtn('avgServeMin', 'right')} onClick={() => summaryToggle('avgServeMin')}>
-                        Fire→Serve<span style={{ fontSize: 8, opacity: 0.7 }}>{summaryIcon('avgServeMin')}</span>
-                      </button>
-                    </th>
-                    <th style={th('right', { minWidth: 90 })}>
-                      <button style={sortBtn('margin', 'right')} onClick={() => summaryToggle('margin')}>
-                        Margin %<span style={{ fontSize: 8, opacity: 0.7 }}>{summaryIcon('margin')}</span>
-                      </button>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedSummary.map((s, i) => {
-                    const rowBg = i % 2 === 0 ? T.surface : T.bg
-                    return (
-                      <tr key={s.itemName} style={{ background: rowBg }}>
-                        <td style={td('left', { position: 'sticky', left: 0, background: rowBg, zIndex: 1, color: T.textDim })}>{s.category}</td>
-                        <td style={td('left', { fontWeight: 500 })}>{s.itemName}</td>
-                        <td style={td('right', { color: T.textMute })}>{s.totalQty}</td>
-                        <td style={td('right')}>{fmtPeso(s.unitPrice)}</td>
                         <td style={td('right')}>{fmtPeso(s.gross)}</td>
                         <td style={td('right', { color: T.textMute })}>{fmtPeso(s.cost)}</td>
                         <td style={td('right', { color: s.net >= 0 ? T.ok : T.bad })}>{fmtPeso(s.net)}</td>
