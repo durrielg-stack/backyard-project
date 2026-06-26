@@ -32,6 +32,7 @@ interface DaySummaryRow {
   budgetEnd:   number
   vsCash:      number
   cashFlow:    number
+  opProfit:    number
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -243,13 +244,14 @@ export default function DailyTab({ staffName }: { staffName: string }) {
       runningBudget += cogs + dayOpex - bExp
       const budgetEnd = runningBudget
 
-      const vsCash   = ending - budgetEnd
-      const cashFlow = prevVsCash === null ? 0 : vsCash - prevVsCash
+      const vsCash    = ending - budgetEnd
+      const cashFlow  = prevVsCash === null ? 0 : vsCash - prevVsCash
+      const opProfit  = sales - cogs - dayOpex + adjNet
 
       result.push({
         date, starting, expenses, sales, savings,
         adjNet, adjDetails, ending,
-        budgetEnd, vsCash, cashFlow,
+        budgetEnd, vsCash, cashFlow, opProfit,
       })
 
       runningBalance = ending
@@ -295,9 +297,9 @@ export default function DailyTab({ staffName }: { staffName: string }) {
   }
 
   const COL_WIDTHS = isMobile
-    ? '80px 90px 90px 90px 70px 90px 90px 90px 80px 28px'
-    : '96px 120px 120px 120px 80px 120px 120px 110px 100px 28px'
-  const MIN_W = isMobile ? 780 : 1090
+    ? '80px 90px 90px 90px 70px 90px 90px 90px 80px 90px 28px'
+    : '96px 120px 120px 120px 80px 120px 120px 110px 100px 120px 28px'
+  const MIN_W = isMobile ? 870 : 1210
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -364,7 +366,7 @@ export default function DailyTab({ staffName }: { staffName: string }) {
             padding: '0 16px', height: 36, alignItems: 'center',
             borderBottom: `1px solid ${T.line}`, background: T.surface2,
           }}>
-            {(['Date','Starting','Expenses','Sales','Savings','Ending','Budget','vs Cash','Cash Flow',''] as string[]).map((h, i) => (
+            {(['Date','Starting','Expenses','Sales','Savings','Ending','Budget','vs Cash','Cash Flow','Op. Profit',''] as string[]).map((h, i) => (
               <span key={h || `col-${i}`} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.headerText, textAlign: h === 'Date' ? 'left' : 'right' }}>{h}</span>
             ))}
           </div>
@@ -440,6 +442,11 @@ export default function DailyTab({ staffName }: { staffName: string }) {
                     {/* Cash Flow */}
                     <span style={{ ...colStyle(), color: row.cashFlow >= 0 ? T.ok : T.bad }}>
                       {(row.cashFlow >= 0 ? '+' : '') + fmtPeso(row.cashFlow)}
+                    </span>
+
+                    {/* Op. Profit */}
+                    <span style={{ ...colStyle(), color: row.opProfit >= 0 ? T.ok : T.bad }}>
+                      {row.sales > 0 ? (row.opProfit >= 0 ? '+' : '') + fmtPeso(row.opProfit) : '—'}
                     </span>
 
                     {/* Expand toggle */}
