@@ -211,7 +211,7 @@ export default function DailyTab({ staffName }: { staffName: string }) {
     const result: DaySummaryRow[] = []
     let runningBalance = seed.seed_balance as number
     let runningBudget  = budgetSeedTotal
-    let prevVsCash: number | null = null
+    let prevBudgetEnd: number | null = null
 
     // Pre-compute budget running up to seed date
     // (if budget seed predates daily seed, catch up)
@@ -245,7 +245,7 @@ export default function DailyTab({ staffName }: { staffName: string }) {
       const budgetEnd = runningBudget
 
       const vsCash    = ending - budgetEnd
-      const cashFlow  = prevVsCash === null ? 0 : vsCash - prevVsCash
+      const cashFlow  = prevBudgetEnd === null ? 0 : budgetEnd - prevBudgetEnd
       const opProfit  = sales - cogs - dayOpex + adjNet
 
       result.push({
@@ -255,7 +255,7 @@ export default function DailyTab({ staffName }: { staffName: string }) {
       })
 
       runningBalance = ending
-      prevVsCash     = vsCash
+      prevBudgetEnd  = budgetEnd
     }
 
     setRows([...result].reverse()) // most recent first
