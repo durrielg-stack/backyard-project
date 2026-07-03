@@ -45,6 +45,14 @@ function dateRange(from: string, to: string): string[] {
   return dates
 }
 
+// Hover text for column headers whose meaning isn't obvious at a glance.
+const COLUMN_TIPS: Record<string, string> = {
+  Budget:      'Cost-accounting running total — NOT your literal cash balance. Rolls forward COGS from sales plus allocated daily OPEX (rent, salaries, etc.), minus budget-tracked expenses.',
+  'vs Cash':   'Ending (actual cash) minus Budget. Positive = actual cash is running ahead of the cost model; negative = behind. A steady drift usually means an expense category isn’t being tracked consistently.',
+  'Cash Flow': 'Day-over-day change in the Budget total (today’s Budget minus yesterday’s) = COGS + allocated OPEX − expenses paid that day. Does not include Sales directly — it’s a costs-side number, not a profit number.',
+  'Op. Profit': 'Today’s operating profit: Sales − COGS − allocated daily OPEX (± adjustments). This is the number that answers "did today make money?"',
+}
+
 function fmtDate(d: string) {
   const dt = parseLocalDate(d)
   const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
@@ -366,9 +374,20 @@ export default function DailyTab({ staffName }: { staffName: string }) {
             padding: '0 16px', height: 36, alignItems: 'center',
             borderBottom: `1px solid ${T.line}`, background: T.surface2,
           }}>
-            {(['Date','Starting','Expenses','Sales','Savings','Ending','Budget','vs Cash','Cash Flow','Op. Profit',''] as string[]).map((h, i) => (
-              <span key={h || `col-${i}`} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.headerText, textAlign: h === 'Date' ? 'left' : 'right' }}>{h}</span>
-            ))}
+            {(['Date','Starting','Expenses','Sales','Savings','Ending','Budget','vs Cash','Cash Flow','Op. Profit',''] as string[]).map((h, i) => {
+              const tip = COLUMN_TIPS[h]
+              return (
+                <span
+                  key={h || `col-${i}`}
+                  title={tip}
+                  style={{
+                    fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase',
+                    color: T.headerText, textAlign: h === 'Date' ? 'left' : 'right',
+                    ...(tip ? { textDecoration: 'underline', textDecorationStyle: 'dotted', textDecorationColor: T.textMute, cursor: 'help' } : {}),
+                  }}
+                >{h}</span>
+              )
+            })}
           </div>
         </div>
       </div>
