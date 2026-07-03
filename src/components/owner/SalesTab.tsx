@@ -97,21 +97,30 @@ export default function SalesTab() {
       return
     }
 
-    const { data, error } = await sb
-      .from('order_items')
-      .select('id, order_id, qty, unit_price, status, fired_at, completed_at, menu_items(name, category, cost)')
-      .in('order_id', orderIds)
-      .neq('status', 'voided')
-      .order('id', { ascending: true })
+    // Paginate — a busy week/month can exceed PostgREST's default row cap,
+    // which would otherwise silently truncate the result (see DailyTab/BudgetTab).
+    const PAGE = 1000
+    let rows: SaleRow[] = []
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await sb
+        .from('order_items')
+        .select('id, order_id, qty, unit_price, status, fired_at, completed_at, menu_items(name, category, cost)')
+        .in('order_id', orderIds)
+        .neq('status', 'voided')
+        .order('id', { ascending: true })
+        .range(from, from + PAGE - 1)
 
-    if (error) {
-      console.error('[SalesTab] fetch error', error)
-      setLines([])
-      setLoading(false)
-      return
+      if (error) {
+        console.error('[SalesTab] fetch error', error)
+        setLines([])
+        setLoading(false)
+        return
+      }
+
+      const page: SaleRow[] = data ?? []
+      rows = rows.concat(page)
+      if (page.length < PAGE) break
     }
-
-    const rows: SaleRow[] = data ?? []
     setLines(rows.map((r: SaleRow) => {
       const gross    = r.qty * r.unit_price
       const cost     = r.qty * (r.menu_items?.cost ?? 0)

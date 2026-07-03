@@ -4,7 +4,7 @@ import { useTheme } from '@/lib/ThemeContext'
 import { useState, useCallback, useEffect } from 'react'
 import { getClient } from '@/lib/supabase'
 import { SectionHd, fmtPeso } from './ownerShared'
-import { localDateStr, shiftLocalDate, parseLocalDate, currentShiftDate } from '@/lib/dateNav'
+import { localDateStr, parseLocalDate, currentShiftDate } from '@/lib/dateNav'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { BUDGET_CATS, SALES_CAT_MAP, EXP_CAT_MAP, emptyBycat } from './BudgetTab'
 import { computeDailyOpex } from './OpexTab'
@@ -79,7 +79,6 @@ export default function DailyTab({ staffName }: { staffName: string }) {
 
     const [
       { data: seedRows },
-      { data: payRows },
       { data: expRows },
       { data: savRows },
       { data: adjRows },
@@ -88,7 +87,6 @@ export default function DailyTab({ staffName }: { staffName: string }) {
       { data: opexCfgRows },
     ] = await Promise.all([
       sb.from('daily_summary_seed').select('*').order('created_at', { ascending: false }).limit(1),
-      sb.from('payments').select('amount, processed_at'),
       sb.from('daily_expenses').select('expense_date, category, amount'),
       sb.from('partner_remittances').select('remittance_date, total_amount'),
       sb.from('daily_adjustments').select('*').order('adj_date'),
@@ -116,15 +114,11 @@ export default function DailyTab({ staffName }: { staffName: string }) {
 
     // ── Group daily data ───────────────────────────────────────────────────
 
-    // Sales: sum payments by shift date (2 PM open; midnight–3 AM counts as previous day)
+    // Sales is computed below from order_items (qty × unit_price), keyed by the
+    // same orderDateMap as COGS — never from payments, which include tips and
+    // are net of discounts, and would otherwise land on a different date than
+    // COGS for any order paid on a different shift-day than it was opened.
     const salesByDate: Record<string, number> = {}
-    for (const r of (payRows ?? [])) {
-      const dt = new Date(r.processed_at as string)
-      const h  = dt.getHours()
-      if (h >= 4 && h < 14) continue  // outside shift window (4 AM – 1:59 PM)
-      const d = shiftLocalDate(dt)
-      salesByDate[d] = (salesByDate[d] ?? 0) + (r.amount as number)
-    }
 
     // Expenses: sum daily_expenses by date
     const expByDate: Record<string, number> = {}
@@ -169,7 +163,8 @@ export default function DailyTab({ staffName }: { staffName: string }) {
       }
     }
 
-    // COGS per date (from order_items × menu_items.cost)
+    // Sales + COGS per date (from order_items), both keyed by the same
+    // orderDateMap so the two figures can never land on mismatched dates.
     const orderDateMap: Record<number, string> = {}
     for (const o of allOrders) {
       orderDateMap[o.id as number] = localDateStr(new Date(o.opened_at as string))
@@ -179,13 +174,18 @@ export default function DailyTab({ staffName }: { staffName: string }) {
     if (orderIds.length > 0) {
       for (let from = 0; ; from += PAGE) {
         const { data: itemRows } = await sb
-          .from('order_items').select('order_id, qty, menu_items(category, cost)')
+          .from('order_items').select('order_id, qty, unit_price, menu_items(category, cost)')
           .in('order_id', orderIds).neq('status', 'voided')
           .range(from, from + PAGE - 1)
         if (!itemRows || itemRows.length === 0) break
         for (const row of itemRows) {
           const dk = orderDateMap[row.order_id as number]
           if (!dk) continue
+          // Sales counts every non-voided item (matches SalesTab's gross) —
+          // unlike COGS below, it is not restricted to SALES_CAT_MAP categories,
+          // so Charges-category items (corkage, breakage fees, etc.) still count.
+          salesByDate[dk] = (salesByDate[dk] ?? 0) + (row.qty as number) * ((row.unit_price ?? 0) as number)
+
           const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
           const cat = SALES_CAT_MAP[mi?.category ?? '']
           if (!cat) continue

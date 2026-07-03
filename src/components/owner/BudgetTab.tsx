@@ -30,16 +30,25 @@ export const SALES_CAT_MAP: Record<string, string> = {
   Cigarettes: 'cigarettes',
 }
 
-// Map daily_expenses.category → budget cat id
+// Map daily_expenses.category → budget cat id. Covers both the staff Expenses
+// screen's categories (OPEX/Food/Beer/...) and the Owner Expenses tab's general
+// admin categories (Petty Cash/Supplies/...) — the latter all roll up into the
+// OPEX bucket since they're operating expenses, not COGS tied to a menu category.
 export const EXP_CAT_MAP: Record<string, string> = {
   OPEX: 'opex', Food: 'food', Beer: 'beer',
   'Cocktails/Hard': 'cocktails', 'Non-Alcohol': 'non_alcohol',
   Cigarettes: 'cigarettes',
+  'Petty Cash': 'opex', Supplies: 'opex', Utilities: 'opex',
+  Wages: 'opex', Marketing: 'opex', Other: 'opex',
 }
-// Reverse: budget cat id → DB category string (for budget_seed inserts)
-const CAT_ID_TO_DB: Record<string, string> = Object.fromEntries(
-  Object.entries(EXP_CAT_MAP).map(([db, id]) => [id, db])
-)
+// Reverse: budget cat id → DB category string, for budget_seed inserts (whose
+// category column has a CHECK constraint allowing only the six canonical values
+// above — kept explicit rather than derived so new EXP_CAT_MAP entries can't
+// silently pick a non-canonical string for a shared id like 'opex').
+const CAT_ID_TO_DB: Record<string, string> = {
+  food: 'Food', beer: 'Beer', cocktails: 'Cocktails/Hard',
+  non_alcohol: 'Non-Alcohol', cigarettes: 'Cigarettes', opex: 'OPEX',
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
