@@ -106,14 +106,17 @@ export default function DailyTab({ staffName }: { staffName: string }) {
     const seed = seedRows?.[0] ?? null
     if (!seed) { setLoading(false); return }
 
-    // Paginate orders from seed date onwards to avoid the server's default row cap
+    // Paginate CLOSED orders from seed date onwards to avoid the server's default
+    // row cap. Only closed (billed) orders count — an open tab is money that
+    // hasn't come in yet and would overstate the cash Ending balance below.
     const PAGE = 1000
     const seedStartISO = new Date(seed.seed_date as string).toISOString()
     let allOrders: any[] = []
     for (let from = 0; ; from += PAGE) {
       const { data } = await sb
-        .from('orders').select('id, opened_at')
-        .gte('opened_at', seedStartISO)
+        .from('orders').select('id, closed_at')
+        .eq('status', 'closed')
+        .gte('closed_at', seedStartISO)
         .range(from, from + PAGE - 1)
       if (!data || data.length === 0) break
       allOrders = allOrders.concat(data)
@@ -173,9 +176,13 @@ export default function DailyTab({ staffName }: { staffName: string }) {
 
     // Sales + COGS per date (from order_items), both keyed by the same
     // orderDateMap so the two figures can never land on mismatched dates.
+    // Keyed by closed_at (when the order was actually billed/paid), not
+    // opened_at — this is a cash ledger, so revenue lands on the day the
+    // money came in, not the day the tab was opened.
     const orderDateMap: Record<number, string> = {}
     for (const o of allOrders) {
-      orderDateMap[o.id as number] = localDateStr(new Date(o.opened_at as string))
+      if (!o.closed_at) continue
+      orderDateMap[o.id as number] = localDateStr(new Date(o.closed_at as string))
     }
     const orderIds = Object.keys(orderDateMap).map(Number)
     const cogsByDate: Record<string, number> = {}
