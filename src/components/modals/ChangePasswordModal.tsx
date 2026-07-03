@@ -11,12 +11,11 @@ function staffEmail(name: string): string {
 }
 
 interface Props {
-  staffId: string
   staffName: string
   onClose: () => void
 }
 
-export default function ChangePasswordModal({ staffId, staffName, onClose }: Props) {
+export default function ChangePasswordModal({ staffName, onClose }: Props) {
   const { T } = useTheme()
   const [currentPw, setCurrentPw]   = useState('')
   const [newPw, setNewPw]           = useState('')
@@ -50,7 +49,8 @@ export default function ChangePasswordModal({ staffId, staffName, onClose }: Pro
       return
     }
 
-    await logAudit(staffId, 'password_changed')
+    const { data: sessionData } = await sb.auth.getSession()
+    await logAudit(sessionData.session?.access_token ?? '', 'password_changed')
     setSuccess(true)
     setLoading(false)
   }

@@ -52,6 +52,12 @@ export default function ManageUsersModal({ actorId, actorRole, onClose }: Props)
     setUsers(data ?? [])
   }
 
+  // Caller's Supabase access token — the server actions verify identity + role from it.
+  async function authToken(): Promise<string> {
+    const { data } = await getClient().auth.getSession()
+    return data.session?.access_token ?? ''
+  }
+
   useEffect(() => { fetchUsers() }, [])
 
   const displayed = tab === 'active'
@@ -61,7 +67,7 @@ export default function ManageUsersModal({ actorId, actorRole, onClose }: Props)
   async function handleToggleStatus(user: StaffUser) {
     setStatusLoading(user.id)
     const newStatus = user.account_status === 'active' ? 'disabled' : 'active'
-    const { error } = await setUserStatus(user.id, newStatus, actorId)
+    const { error } = await setUserStatus(await authToken(), user.id, newStatus)
     if (!error) await fetchUsers()
     setStatusLoading(null)
   }
@@ -71,7 +77,7 @@ export default function ManageUsersModal({ actorId, actorRole, onClose }: Props)
     if (resetPw.length < 8) { setResetError('Password must be at least 8 characters.'); return }
     setResetLoading(true)
     setResetError(null)
-    const { error } = await resetOtherUserPassword(resetTarget.id, resetPw, actorId)
+    const { error } = await resetOtherUserPassword(await authToken(), resetTarget.id, resetPw)
     if (error) { setResetError(error); setResetLoading(false); return }
     setResetSuccess(true)
     setResetLoading(false)
@@ -89,7 +95,7 @@ export default function ManageUsersModal({ actorId, actorRole, onClose }: Props)
     if (addPw.length < 8) { setAddError('Password must be at least 8 characters.'); return }
     setAddLoading(true)
     setAddError(null)
-    const { error } = await addUser(addName.trim(), addRole, addPw)
+    const { error } = await addUser(await authToken(), addName.trim(), addRole, addPw)
     if (error) { setAddError(error); setAddLoading(false); return }
     setAddName('')
     setAddRole('waiter')

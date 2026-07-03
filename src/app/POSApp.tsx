@@ -259,7 +259,6 @@ export default function POSApp() {
 
       {showChangePassword && staff && (
         <ChangePasswordModal
-          staffId={staff.userId}
           staffName={staff.name}
           onClose={() => setShowChangePassword(false)}
         />
