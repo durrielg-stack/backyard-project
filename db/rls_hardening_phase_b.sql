@@ -1,240 +1,139 @@
 -- ============================================================================
--- RLS Hardening — Tier B (F-02)
--- Drafted 2026-07-03. REVIEW ARTIFACT — not auto-applied. Run in the Supabase
--- SQL editor against the project, test between phases, keep the rollback handy.
+-- RLS Hardening — Tier B (F-02)   STATUS: APPLIED TO PRODUCTION 2026-07-03
 --
--- WHAT THIS DOES / DOES NOT DO
---   * Changes ONLY row-access rules (policies). No INSERT/UPDATE/DELETE of data,
---     no DROP/ALTER of columns. Zero row-data loss. A bad policy can make rows
---     temporarily unreadable by the app, never destroys them, and is reversible
---     instantly with the rollback at the bottom.
+-- IMPORTANT: This file documents what was ACTUALLY applied to the live database
+-- (project yspwtobicmqsysbrkfjk). The live policies already had a partial role
+-- model targeting the `public` role (which includes anonymous users), so the fix
+-- was done surgically with ALTER POLICY — preserving each policy's conditions and
+-- only changing its audience/qual — rather than the drop-and-replace originally
+-- drafted. Access-control only; no row data was modified.
 --
--- CRITICAL CORRECTNESS NOTE
---   PostgreSQL combines multiple PERMISSIVE policies with OR. If the current
---   `USING (true)` policies are left in place, adding stricter policies does
---   NOTHING. Each phase below first DROPS every existing policy on its target
---   tables, then recreates the intended set. Both phases run inside a single
---   transaction, so other sessions never see a half-applied state.
---
--- ROLES
---   `anon`          = the public anon key (unauthenticated internet traffic)
---   `authenticated` = any signed-in staff member (real Supabase session)
---   Role granularity (owner/manager) in Phase B2 uses public.get_user_role().
---
--- ANON ACCESS IS PRESERVED ONLY WHERE REQUIRED
---   users             SELECT — login pickers list active staff before sign-in
---   restaurant_tables SELECT — public availability page (id, label, status)
---   orders            SELECT — public availability page (table_id, opened_at, closed_at)
---   Everything else becomes staff-only.
+-- Roles in use: owner, manager, waiter, kitchen (no `staff` role active).
+-- Anon access after B1 is limited to three SELECTs the app needs:
+--   users_read, tables_read_all (public availability page), orders_read_auth.
 -- ============================================================================
 
 
 -- ============================================================================
--- STEP 0 — DISCOVERY (run these SELECTs first; they change nothing)
+-- PHASE B1 — Close anonymous access (APPLIED). Flip every policy from `public`
+-- to `authenticated`, keeping conditions intact; leave the three anon reads.
 -- ============================================================================
--- Current policies, so you can see exactly what will be replaced:
---   SELECT schemaname, tablename, policyname, roles, cmd, qual, with_check
---   FROM pg_policies WHERE schemaname = 'public' ORDER BY tablename, policyname;
---
--- Confirm the role helper exists and is SECURITY DEFINER with a fixed
--- search_path (Phase B2 depends on it; prosecdef must be true):
---   SELECT proname, prosecdef, proconfig FROM pg_proc WHERE proname = 'get_user_role';
---
--- If get_user_role() is missing or not SECURITY DEFINER, apply Phase B1 only
--- and defer B2 until it is fixed (see db_optimization_next_steps.md #10).
-
-
--- ============================================================================
--- PHASE B1 — Close anonymous access; logged-in staff keep full access
--- Non-breaking: any operation the app performs today as a signed-in user still
--- works. This alone removes the internet-facing anon read/write of financial data.
--- ============================================================================
-BEGIN;
-
--- 1a. Wipe existing policies on every target table, keep RLS enabled.
-DO $$
-DECLARE t text; p record;
-BEGIN
-  FOREACH t IN ARRAY ARRAY[
-    'users','restaurant_tables','orders','order_items','menu_items','inventory',
-    'notifications','expense_presets','payments','daily_expenses',
-    'partner_remittances','partner_remittance_splits','opex_items',
-    'opex_monthly_config','budget_seed','daily_adjustments','daily_summary_seed',
-    'audit_logs'
-  ]
-  LOOP
-    FOR p IN SELECT policyname FROM pg_policies
-             WHERE schemaname = 'public' AND tablename = t
-    LOOP
-      EXECUTE format('DROP POLICY %I ON public.%I', p.policyname, t);
-    END LOOP;
-    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
-  END LOOP;
-END $$;
-
--- 1b. Public + login tables: anon may SELECT; staff may write.
-CREATE POLICY users_sel  ON public.users             FOR SELECT TO anon, authenticated USING (true);
-CREATE POLICY tables_sel ON public.restaurant_tables FOR SELECT TO anon, authenticated USING (true);
-CREATE POLICY orders_sel ON public.orders            FOR SELECT TO anon, authenticated USING (true);
-
-CREATE POLICY tables_all_auth ON public.restaurant_tables FOR ALL TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY orders_all_auth ON public.orders            FOR ALL TO authenticated USING (true) WITH CHECK (true);
--- (users has no write policy: user management runs through the service role,
---  which bypasses RLS, so direct client writes to users stay denied.)
-
--- 1c. Append-only audit log: staff insert + read; no update/delete.
-CREATE POLICY audit_ins_auth ON public.audit_logs FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY audit_sel_auth ON public.audit_logs FOR SELECT TO authenticated USING (true);
-
--- 1d. Everything else: full CRUD for signed-in staff, nothing for anon.
-DO $$
-DECLARE t text;
-BEGIN
-  FOREACH t IN ARRAY ARRAY[
-    'order_items','menu_items','inventory','notifications','expense_presets',
-    'payments','daily_expenses','partner_remittances','partner_remittance_splits',
-    'opex_items','opex_monthly_config','budget_seed','daily_adjustments','daily_summary_seed'
-  ]
-  LOOP
-    EXECUTE format(
-      'CREATE POLICY %I ON public.%I FOR ALL TO authenticated USING (true) WITH CHECK (true)',
-      t || '_all_auth', t);
-  END LOOP;
-END $$;
-
-COMMIT;
-
--- ---- TEST BEFORE PROCEEDING TO B2 --------------------------------------------
--- 1. Signed-in POS: take an order, bill it out (incl. partial pay), open Owner
---    tabs (budget/expenses/reports). All must work.
--- 2. Public availability page (byp.theserverprojectph.cc) still renders tables.
--- 3. Anon is now blocked. This must return [] (empty), not data:
---      curl 'https://<PROJECT>.supabase.co/rest/v1/payments?select=*' \
---        -H "apikey: <ANON_KEY>" -H "Authorization: Bearer <ANON_KEY>"
--- ------------------------------------------------------------------------------
+-- users:  keep users_read anon-readable (login picker); writes signed-in only
+ALTER POLICY users_insert            ON public.users                     TO authenticated;
+ALTER POLICY users_update            ON public.users                     TO authenticated;
+-- restaurant_tables: keep tables_read_all anon-readable (public page)
+ALTER POLICY tables_write_all        ON public.restaurant_tables         TO authenticated;
+-- orders: keep orders_read_auth anon-readable (public page)
+ALTER POLICY orders_insert_staff     ON public.orders                    TO authenticated;
+ALTER POLICY orders_update_staff     ON public.orders                    TO authenticated;
+ALTER POLICY orders_delete_mgr       ON public.orders                    TO authenticated;
+-- order_items (fully signed-in only)
+ALTER POLICY oi_read_auth            ON public.order_items               TO authenticated;
+ALTER POLICY oi_insert_staff         ON public.order_items               TO authenticated;
+ALTER POLICY oi_update_staff         ON public.order_items               TO authenticated;
+ALTER POLICY oi_delete_mgr           ON public.order_items               TO authenticated;
+-- menu_items
+ALTER POLICY menu_read               ON public.menu_items                TO authenticated;
+ALTER POLICY menu_write_all          ON public.menu_items                TO authenticated;
+-- payments
+ALTER POLICY pay_read_auth           ON public.payments                  TO authenticated;
+ALTER POLICY pay_insert_staff        ON public.payments                  TO authenticated;
+ALTER POLICY pay_update_mgr          ON public.payments                  TO authenticated;
+ALTER POLICY pay_delete_mgr          ON public.payments                  TO authenticated;
+-- inventory / notifications
+ALTER POLICY inv_all                 ON public.inventory                 TO authenticated;
+ALTER POLICY "service role full access" ON public.notifications          TO authenticated;
+-- financial / owner tables
+ALTER POLICY allow_all_authenticated ON public.daily_expenses            TO authenticated;
+ALTER POLICY remittances_all         ON public.partner_remittances       TO authenticated;
+ALTER POLICY splits_all              ON public.partner_remittance_splits TO authenticated;
+ALTER POLICY allow_all               ON public.opex_items                TO authenticated;
+ALTER POLICY allow_all               ON public.opex_monthly_config       TO authenticated;
+ALTER POLICY allow_all               ON public.budget_seed               TO authenticated;
+ALTER POLICY allow_all               ON public.daily_adjustments         TO authenticated;
+ALTER POLICY allow_all               ON public.daily_summary_seed        TO authenticated;
+ALTER POLICY open                    ON public.expense_presets           TO authenticated;
+-- audit_logs
+ALTER POLICY audit_logs_insert       ON public.audit_logs                TO authenticated;
+ALTER POLICY audit_logs_read         ON public.audit_logs                TO authenticated;
+-- unused/dead tables (0 rows) that were still anon-open
+ALTER POLICY budget_all              ON public.budget_daily              TO authenticated;
+ALTER POLICY sales_insert_sys        ON public.sales                     TO authenticated;
+ALTER POLICY sales_read_mgr          ON public.sales                     TO authenticated;
+ALTER POLICY si_insert_sys           ON public.sales_items               TO authenticated;
+ALTER POLICY si_read_mgr             ON public.sales_items               TO authenticated;
 
 
 -- ============================================================================
--- PHASE B2 — Least privilege by role (HIGHER TEST RISK — do after B1 is proven)
--- Depends on public.get_user_role() returning the caller's role. Re-scopes the
--- financial/admin subset; leaves order_items/inventory/notifications as staff-wide.
+-- PHASE B2 — Least privilege by role (APPLIED). Uses get_user_role(), which is
+-- SELECT role FROM public.users WHERE id = auth.uid()  (SECURITY DEFINER).
+-- Mirrors the app's screen permissions exactly.
+--   owner + manager : payments (read), daily_expenses, expense_presets
+--   owner only      : remittances, OPEX, budget seed, adjustments, summary seed, menu edits
+--   all staff       : orders/order_items/inventory (unchanged), payment INSERT at bill-out
 -- ============================================================================
-BEGIN;
-
-DO $$
-DECLARE t text; p record;
-BEGIN
-  FOREACH t IN ARRAY ARRAY[
-    'restaurant_tables','menu_items','expense_presets','payments','daily_expenses',
-    'partner_remittances','partner_remittance_splits','opex_items',
-    'opex_monthly_config','budget_seed','daily_adjustments','daily_summary_seed','audit_logs'
-  ]
-  LOOP
-    FOR p IN SELECT policyname FROM pg_policies
-             WHERE schemaname = 'public' AND tablename = t
-    LOOP
-      EXECUTE format('DROP POLICY %I ON public.%I', p.policyname, t);
-    END LOOP;
-  END LOOP;
-END $$;
-
--- restaurant_tables: public still reads; any staff flips status; owner edits layout.
-CREATE POLICY tables_sel      ON public.restaurant_tables FOR SELECT TO anon, authenticated USING (true);
-CREATE POLICY tables_upd_auth ON public.restaurant_tables FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY tables_ins_own  ON public.restaurant_tables FOR INSERT TO authenticated WITH CHECK (public.get_user_role() = 'owner');
-CREATE POLICY tables_del_own  ON public.restaurant_tables FOR DELETE TO authenticated USING (public.get_user_role() = 'owner');
-
--- menu_items: all staff read (ordering); owner writes.
-CREATE POLICY menu_sel_auth ON public.menu_items FOR SELECT TO authenticated USING (true);
-CREATE POLICY menu_ins_own  ON public.menu_items FOR INSERT TO authenticated WITH CHECK (public.get_user_role() = 'owner');
-CREATE POLICY menu_upd_own  ON public.menu_items FOR UPDATE TO authenticated USING (public.get_user_role() = 'owner') WITH CHECK (public.get_user_role() = 'owner');
-CREATE POLICY menu_del_own  ON public.menu_items FOR DELETE TO authenticated USING (public.get_user_role() = 'owner');
-
--- expense_presets: all staff read; manager/owner write.
-CREATE POLICY presets_sel_auth ON public.expense_presets FOR SELECT TO authenticated USING (true);
-CREATE POLICY presets_mod_mgr  ON public.expense_presets FOR ALL TO authenticated
-  USING      (public.get_user_role() = ANY (ARRAY['owner','manager']))
-  WITH CHECK (public.get_user_role() = ANY (ARRAY['owner','manager']));
-
--- payments: staff insert at bill-out; manager/owner read for reports.
---   ⚠ VERIFY no staff-only screen reads payments before applying. If one does,
---     widen pay_sel to TO authenticated USING (true).
-CREATE POLICY pay_ins_auth ON public.payments FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY pay_sel_mgr  ON public.payments FOR SELECT TO authenticated
-  USING (public.get_user_role() = ANY (ARRAY['owner','manager']));
-
--- daily_expenses: manager/owner only (matches the ExpensesView UI gate).
-CREATE POLICY exp_all_mgr ON public.daily_expenses FOR ALL TO authenticated
-  USING      (public.get_user_role() = ANY (ARRAY['owner','manager']))
-  WITH CHECK (public.get_user_role() = ANY (ARRAY['owner','manager']));
-
--- Owner-only financial tables.
-DO $$
-DECLARE t text;
-BEGIN
-  FOREACH t IN ARRAY ARRAY[
-    'partner_remittances','partner_remittance_splits','opex_items',
-    'opex_monthly_config','budget_seed','daily_adjustments','daily_summary_seed'
-  ]
-  LOOP
-    EXECUTE format(
-      'CREATE POLICY %I ON public.%I FOR ALL TO authenticated '
-      'USING (public.get_user_role() = ''owner'') '
-      'WITH CHECK (public.get_user_role() = ''owner'')',
-      t || '_all_own', t);
-  END LOOP;
-END $$;
-
--- audit_logs: staff still insert their own events; only owner reads.
-CREATE POLICY audit_ins_auth ON public.audit_logs FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY audit_sel_own  ON public.audit_logs FOR SELECT TO authenticated
-  USING (public.get_user_role() = 'owner');
-
-COMMIT;
-
--- ---- TEST AFTER B2 -----------------------------------------------------------
--- * Owner: all tabs work (budget, expenses, remittances, opex, reports).
--- * Manager: expenses + reports work; owner-only tables return empty.
--- * Waiter/kitchen: ordering + bill-out (payment insert) works; reading
---   payments/expenses returns empty.
--- ------------------------------------------------------------------------------
+ALTER POLICY pay_read_auth ON public.payments
+  USING (get_user_role() = ANY (ARRAY['owner','manager']));
+ALTER POLICY allow_all_authenticated ON public.daily_expenses
+  USING (get_user_role() = ANY (ARRAY['owner','manager'])) WITH CHECK (get_user_role() = ANY (ARRAY['owner','manager']));
+ALTER POLICY open ON public.expense_presets
+  USING (get_user_role() = ANY (ARRAY['owner','manager'])) WITH CHECK (get_user_role() = ANY (ARRAY['owner','manager']));
+ALTER POLICY menu_write_all ON public.menu_items
+  USING (get_user_role() = 'owner') WITH CHECK (get_user_role() = 'owner');
+ALTER POLICY remittances_all ON public.partner_remittances
+  USING (get_user_role() = 'owner') WITH CHECK (get_user_role() = 'owner');
+ALTER POLICY splits_all ON public.partner_remittance_splits
+  USING (get_user_role() = 'owner') WITH CHECK (get_user_role() = 'owner');
+ALTER POLICY allow_all ON public.opex_items
+  USING (get_user_role() = 'owner') WITH CHECK (get_user_role() = 'owner');
+ALTER POLICY allow_all ON public.opex_monthly_config
+  USING (get_user_role() = 'owner') WITH CHECK (get_user_role() = 'owner');
+ALTER POLICY allow_all ON public.budget_seed
+  USING (get_user_role() = 'owner') WITH CHECK (get_user_role() = 'owner');
+ALTER POLICY allow_all ON public.daily_adjustments
+  USING (get_user_role() = 'owner') WITH CHECK (get_user_role() = 'owner');
+ALTER POLICY allow_all ON public.daily_summary_seed
+  USING (get_user_role() = 'owner') WITH CHECK (get_user_role() = 'owner');
 
 
 -- ============================================================================
--- ROLLBACK — restore the original wide-open state (emergency use)
--- Reverts every target table to a single permissive policy. Reversible, no
--- data touched. Run in the Supabase SQL editor if the app misbehaves.
+-- VERIFICATION (as run 2026-07-03) — simulate each role's JWT:
+--   BEGIN;
+--   SET LOCAL request.jwt.claims = '{"sub":"<user_id>"}';
+--   SET LOCAL ROLE authenticated;
+--   SELECT get_user_role(), (SELECT count(*) FROM public.payments), ... ;
+--   ROLLBACK;
+-- Results: owner sees all; manager sees payments+expenses+orders but 0 for
+-- remittances/opex/budget; waiter sees 0 financial, full orders/order_items.
+-- Anonymous sees only restaurant_tables, orders, users.
 -- ============================================================================
--- BEGIN;
--- DO $$
--- DECLARE t text; p record;
--- BEGIN
---   FOREACH t IN ARRAY ARRAY[
---     'users','restaurant_tables','orders','order_items','menu_items','inventory',
---     'notifications','expense_presets','payments','daily_expenses',
---     'partner_remittances','partner_remittance_splits','opex_items',
---     'opex_monthly_config','budget_seed','daily_adjustments','daily_summary_seed',
---     'audit_logs'
---   ]
---   LOOP
---     FOR p IN SELECT policyname FROM pg_policies
---              WHERE schemaname = 'public' AND tablename = t
---     LOOP EXECUTE format('DROP POLICY %I ON public.%I', p.policyname, t); END LOOP;
---     EXECUTE format(
---       'CREATE POLICY %I ON public.%I FOR ALL TO anon, authenticated '
---       'USING (true) WITH CHECK (true)', t || '_open', t);
---   END LOOP;
--- END $$;
--- COMMIT;
 
 
 -- ============================================================================
--- RESIDUAL HARDENING (deferred; each needs a small code change, so NOT here)
---   * orders anon SELECT still exposes all columns to the public. The page only
---     needs table_id/opened_at/closed_at. Replace with a column-scoped view (or
---     drop the orders read entirely and derive occupancy from
---     restaurant_tables.status) — a public-page code change, then remove
---     orders_sel for anon.
+-- ROLLBACK (emergency only) — reverses to the pre-Tier-B wide-open state.
+-- ============================================================================
+-- -- Undo B2 (re-open financial tables to any signed-in user):
+-- ALTER POLICY pay_read_auth ON public.payments USING (true);
+-- ALTER POLICY allow_all_authenticated ON public.daily_expenses USING (true) WITH CHECK (true);
+-- ALTER POLICY open ON public.expense_presets USING (true) WITH CHECK (true);
+-- ALTER POLICY menu_write_all ON public.menu_items USING (true) WITH CHECK (true);
+-- ALTER POLICY remittances_all ON public.partner_remittances USING (true) WITH CHECK (true);
+-- ALTER POLICY splits_all ON public.partner_remittance_splits USING (true) WITH CHECK (true);
+-- ALTER POLICY allow_all ON public.opex_items USING (true) WITH CHECK (true);
+-- ALTER POLICY allow_all ON public.opex_monthly_config USING (true) WITH CHECK (true);
+-- ALTER POLICY allow_all ON public.budget_seed USING (true) WITH CHECK (true);
+-- ALTER POLICY allow_all ON public.daily_adjustments USING (true) WITH CHECK (true);
+-- ALTER POLICY allow_all ON public.daily_summary_seed USING (true) WITH CHECK (true);
+-- -- Undo B1 (re-open to anon — only if the public page or login breaks): set the
+-- -- affected policy back TO public, e.g.:
+-- --   ALTER POLICY <policyname> ON public.<table> TO public;
+
+
+-- ============================================================================
+-- RESIDUAL HARDENING (deferred; each needs a small code change)
+--   * orders anon SELECT still exposes all columns to the public page, which only
+--     needs table_id/opened_at/closed_at. Replace with a column-scoped view, or
+--     derive occupancy from restaurant_tables.status and drop the anon orders read.
 --   * users anon SELECT still leaks the full staff roster/roles (finding F-08).
 --     Closing it needs a server endpoint feeding the login picker.
 -- ============================================================================
