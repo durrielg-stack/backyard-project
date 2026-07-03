@@ -7,6 +7,7 @@ import { useOpenOrders }  from '@/hooks/useOpenOrders'
 import { useMenuItems }   from '@/hooks/useMenuItems'
 import { useAutoStatus }  from '@/hooks/useAutoStatus'
 import { useTickets }     from '@/hooks/useTickets'
+import { useSessionGuard } from '@/hooks/useSessionGuard'
 import { useTheme }       from '@/lib/ThemeContext'
 import type { CartLine }  from '@/lib/types'
 import NavBar       from '@/components/NavBar'
@@ -64,6 +65,11 @@ export default function POSApp() {
     localStorage.setItem('bp_staff', JSON.stringify(s))
     setStaff(s)
   }, [])
+
+  // Falls back to the sign-in screen if the underlying Supabase session ever
+  // goes stale — otherwise the app keeps rendering as "signed in" while every
+  // RLS-gated query silently returns empty rows.
+  useSessionGuard('bp_staff', () => setStaff(null))
 
   // ── Modals ────────────────────────────────────────────────────────────────
   const [showChangePassword, setShowChangePassword] = useState(false)

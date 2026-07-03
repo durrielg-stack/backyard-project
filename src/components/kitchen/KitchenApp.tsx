@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useTheme } from '@/lib/ThemeContext'
 import { getClient } from '@/lib/supabase'
+import { useSessionGuard } from '@/hooks/useSessionGuard'
 import KitchenView from './KitchenView'
 import KitchenLogin from './KitchenLogin'
 
@@ -19,6 +20,8 @@ export default function KitchenApp() {
   const { T } = useTheme()
   const [session, setSession] = useState<KitchenSession | null>(null)
   const [ready, setReady] = useState(false)
+
+  useSessionGuard('bp_kitchen', () => setSession(null))
 
   useEffect(() => {
     setSession(loadSession())

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useTheme } from '@/lib/ThemeContext'
 import { getClient } from '@/lib/supabase'
+import { useSessionGuard } from '@/hooks/useSessionGuard'
 import WaiterFloorView from './WaiterFloorView'
 import WaiterTableView from './WaiterTableView'
 import WaiterMenuPicker from './WaiterMenuPicker'
@@ -26,6 +27,8 @@ export default function WaiterApp() {
   const { T } = useTheme()
   const [session, setSession] = useState<WaiterSession | null>(() => loadSession())
   const [screen, setScreen] = useState<Screen>({ kind: 'floor' })
+
+  useSessionGuard('bp_waiter', () => setSession(null))
 
   useEffect(() => {
     // Try to lock orientation via API (supported in most mobile browsers)
