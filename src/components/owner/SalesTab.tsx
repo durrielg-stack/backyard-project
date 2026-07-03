@@ -75,19 +75,25 @@ export default function SalesTab() {
   const fetchSales = useCallback(async (start: string, end: string) => {
     setLoading(true)
 
-    // Two-step fetch to avoid unreliable PostgREST embedded resource filter
+    // Only closed (billed) orders count as Sales — an open tab is revenue that
+    // hasn't happened yet. Filtered and keyed by closed_at (when it was billed),
+    // not opened_at, so an order opened one day and paid the next lands on the
+    // day it was actually paid. (Two-step fetch to avoid unreliable PostgREST
+    // embedded resource filter.)
     const { data: matchingOrders } = await sb
       .from('orders')
-      .select('id, table_id, opened_at')
-      .gte('opened_at', start)
-      .lte('opened_at', end)
+      .select('id, table_id, closed_at')
+      .eq('status', 'closed')
+      .gte('closed_at', start)
+      .lte('closed_at', end)
 
     const orderIds: string[] = (matchingOrders ?? []).map((o: any) => o.id)
     const orderTableMap: Record<string, string> = {}
     const orderTimeMap:  Record<string, string> = {}
     for (const o of (matchingOrders ?? [])) {
+      if (!o.closed_at) continue
       orderTableMap[o.id] = o.table_id
-      const dt = new Date(o.opened_at)
+      const dt = new Date(o.closed_at)
       orderTimeMap[o.id] = `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`
     }
 
@@ -381,7 +387,7 @@ export default function SalesTab() {
               <table style={{ borderCollapse: 'collapse', minWidth: 1100 }}>
                 <thead>
                   <tr>
-                    <th style={th('left', { position: 'sticky', top: 0, left: 0, zIndex: 4, minWidth: 72 })}>Time</th>
+                    <th style={{ ...th('left', { position: 'sticky', top: 0, left: 0, zIndex: 4, minWidth: 72 }), textDecoration: 'underline', textDecorationStyle: 'dotted', textDecorationColor: T.textMute, cursor: 'help' }} title="When the order was closed/billed, not when it was opened">Time</th>
                     <th style={th('left', { minWidth: 72 })}>Table</th>
                     <th style={th('left', { minWidth: 130 })}>Category</th>
                     <th style={th('left', { minWidth: 220 })}>Item Name</th>
