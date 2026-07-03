@@ -164,7 +164,8 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
       const { error } = await sb.from('order_items').update({ qty: newQty }).eq('id', match.dbId)
       if (error) { setError(error.message); return }
       setLines(prev => prev.map(l => l.lineId === match.lineId ? { ...l, qty: newQty } : l))
-      await sb.rpc('deduct_inventory', { p_menu_item_id: item.id, p_qty: qty })
+      const { error: invErr } = await sb.rpc('deduct_inventory', { p_menu_item_id: item.id, p_qty: qty })
+      if (invErr) console.error('[useOrder] deduct_inventory failed', invErr)
     } else {
       const tempLineId = 'L' + (lineCount.current++)
       const optimistic: CartLine = {
@@ -196,7 +197,8 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
         return
       }
       setLines(prev => prev.map(l => l.lineId === tempLineId ? { ...l, dbId: data.id as number } : l))
-      await sb.rpc('deduct_inventory', { p_menu_item_id: item.id, p_qty: qty })
+      const { error: invErr } = await sb.rpc('deduct_inventory', { p_menu_item_id: item.id, p_qty: qty })
+      if (invErr) console.error('[useOrder] deduct_inventory failed', invErr)
     }
   }, [lines, ensureOrder])
 
@@ -237,7 +239,8 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
 
     const remaining = lines.filter(l => l.lineId !== lineId)
     setLines(remaining)
-    await sb.rpc('restore_inventory', { p_menu_item_id: line.itemId, p_qty: line.qty })
+    const { error: invErr } = await sb.rpc('restore_inventory', { p_menu_item_id: line.itemId, p_qty: line.qty })
+    if (invErr) console.error('[useOrder] restore_inventory failed', invErr)
 
     // Auto-close order and free table when last item is voided
     if (remaining.length === 0 && orderIdRef.current) {

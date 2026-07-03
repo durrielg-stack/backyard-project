@@ -80,17 +80,26 @@ Source of truth: `src/lib/types.ts` (Database interface). All types mirror the l
 | Column | Type | Notes |
 |--------|------|-------|
 | `id` | number | |
-| `menu_item_id` | string | UUID FK |
+| `menu_item_id` | string | UUID FK. **Bundle items (beer buckets/mixed buckets) have no row here** — see `inventory_compositions` |
 | `quantity` | number | Current stock |
 | `unit` | string | e.g. `'bottles'` |
 | `low_stock_threshold` | number | Alert threshold |
+
+### `inventory_compositions`
+Maps a bundle/bucket menu item to the base item(s) it actually draws stock from, so a sale deducts real stock rather than an independent (meaningless) counter. Currently populated for beer only (straight buckets = 6 bottles, mixed buckets = 3+3, Red Horse Super 1L bucket = 3); inert for every other item — no row means `deduct_inventory`/`restore_inventory` fall back to the item's own `inventory` row.
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | number | |
+| `sold_menu_item_id` | string | UUID FK → `menu_items.id` — the item actually sold (e.g. "Bucket Red Horse Stallion") |
+| `component_menu_item_id` | string | UUID FK → `menu_items.id` — the base stocked item (e.g. "Red Horse Stallion") |
+| `qty_per_unit` | number | How many of the component are consumed per 1 unit of the sold item |
 
 ## DB Functions (RPCs)
 
 | Function | Args | Purpose |
 |---------|------|---------|
-| `deduct_inventory` | `p_menu_item_id, p_qty` | Decrements inventory on sale |
-| `restore_inventory` | `p_menu_item_id, p_qty` | Restores inventory on void |
+| `deduct_inventory` | `p_menu_item_id uuid, p_qty` | Decrements inventory on sale. Checks `inventory_compositions` first — if the sold item is a bundle, deducts from each component's row instead of its own. (Fixed 2026-07-04: `p_menu_item_id` was typed `text` against a `uuid` column, so every call errored silently since `useOrder.ts` never checked the RPC error — inventory never actually decremented until this was fixed.) |
+| `restore_inventory` | `p_menu_item_id uuid, p_qty` | Restores inventory on void. Same composition-aware logic as `deduct_inventory`. |
 | `verify_staff_login` | `p_name, p_password` | Returns `{ id, name, role }[]` for auth |
 
 ## App-Level Derived Types

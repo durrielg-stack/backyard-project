@@ -8,13 +8,13 @@ All entries here are root-caused bugs or rejected patterns from actual developme
 
 ### Never query revenue from `payments` table
 **What:** Revenue was queried from `payments` instead of `order_items`.
-**Why it breaks:** Payments lag behind sales on splits; their amounts can differ from `order_items` totals.
-**Fix:** All revenue = `order_items.unit_price * qty`, filtered by `orders.opened_at`.
+**Why it breaks:** `payments.amount` includes tips and nets out discounts, so it diverges from raw item revenue.
+**Fix:** All revenue = `order_items.unit_price * qty`, excluding `status = 'voided'`.
 
-### Always filter by `orders.opened_at`
-**What:** Date range queries used `payments.processed_at` or `orders.closed_at`.
-**Why it breaks:** Orders with late payments appeared in wrong periods.
-**Fix:** Always filter by `orders.opened_at` — it's the canonical order date.
+### Revenue reports (Daily, Sales tab) must be billed-only, keyed by `orders.closed_at`
+**What (updated 2026-07-04, supersedes the old "always use opened_at" rule):** Sales was computed from `order_items` for *all* orders including still-open ones, keyed by `orders.opened_at`.
+**Why it breaks:** An open tab is revenue that hasn't happened yet — including it overstates the cash `Ending` balance (`Starting + Sales - Expenses - Savings + Adjustments`) by money that hasn't come in. Keying by `opened_at` also put a day's Sales and COGS on mismatched dates whenever an order was paid on a different day than it was opened (split payments, late settle, orders near the shift boundary).
+**Fix:** Filter orders to `status = 'closed'` and key both Sales and COGS by `closed_at` (when the order was actually billed), not `opened_at`. Applies to `DailyTab.tsx` and `SalesTab.tsx`. Non-revenue date filtering (KDS, floor status, general order lookups) is unaffected — this rule is specifically about revenue/financial reporting.
 
 ### Don't restart KDS timers from mount time
 **What:** KDS elapsed timers started from component mount instead of `order_items.created_at`.
@@ -102,6 +102,16 @@ All entries here are root-caused bugs or rejected patterns from actual developme
 **What:** Inventory deduction in a `useEffect` captured stale state.
 **Why it breaks:** Deduction silently skipped because the captured reference was outdated.
 **Fix:** Inventory deduction reads fresh state via refs or is called directly after the state update.
+
+### Always check the `error` from `sb.rpc(...)` calls
+**What (found 2026-07-04):** `deduct_inventory` had `p_menu_item_id` typed `text` against a `uuid` column, so every call raised `operator does not exist: uuid = text`. `useOrder.ts` called it as `await sb.rpc(...)` without destructuring `error`, so this failed silently on every single sale since the function was created — inventory never actually decremented, and nothing anywhere surfaced it.
+**Why it breaks:** A non-2xx/error response from an RPC call doesn't throw in supabase-js — it just returns `{ data, error }`. Ignoring the return value makes a permanently-broken RPC indistinguishable from a working no-op.
+**Fix:** Destructure and check `error` on every `sb.rpc(...)` call that matters (inventory, payments, anything with a side effect), at minimum with `console.error`. See `deduct_inventory`/`restore_inventory` call sites in `useOrder.ts`.
+
+### Don't trust `localStorage` as a proxy for a valid Supabase session
+**What (found 2026-07-03):** `POSApp`/`WaiterApp`/`KitchenApp` derived "signed in" purely from a `bp_staff`/`bp_waiter`/`bp_kitchen` flag in `localStorage`, never checking whether the underlying Supabase Auth session was still valid.
+**Why it breaks:** When a session goes stale (expired/revoked refresh token), the app kept rendering as signed in while every RLS-gated query silently returned empty rows instead of erroring — surfaced as open orders showing no items/₱0 total and missing sales/expenses data, only after RLS was tightened to require an authenticated role (previously anon access masked it).
+**Fix:** `useSessionGuard` (in `src/hooks/useSessionGuard.ts`) checks the real session via `getSession()`/`onAuthStateChange` and clears the local flag the moment the session is actually invalid, forcing back to the sign-in screen.
 
 ---
 
