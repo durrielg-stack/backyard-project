@@ -388,7 +388,7 @@ function TableCard({
   const isActive  = ['occupied','aging','attention'].includes(table.status)
 
   return (
-    <button
+    <div
       onClick={onClick}
       className={isAttn ? 'bp-attn' : isAging ? 'bp-aging' : ''}
       style={{
@@ -463,7 +463,7 @@ function TableCard({
           )}
         </div>
       )}
-    </button>
+    </div>
   )
 }
 

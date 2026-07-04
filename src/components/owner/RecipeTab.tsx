@@ -245,13 +245,13 @@ export default function RecipeTab() {
       {loading ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
       ) : (
-        <>
-          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', flexShrink: 0 }}>
-            <div style={{ minWidth: 760 }}>
+        <div className="bp-no-scrollbar" style={{ flex: 1, overflow: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+          <div style={{ minWidth: 760 }}>
               <div style={{
                 display: 'grid', gridTemplateColumns: '1fr 90px 100px 110px 90px 80px 110px 24px',
                 padding: '0 24px', height: 36, alignItems: 'center',
                 borderBottom: `1px solid ${T.line}`, background: T.surface2,
+                position: 'sticky', top: 0, zIndex: 1,
               }}>
                 {([
                   ['Item',        'name'],
@@ -270,12 +270,6 @@ export default function RecipeTab() {
                   <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText }}>{h}</span>
                 ))}
               </div>
-            </div>
-          </div>
-
-          <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', touchAction: 'pan-y' }}>
-            <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y' }}>
-              <div style={{ minWidth: 760 }}>
                 {filtered.map((item, i) => {
                   const isOpen = expandedId === item.id
                   const isBusy = busy === item.id
@@ -484,10 +478,8 @@ export default function RecipeTab() {
                     </div>
                   )
                 })}
-              </div>
-            </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   )

@@ -78,13 +78,13 @@ export default function MenuTab() {
       {loading ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
       ) : (
-        <>
-          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', flexShrink: 0 }}>
-            <div style={{ minWidth: 560 }}>
+        <div className="bp-no-scrollbar" style={{ flex: 1, overflow: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+          <div style={{ minWidth: 560 }}>
           <div style={{
             display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px 120px',
             padding: '0 24px', height: 36, alignItems: 'center',
             borderBottom: `1px solid ${T.line}`, background: T.surface2,
+            position: 'sticky', top: 0, zIndex: 1,
           }}>
             {([
               ['Name',      'name'],
@@ -98,12 +98,6 @@ export default function MenuTab() {
               </button>
             ))}
           </div>
-            </div>
-          </div>
-
-          <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', touchAction: 'pan-y' }}>
-            <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y' }}>
-            <div style={{ minWidth: 560 }}>
             {filtered.map((item, i) => {
               const isEditing = editId === item.id
               const isSaving  = saving === item.id
@@ -172,10 +166,8 @@ export default function MenuTab() {
                 </div>
               )
             })}
-            </div>
-            </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   )

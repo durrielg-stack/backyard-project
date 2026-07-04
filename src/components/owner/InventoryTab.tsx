@@ -17,12 +17,15 @@ interface InvRow {
   updatedAt:      string
 }
 
+type StockFilter = 'all' | 'out' | 'low' | 'normal'
+
 export default function InventoryTab() {
   const { T } = useTheme()
 
   const [rows,    setRows]    = useState<InvRow[]>([])
   const [loading, setLoading] = useState(true)
   const [saving,  setSaving]  = useState<number | null>(null)
+  const [stockFilter, setStockFilter] = useState<StockFilter>('all')
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = getClient() as any
@@ -54,25 +57,58 @@ export default function InventoryTab() {
     setSaving(null)
   }
 
-  const { sorted: sortedRows, toggle: sortToggle, icon: sortIcon } = useSortable(rows, 'name' as keyof InvRow)
-  const lowCount = sortedRows.filter(r => r.quantity <= r.lowStockThresh).length
+  function level(row: InvRow): 'out' | 'low' | 'normal' {
+    if (row.quantity === 0) return 'out'
+    if (row.quantity <= row.lowStockThresh) return 'low'
+    return 'normal'
+  }
+
+  const outCount    = rows.filter(r => level(r) === 'out').length
+  const lowCount    = rows.filter(r => level(r) === 'low').length
+  const normalCount = rows.filter(r => level(r) === 'normal').length
+
+  const visibleRows = stockFilter === 'all' ? rows : rows.filter(r => level(r) === stockFilter)
+  const { sorted: sortedRows, toggle: sortToggle, icon: sortIcon } = useSortable(visibleRows, 'name' as keyof InvRow)
+
+  const stockPill = (id: StockFilter, label: string, count: number, color: string) => (
+    <button
+      key={id}
+      onClick={() => setStockFilter(prev => prev === id ? 'all' : id)}
+      style={{
+        padding: '4px 12px', fontSize: 11, fontFamily: 'inherit', fontWeight: 700,
+        background: stockFilter === id ? color : `${color}18`,
+        color:      stockFilter === id ? '#fff' : color,
+        border: `1px solid ${color}`, borderRadius: T.radius, cursor: 'pointer',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {count} {label}
+    </button>
+  )
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <SectionHd
         title="Inventory"
-        badge={lowCount > 0 ? `${lowCount} low stock` : `${rows.length} items`}
+        badge={`${rows.length} items`}
+        action={
+          <div className="bp-no-scrollbar" style={{ display: 'flex', gap: 6, overflowX: 'auto', touchAction: 'pan-x pan-y' }}>
+            {stockPill('out',    'Out of Stock', outCount,    T.bad)}
+            {stockPill('low',    'Low Stock',    lowCount,    T.warn)}
+            {stockPill('normal', 'Normal',       normalCount, T.ok)}
+          </div>
+        }
       />
       {loading ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
       ) : (
-        <>
-          <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', flexShrink: 0 }}>
-            <div style={{ minWidth: 680 }}>
+        <div className="bp-no-scrollbar" style={{ flex: 1, overflow: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+          <div style={{ minWidth: 680 }}>
           <div style={{
             display: 'grid', gridTemplateColumns: '1fr 120px 80px 80px 120px 160px',
             padding: '0 24px', height: 36, alignItems: 'center',
             borderBottom: `1px solid ${T.line}`, background: T.surface2,
+            position: 'sticky', top: 0, zIndex: 1,
           }}>
             {([
               ['Item',      'name'],
@@ -89,12 +125,6 @@ export default function InventoryTab() {
               <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText }}>{h}</span>
             ))}
           </div>
-            </div>
-          </div>
-
-          <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', touchAction: 'pan-y' }}>
-            <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y' }}>
-            <div style={{ minWidth: 680 }}>
             {sortedRows.map((row, i) => {
               const isLow      = row.quantity <= row.lowStockThresh
               const isCritical = row.quantity === 0
@@ -144,10 +174,8 @@ export default function InventoryTab() {
                 </div>
               )
             })}
-            </div>
-            </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   )
