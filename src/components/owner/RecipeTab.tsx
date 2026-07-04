@@ -22,12 +22,13 @@ interface RecipeLineRow {
 }
 
 interface MenuRow {
-  id:       string
-  name:     string
-  category: string
-  price:    number
-  cost:     number | null
-  costMode: 'manual' | 'recipe'
+  id:         string
+  name:       string
+  category:   string
+  price:      number
+  cost:       number | null
+  manualCost: number | null  // permanent snapshot of the original hand-entered cost — never touched by Confirm/Revert
+  costMode:   'manual' | 'recipe'
 }
 
 interface RecipeItemView extends MenuRow {
@@ -37,10 +38,11 @@ interface RecipeItemView extends MenuRow {
 }
 
 // line cost accounts for expected cooking/cleaning loss: you must buy more
-// raw ingredient than the recipe weight to end up with that weight on the plate
+// raw ingredient than the recipe weight to end up with that weight on the plate.
+// Rounded up to the nearest peso so recipe costs are always whole numbers.
 function lineCost(line: RecipeLineRow, ing: IngredientRow | undefined): number {
   if (!ing) return 0
-  return (line.qtyPerUnit * ing.pricePerUnit) / (1 - ing.lossPct)
+  return Math.ceil((line.qtyPerUnit * ing.pricePerUnit) / (1 - ing.lossPct))
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -72,13 +74,14 @@ export default function RecipeTab() {
 
   const fetchAll = useCallback(async () => {
     const [{ data: mi }, { data: ing }, { data: rl }] = await Promise.all([
-      sb.from('menu_items').select('id, name, category, price, cost, cost_mode').order('sort_order'),
+      sb.from('menu_items').select('id, name, category, price, cost, manual_cost, cost_mode').order('sort_order'),
       sb.from('ingredients').select('id, name, unit, price_per_unit, loss_pct').order('name'),
       sb.from('recipe_lines').select('id, menu_item_id, ingredient_id, qty_per_unit'),
     ])
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     setItems((mi ?? []).map((r: any) => ({
-      id: r.id, name: r.name, category: r.category, price: r.price, cost: r.cost, costMode: r.cost_mode,
+      id: r.id, name: r.name, category: r.category, price: r.price, cost: r.cost,
+      manualCost: r.manual_cost, costMode: r.cost_mode,
     })))
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     setIngredients((ing ?? []).map((r: any) => ({
@@ -193,7 +196,7 @@ export default function RecipeTab() {
 
   async function revertToManual(item: RecipeItemView) {
     setBusy(item.id)
-    await sb.from('menu_items').update({ cost_mode: 'manual' }).eq('id', item.id)
+    await sb.from('menu_items').update({ cost: item.manualCost, cost_mode: 'manual' }).eq('id', item.id)
     await fetchAll()
     setBusy(null)
   }
@@ -246,22 +249,25 @@ export default function RecipeTab() {
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
       ) : (
         <div className="bp-no-scrollbar" style={{ flex: 1, overflow: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
-          <div style={{ minWidth: 760 }}>
+          <div style={{ minWidth: 960 }}>
               <div style={{
-                display: 'grid', gridTemplateColumns: '1fr 90px 100px 110px 90px 80px 110px 24px',
+                display: 'grid', gridTemplateColumns: '1fr 90px 90px 100px 110px 90px 80px 100px 100px 110px 24px',
                 padding: '0 24px', height: 36, alignItems: 'center',
                 borderBottom: `1px solid ${T.line}`, background: T.surface2,
                 position: 'sticky', top: 0, zIndex: 1,
               }}>
                 {([
-                  ['Item',        'name'],
-                  ['Category',    'category'],
-                  ['Flat Cost',   'cost'],
-                  ['Recipe Cost', 'recipeCost'],
-                  ['Diff ₱',      null],
-                  ['Diff %',      null],
-                  ['Status',      'status'],
-                  ['',            null],
+                  ['Item',            'name'],
+                  ['Category',        'category'],
+                  ['Price',           'price'],
+                  ['Flat Cost',       'manualCost'],
+                  ['Recipe Cost',     'recipeCost'],
+                  ['Diff ₱',          null],
+                  ['Diff %',          null],
+                  ['Margin % Flat',   null],
+                  ['Margin % Recipe', null],
+                  ['Status',          'status'],
+                  ['',                null],
                 ] as [string, keyof RecipeItemView | null][]).map(([h, k]) => k ? (
                   <button key={h} onClick={() => sortToggle(k)} style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText, display: 'flex', alignItems: 'center', gap: 3, textAlign: 'left' }}>
                     {h}<span style={{ fontSize: 8, opacity: 0.7 }}>{sortIcon(k)}</span>
@@ -273,14 +279,16 @@ export default function RecipeTab() {
                 {filtered.map((item, i) => {
                   const isOpen = expandedId === item.id
                   const isBusy = busy === item.id
-                  const diff = item.recipeCost != null && item.cost != null ? item.recipeCost - item.cost : null
-                  const diffPct = diff != null && item.cost ? (diff / item.cost) * 100 : null
+                  const diff = item.recipeCost != null && item.manualCost != null ? item.recipeCost - item.manualCost : null
+                  const diffPct = diff != null && item.manualCost ? (diff / item.manualCost) * 100 : null
+                  const marginFlat = item.manualCost != null && item.price ? ((item.price - item.manualCost) / item.price) * 100 : null
+                  const marginRecipe = item.recipeCost != null && item.price ? ((item.price - item.recipeCost) / item.price) * 100 : null
                   return (
                     <div key={item.id} style={{ borderBottom: `1px solid ${T.line}` }}>
                       <div
                         onClick={() => toggleExpand(item.id)}
                         style={{
-                          display: 'grid', gridTemplateColumns: '1fr 90px 100px 110px 90px 80px 110px 24px',
+                          display: 'grid', gridTemplateColumns: '1fr 90px 90px 100px 110px 90px 80px 100px 100px 110px 24px',
                           padding: '0 24px', height: 44, alignItems: 'center', cursor: 'pointer',
                           background: isOpen ? T.surface2 : i % 2 === 0 ? 'transparent' : T.surface,
                           opacity: isBusy ? 0.5 : 1,
@@ -288,8 +296,11 @@ export default function RecipeTab() {
                       >
                         <span style={{ fontSize: 13, fontWeight: 500, color: T.text }}>{item.name}</span>
                         <span style={{ fontSize: 11, color: T.textMute }}>{item.category}</span>
+                        <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textDim, fontVariantNumeric: 'tabular-nums' }}>
+                          {fmtPeso(item.price)}
+                        </span>
                         <span style={{ fontFamily: T.mono, fontSize: 12, color: T.text, fontVariantNumeric: 'tabular-nums' }}>
-                          {item.cost != null ? fmtPeso(item.cost) : '—'}
+                          {item.manualCost != null ? fmtPeso(item.manualCost) : '—'}
                         </span>
                         <span style={{ fontFamily: T.mono, fontSize: 12, color: T.text, fontVariantNumeric: 'tabular-nums' }}>
                           {item.recipeCost != null ? fmtPeso(item.recipeCost) : '—'}
@@ -305,6 +316,12 @@ export default function RecipeTab() {
                           color: diffPct == null ? T.textMute : diffPct > 0 ? T.bad : diffPct < 0 ? T.ok : T.textMute,
                         }}>
                           {diffPct == null ? '—' : `${diffPct > 0 ? '+' : ''}${diffPct.toFixed(1)}%`}
+                        </span>
+                        <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textDim, fontVariantNumeric: 'tabular-nums' }}>
+                          {marginFlat == null ? '—' : `${marginFlat.toFixed(1)}%`}
+                        </span>
+                        <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textDim, fontVariantNumeric: 'tabular-nums' }}>
+                          {marginRecipe == null ? '—' : `${marginRecipe.toFixed(1)}%`}
                         </span>
                         <span>{statusBadge(item.status)}</span>
                         <span style={{ color: T.textMute, fontSize: 12, textAlign: 'right' }}>{isOpen ? '▲' : '▼'}</span>
