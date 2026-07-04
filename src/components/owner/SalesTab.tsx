@@ -16,6 +16,7 @@ interface SaleRow {
   order_id:     string
   qty:          number
   unit_price:   number
+  unit_cost:    number | null
   status:       string
   fired_at:     string | null
   completed_at: string | null
@@ -110,7 +111,7 @@ export default function SalesTab() {
     for (let from = 0; ; from += PAGE) {
       const { data, error } = await sb
         .from('order_items')
-        .select('id, order_id, qty, unit_price, status, fired_at, completed_at, menu_items(name, category, cost)')
+        .select('id, order_id, qty, unit_price, unit_cost, status, fired_at, completed_at, menu_items(name, category, cost)')
         .in('order_id', orderIds)
         .neq('status', 'voided')
         .order('id', { ascending: true })
@@ -129,7 +130,9 @@ export default function SalesTab() {
     }
     setLines(rows.map((r: SaleRow) => {
       const gross    = r.qty * r.unit_price
-      const cost     = r.qty * (r.menu_items?.cost ?? 0)
+      // unit_cost is the snapshot at time of sale — falls back to the live
+      // menu_items.cost only for rows sold before the snapshot existed.
+      const cost     = r.qty * (r.unit_cost ?? r.menu_items?.cost ?? 0)
       const serveMin = r.fired_at && r.completed_at
         ? Math.round((new Date(r.completed_at).getTime() - new Date(r.fired_at).getTime()) / 60000)
         : null

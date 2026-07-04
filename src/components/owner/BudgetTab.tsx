@@ -172,8 +172,11 @@ export default function BudgetTab() {
       const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
       const cat = SALES_CAT_MAP[mi?.category ?? '']
       if (!cat) continue
-      // Use cost (COGS), not unit_price (selling price)
-      out[cat] = (out[cat] ?? 0) + (row.qty as number) * ((mi?.cost ?? 0) as number)
+      // Use cost (COGS), not unit_price (selling price). unit_cost is the
+      // snapshot at time of sale — falls back to live menu_items.cost only
+      // for rows sold before the snapshot existed.
+      const cost = (row.unit_cost ?? mi?.cost ?? 0) as number
+      out[cat] = (out[cat] ?? 0) + (row.qty as number) * cost
     }
   }
 
@@ -240,7 +243,7 @@ export default function BudgetTab() {
     if (orderIds.length > 0) {
       for (let from = 0; ; from += PAGE) {
         const { data, error } = await sb
-          .from('order_items').select('order_id, qty, menu_items(category, cost)')
+          .from('order_items').select('order_id, qty, unit_cost, menu_items(category, cost)')
           .in('order_id', orderIds).neq('status', 'voided')
           .range(from, from + PAGE - 1)
         if (error) { console.error('[BudgetTab/ledger] items error', error); break }
@@ -284,7 +287,7 @@ export default function BudgetTab() {
     const todayIncoming = emptyBycat()
     if (dayIds.length > 0) {
       const { data: items, error: iErr } = await sb
-        .from('order_items').select('order_id, qty, menu_items(category, cost)')
+        .from('order_items').select('order_id, qty, unit_cost, menu_items(category, cost)')
         .in('order_id', dayIds).neq('status', 'voided')
       if (iErr) console.error('[BudgetTab] day items error', iErr)
       accumulateItems(items ?? [], todayIncoming)
@@ -316,7 +319,7 @@ export default function BudgetTab() {
     const priorIncoming = seed ? { ...seed.balances } : emptyBycat()
     if (priorIds.length > 0) {
       const { data: priorItems, error: piErr } = await sb
-        .from('order_items').select('order_id, qty, menu_items(category, cost)')
+        .from('order_items').select('order_id, qty, unit_cost, menu_items(category, cost)')
         .in('order_id', priorIds).neq('status', 'voided')
       if (piErr) console.error('[BudgetTab] prior items error', piErr)
       accumulateItems(priorItems ?? [], priorIncoming)

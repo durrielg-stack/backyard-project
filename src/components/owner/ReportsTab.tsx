@@ -68,7 +68,7 @@ export default function ReportsTab() {
     if (orderIds.length > 0) {
       const { data: allLines } = await sb
         .from('order_items')
-        .select('order_id, qty, unit_price, menu_items(name, category, cost)')
+        .select('order_id, qty, unit_price, unit_cost, menu_items(name, category, cost)')
         .in('order_id', orderIds)
         .neq('status', 'voided')
 
@@ -77,7 +77,9 @@ export default function ReportsTab() {
         if (!openedAt) continue
         const val  = row.qty * row.unit_price
         const mi   = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
-        const rc   = row.qty * (mi?.cost ?? 0)
+        // unit_cost is the snapshot at time of sale — falls back to the live
+        // menu_items.cost only for rows sold before the snapshot existed.
+        const rc   = row.qty * ((row.unit_cost ?? mi?.cost ?? 0) as number)
         const dk   = shiftLocalDate(openedAt)  // hours 0–3 belong to previous day's shift
         const name = mi?.name ?? '—'; const cat = mi?.category ?? 'Other'
 

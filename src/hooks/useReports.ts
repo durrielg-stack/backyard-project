@@ -161,7 +161,7 @@ export function useReports({ start, end, mode }: { start: string; end: string; m
     if (allOrderIds.length > 0) {
       const { data: lines } = await sb
         .from('order_items')
-        .select('id, order_id, qty, unit_price, menu_items(name, category, cost)')
+        .select('id, order_id, qty, unit_price, unit_cost, menu_items(name, category, cost)')
         .in('order_id', allOrderIds)
         .neq('status', 'voided')
         .order('id', { ascending: false })
@@ -173,8 +173,10 @@ export function useReports({ start, end, mode }: { start: string; end: string; m
         const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
         const dk  = shiftLocalDate(openedAt)  // hours 0–3 belong to previous day's shift
 
+        // unit_cost is the snapshot at time of sale — falls back to the live
+        // menu_items.cost only for rows sold before the snapshot existed.
         gross += val
-        cost  += (row.qty as number) * ((mi as any)?.cost ?? 0)
+        cost  += (row.qty as number) * (((row as any).unit_cost ?? (mi as any)?.cost ?? 0))
         dayBuckets[dk] = (dayBuckets[dk] ?? 0) + val
 
         if (mode === 'today') {

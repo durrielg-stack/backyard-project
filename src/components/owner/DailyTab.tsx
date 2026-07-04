@@ -189,7 +189,7 @@ export default function DailyTab({ staffName }: { staffName: string }) {
     if (orderIds.length > 0) {
       for (let from = 0; ; from += PAGE) {
         const { data: itemRows } = await sb
-          .from('order_items').select('order_id, qty, unit_price, menu_items(category, cost)')
+          .from('order_items').select('order_id, qty, unit_price, unit_cost, menu_items(category, cost)')
           .in('order_id', orderIds).neq('status', 'voided')
           .range(from, from + PAGE - 1)
         if (!itemRows || itemRows.length === 0) break
@@ -204,7 +204,10 @@ export default function DailyTab({ staffName }: { staffName: string }) {
           const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
           const cat = SALES_CAT_MAP[mi?.category ?? '']
           if (!cat) continue
-          cogsByDate[dk] = (cogsByDate[dk] ?? 0) + (row.qty as number) * ((mi?.cost ?? 0) as number)
+          // unit_cost is the cost snapshot at time of sale — falls back to the
+          // live menu_items.cost only for rows sold before the snapshot existed.
+          const cost = (row.unit_cost ?? mi?.cost ?? 0) as number
+          cogsByDate[dk] = (cogsByDate[dk] ?? 0) + (row.qty as number) * cost
         }
         if (itemRows.length < PAGE) break
       }
