@@ -3,7 +3,7 @@
 import { useTheme } from '@/lib/ThemeContext'
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { getClient } from '@/lib/supabase'
-import { SectionHd, Pill, fmtPeso } from './ownerShared'
+import { SectionHd, Pill, SearchBox, fmtPeso } from './ownerShared'
 import { useSortable } from '@/lib/useSortable'
 import { MENU_GROUPS, type MenuGroupId } from '@/lib/menuGroups'
 
@@ -58,6 +58,7 @@ export default function RecipeTab() {
   const [loading,      setLoading]    = useState(true)
   const [group,        setGroup]      = useState<MenuGroupId>('food')
   const [activeCat,    setActiveCat]  = useState<string | null>(null)
+  const [search,       setSearch]     = useState('')
   const [expandedId,   setExpandedId] = useState<string | null>(null)
   const [busy,         setBusy]       = useState<string | null>(null)
 
@@ -113,9 +114,10 @@ export default function RecipeTab() {
   const activeGroup = MENU_GROUPS.find(g => g.id === group)!
   // Sub-categories present in the loaded items for the active group
   const subCats = activeGroup.cats.filter(c => items.some(i => i.category === c))
-  const baseList = activeCat
+  const groupList = activeCat
     ? view.filter(i => i.category === activeCat)
     : view.filter(i => (activeGroup.cats as readonly string[]).includes(i.category))
+  const baseList = search.trim() ? groupList.filter(i => i.name.toLowerCase().includes(search.trim().toLowerCase())) : groupList
   const { sorted: filtered, toggle: sortToggle, icon: sortIcon } = useSortable(baseList, 'name' as keyof RecipeItemView)
 
   const confirmedCount = view.filter(v => v.status === 'confirmed').length
@@ -248,10 +250,13 @@ export default function RecipeTab() {
         title="Recipe Costing"
         badge={`${confirmedCount}/${items.length} confirmed`}
         action={
-          <div className="bp-no-scrollbar" style={{ display: 'flex', gap: 4, overflowX: 'auto', touchAction: 'pan-x pan-y' }}>
-            {MENU_GROUPS.map(g => (
-              <Pill key={g.id} label={g.label} active={group === g.id} onClick={() => selectGroup(g.id)} />
-            ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="bp-no-scrollbar" style={{ display: 'flex', gap: 4, overflowX: 'auto', touchAction: 'pan-x pan-y' }}>
+              {MENU_GROUPS.map(g => (
+                <Pill key={g.id} label={g.label} active={group === g.id} onClick={() => selectGroup(g.id)} />
+              ))}
+            </div>
+            <SearchBox value={search} onChange={setSearch} placeholder="Search recipes…" />
           </div>
         }
       />

@@ -13,6 +13,8 @@ import { useSortable } from '@/lib/useSortable'
 const EXPENSE_CATS = ['OPEX', 'Food', 'Beer', 'Cocktails/Hard', 'Non-Alcohol', 'Cigarettes'] as const
 
 const UOM_OPTIONS = ['pcs','kg','g','ltr','ml','box','pack','bag','bottle','case','tray','set','roll','sheet','bundle','pair','dozen','sack','can','jar']
+const BEER_UOM_OPTIONS = ['bottle','case','box','pcs']
+const CONTAINER_UNITS = ['case','box']
 
 interface ExpenseRow {
   id:          number
@@ -31,6 +33,12 @@ interface Preset {
   name:         string
   category:     string
   default_cost: number | null
+  menu_item_id: string | null
+}
+
+interface InvItem {
+  id:   string
+  name: string
 }
 
 function catColor(T: ReturnType<typeof useTheme>['T']): Record<string, string> {
@@ -108,6 +116,7 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
   const [rows,       setRows]       = useState<ExpenseRow[]>([])
   const { sorted: sortedRows, toggle: sortToggle, icon: sortIcon } = useSortable(rows, 'expenseDate' as keyof ExpenseRow, 'desc')
   const [presets,    setPresets]    = useState<Preset[]>([])
+  const [beerItems,  setBeerItems]  = useState<InvItem[]>([])
   const [loading,    setLoading]    = useState(true)
   const [showForm,   setShowForm]   = useState(false)
   const [saving,     setSaving]     = useState(false)
@@ -122,6 +131,8 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
   const [fUnit,       setFUnit]       = useState('')
   const [fUnitPrice,  setFUnitPrice]  = useState('')
   const [fAmt,        setFAmt]        = useState('')
+  const [fMenuItemId, setFMenuItemId] = useState('')
+  const [fCaseSize,   setFCaseSize]   = useState('24')
 
   // Autocomplete state
   const [suggestions,    setSuggestions]    = useState<Preset[]>([])
@@ -135,9 +146,27 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
 
   // Load presets once
   useEffect(() => {
-    sb.from('expense_presets').select('name,category,default_cost').order('name')
+    sb.from('expense_presets').select('name,category,default_cost,menu_item_id').order('name')
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .then(({ data }: { data: any[] | null }) => setPresets(data ?? []))
+  }, [])
+
+  // Load beer menu items once — used to link a purchase to inventory.
+  // Excludes buckets/mixed buckets (anything defined as a composition of other
+  // items) since those are assembled from bottles at sale time, never purchased
+  // directly from a supplier — only real, independently-stocked bottle types
+  // should show up here.
+  useEffect(() => {
+    (async () => {
+      const [{ data: items }, { data: comps }] = await Promise.all([
+        sb.from('menu_items').select('id,name').eq('category2', 'Beer').order('name'),
+        sb.from('inventory_compositions').select('sold_menu_item_id'),
+      ])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const composedIds = new Set((comps ?? []).map((c: any) => c.sold_menu_item_id))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setBeerItems((items ?? []).filter((r: any) => !composedIds.has(r.id)).map((r: any) => ({ id: r.id, name: r.name })))
+    })()
   }, [])
 
   const fetchRows = useCallback(async (start: string, end: string) => {
@@ -175,6 +204,7 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
   function handleDescChange(val: string) {
     setFDesc(val)
     setSuggestionIdx(-1)
+    setFMenuItemId('') // typing away from a matched preset drops the auto-linked beer item
     if (val.trim().length < 1) {
       setSuggestions([]); setShowSuggestions(false); return
     }
@@ -187,6 +217,7 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
   function applyPreset(preset: Preset) {
     setFDesc(preset.name)
     setFCat(preset.category)
+    setFMenuItemId(preset.menu_item_id ?? '')
     if (preset.default_cost != null) {
       setFUnitPrice(preset.default_cost.toFixed(2))
       setFAmt('')
@@ -211,11 +242,21 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
     if (!fDesc.trim() || isNaN(amt) || amt <= 0) return
     setSaving(true)
     const expDate = isOwner ? fDate : today
+    // Case/box vs bottle/pcs comes straight from the Unit field already on the form —
+    // no separate toggle. Anything else (bottle, pcs, etc.) is 1:1.
+    const isContainer = CONTAINER_UNITS.includes(fUnit)
+    const caseSize = parseFloat(fCaseSize) || 0
+    const invQty = fMenuItemId
+      ? (isContainer ? qty * caseSize : qty)
+      : null
     await sb.from('daily_expenses').insert({
       expense_date: expDate, category: fCat, description: fDesc.trim(),
       amount: amt, qty, unit: fUnit.trim() || null, unit_price: up,
+      menu_item_id: fMenuItemId || null,
+      inventory_qty: fMenuItemId && invQty ? invQty : null,
     })
     setFDesc(''); setFQty('1'); setFUnit(''); setFUnitPrice(''); setFAmt('')
+    setFMenuItemId(''); setFCaseSize('24')
     if (isOwner) setFDate(today)
     setShowForm(false)
     // re-fetch current range after adding
@@ -402,16 +443,14 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
             {/* Unit */}
             <div>
               <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Unit</div>
-              <input
-                list="uom-options"
+              <select
                 value={fUnit}
                 onChange={e => setFUnit(e.target.value)}
-                placeholder="pcs"
-                style={{ width: '100%', fontFamily: 'inherit', fontSize: 12, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box' }}
-              />
-              <datalist id="uom-options">
-                {UOM_OPTIONS.map(u => <option key={u} value={u} />)}
-              </datalist>
+                style={{ width: '100%', fontFamily: 'inherit', fontSize: 12, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none' }}
+              >
+                <option value="">—</option>
+                {(fCat === 'Beer' ? BEER_UOM_OPTIONS : UOM_OPTIONS).map(u => <option key={u} value={u}>{u}</option>)}
+              </select>
             </div>
 
             {/* Unit Price */}
@@ -432,6 +471,48 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
               Save
             </button>
           </div>
+
+          {/* Beer item — auto-linked from the preset picked above (name → menu item); the
+              dropdown stays visible as an override for custom-typed names or new beers that
+              don't have a preset yet. Restock qty is driven by the Unit field (case/box vs bottle/pcs). */}
+          {fCat === 'Beer' && (() => {
+            const selectedBeer = beerItems.find(b => b.id === fMenuItemId)
+            const isContainer = CONTAINER_UNITS.includes(fUnit)
+            const caseSize = parseFloat(fCaseSize) || 0
+            const bottlesToAdd = isContainer ? qty * caseSize : qty
+            return (
+            <div style={{ padding: '0 24px 16px', minWidth: isOwner ? 800 : 680 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isContainer ? '1fr 130px' : '1fr', gap: 8, alignItems: 'end' }}>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>
+                    Beer Item
+                  </div>
+                  <select value={fMenuItemId} onChange={e => setFMenuItemId(e.target.value)} style={{ width: '100%', fontFamily: 'inherit', fontSize: 12, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none' }}>
+                    <option value="">Select item…</option>
+                    {beerItems.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </select>
+                </div>
+                {isContainer && (
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>
+                      Qty/{fUnit === 'box' ? 'Box' : 'Case'}
+                    </div>
+                    <input
+                      value={fCaseSize} onChange={e => setFCaseSize(e.target.value)}
+                      disabled={!fMenuItemId} type="number" min="1" step="1"
+                      style={{ width: '100%', fontFamily: T.mono, fontSize: 13, background: fMenuItemId ? T.surface : T.chip, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box', opacity: fMenuItemId ? 1 : 0.5 }}
+                    />
+                  </div>
+                )}
+              </div>
+              {fMenuItemId && bottlesToAdd > 0 && (
+                <div style={{ marginTop: 8, fontSize: 11, fontFamily: T.mono, color: T.ok }}>
+                  → Adds {bottlesToAdd} bottle{bottlesToAdd === 1 ? '' : 's'} to {selectedBeer?.name} ({isContainer ? `${qty} ${fUnit} × ${caseSize}` : `${qty} bottle`}{qty === 1 && !isContainer ? '' : 's'})
+                </div>
+              )}
+            </div>
+            )
+          })()}
           </div>
         )
       })()}

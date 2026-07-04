@@ -3,7 +3,7 @@
 import { useTheme } from '@/lib/ThemeContext'
 import { useState, useCallback, useEffect } from 'react'
 import { getClient } from '@/lib/supabase'
-import { SectionHd, Pill } from './ownerShared'
+import { SectionHd, Pill, SearchBox } from './ownerShared'
 import { useSortable } from '@/lib/useSortable'
 
 interface MenuRow {
@@ -27,6 +27,7 @@ export default function MenuTab() {
   const [editPrice, setEditPrice] = useState('')
   const [filterCat, setFilterCat] = useState<string>('all')
   const [saving,    setSaving]    = useState<string | null>(null)
+  const [search,    setSearch]    = useState('')
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = getClient() as any
@@ -59,7 +60,8 @@ export default function MenuTab() {
   }
 
   const cats     = ['all', ...Array.from(new Set(items.map(i => i.category)))]
-  const baseList = filterCat === 'all' ? items : items.filter(i => i.category === filterCat)
+  const catList  = filterCat === 'all' ? items : items.filter(i => i.category === filterCat)
+  const baseList = search.trim() ? catList.filter(i => i.name.toLowerCase().includes(search.trim().toLowerCase())) : catList
   const { sorted: filtered, toggle: sortToggle, icon: sortIcon } = useSortable(baseList, 'name' as keyof MenuRow)
 
   return (
@@ -68,10 +70,13 @@ export default function MenuTab() {
         title="Menu"
         badge={`${items.filter(i => i.isAvailable).length}/${items.length} available`}
         action={
-          <div className="bp-no-scrollbar" style={{ display: 'flex', gap: 4, overflowX: 'auto', touchAction: 'pan-x pan-y' }}>
-            {cats.slice(0, 8).map(c => (
-              <Pill key={c} label={c === 'all' ? 'All' : c} active={filterCat === c} onClick={() => setFilterCat(c)} />
-            ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="bp-no-scrollbar" style={{ display: 'flex', gap: 4, overflowX: 'auto', touchAction: 'pan-x pan-y' }}>
+              {cats.slice(0, 8).map(c => (
+                <Pill key={c} label={c === 'all' ? 'All' : c} active={filterCat === c} onClick={() => setFilterCat(c)} />
+              ))}
+            </div>
+            <SearchBox value={search} onChange={setSearch} placeholder="Search menu…" />
           </div>
         }
       />

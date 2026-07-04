@@ -3,7 +3,7 @@
 import { useTheme } from '@/lib/ThemeContext'
 import { useState, useCallback, useEffect } from 'react'
 import { getClient } from '@/lib/supabase'
-import { SectionHd } from './ownerShared'
+import { SectionHd, SearchBox } from './ownerShared'
 import { useSortable } from '@/lib/useSortable'
 
 interface InvRow {
@@ -26,6 +26,7 @@ export default function InventoryTab() {
   const [loading, setLoading] = useState(true)
   const [saving,  setSaving]  = useState<number | null>(null)
   const [stockFilter, setStockFilter] = useState<StockFilter>('all')
+  const [search, setSearch] = useState('')
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = getClient() as any
@@ -67,7 +68,8 @@ export default function InventoryTab() {
   const lowCount    = rows.filter(r => level(r) === 'low').length
   const normalCount = rows.filter(r => level(r) === 'normal').length
 
-  const visibleRows = stockFilter === 'all' ? rows : rows.filter(r => level(r) === stockFilter)
+  const stockRows = stockFilter === 'all' ? rows : rows.filter(r => level(r) === stockFilter)
+  const visibleRows = search.trim() ? stockRows.filter(r => r.name.toLowerCase().includes(search.trim().toLowerCase())) : stockRows
   const { sorted: sortedRows, toggle: sortToggle, icon: sortIcon } = useSortable(visibleRows, 'name' as keyof InvRow)
 
   const stockPill = (id: StockFilter, label: string, count: number, color: string) => (
@@ -92,10 +94,13 @@ export default function InventoryTab() {
         title="Inventory"
         badge={`${rows.length} items`}
         action={
-          <div className="bp-no-scrollbar" style={{ display: 'flex', gap: 6, overflowX: 'auto', touchAction: 'pan-x pan-y' }}>
-            {stockPill('out',    'Out of Stock', outCount,    T.bad)}
-            {stockPill('low',    'Low Stock',    lowCount,    T.warn)}
-            {stockPill('normal', 'Normal',       normalCount, T.ok)}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="bp-no-scrollbar" style={{ display: 'flex', gap: 6, overflowX: 'auto', touchAction: 'pan-x pan-y' }}>
+              {stockPill('out',    'Out of Stock', outCount,    T.bad)}
+              {stockPill('low',    'Low Stock',    lowCount,    T.warn)}
+              {stockPill('normal', 'Normal',       normalCount, T.ok)}
+            </div>
+            <SearchBox value={search} onChange={setSearch} placeholder="Search inventory…" />
           </div>
         }
       />

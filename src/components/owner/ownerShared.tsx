@@ -55,6 +55,35 @@ export function SectionHd({ title, badge, action }: { title: string; badge?: Rea
   )
 }
 
+// ── SearchBox ─────────────────────────────────────────────────────────────────
+export function SearchBox({ value, onChange, placeholder = 'Search…' }: {
+  value: string; onChange: (v: string) => void; placeholder?: string
+}) {
+  const { T } = useTheme()
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px',
+      background: T.surface, border: `1px solid ${value ? T.accent : T.line2}`,
+      borderRadius: T.radius, color: T.textDim, width: 200, flexShrink: 0,
+      boxSizing: 'border-box',
+    }}>
+      <svg viewBox="0 0 16 16" width={13} height={13} fill="none" stroke="currentColor" strokeWidth={1.5}>
+        <circle cx="7" cy="7" r="4" />
+        <path d="M10 10l3 3" strokeLinecap="round" />
+      </svg>
+      <input
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        style={{ border: 'none', outline: 'none', background: 'transparent', color: T.text, fontFamily: 'inherit', fontSize: 12, flex: 1, width: 0 }}
+      />
+      {value && (
+        <button onClick={() => onChange('')} style={{ background: 'none', border: 'none', color: T.textMute, cursor: 'pointer', padding: 0, fontSize: 14, lineHeight: 1 }}>×</button>
+      )}
+    </div>
+  )
+}
+
 // ── Pill ──────────────────────────────────────────────────────────────────────
 export function Pill({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   const { T } = useTheme()
