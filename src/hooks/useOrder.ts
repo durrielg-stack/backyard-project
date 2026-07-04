@@ -182,6 +182,7 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
           menu_item_id: item.id,
           qty,
           unit_price:   item.price,
+          unit_cost:    item.cost,
           modifiers:    mods,
           status:       'pending',
           order_type:   orderType,

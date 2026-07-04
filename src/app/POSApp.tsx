@@ -15,6 +15,7 @@ import FloorView    from '@/components/floor/FloorView'
 import OrderView    from '@/components/order/OrderView'
 import ReportsView  from '@/components/reports/ReportsView'
 import OwnerView    from '@/components/owner/OwnerView'
+import OperationsView from '@/components/owner/OperationsView'
 import ExpensesView from '@/components/expenses/ExpensesView'
 import SalesView    from '@/components/owner/SalesTab'
 import StaffPicker        from '@/components/StaffPicker'
@@ -28,6 +29,7 @@ type View =
   | 'expenses'
   | 'reports'
   | 'sales'
+  | 'operations'
   | 'owner'
   | { kind: 'order'; tableId: string }
 
@@ -181,6 +183,7 @@ export default function POSApp() {
   const goExpenses = useCallback(() => setView('expenses'), [])
   const goReports  = useCallback(() => setView('reports'),  [])
   const goSales    = useCallback(() => setView('sales'),    [])
+  const goOperations = useCallback(() => setView('operations'), [])
   const goOwner    = useCallback(() => setView('owner'),    [])
   const goOrder   = useCallback((tableId: string) => setView({ kind: 'order', tableId }), [])
 
@@ -214,6 +217,7 @@ export default function POSApp() {
         onExpenses={goExpenses}
         onReports={goReports}
         onSales={goSales}
+        onOperations={goOperations}
         onOwner={goOwner}
         onOrder={goOrder}
         onCloseTab={closeTab}
@@ -240,6 +244,10 @@ export default function POSApp() {
 
         {view === 'reports' && (staff.role === 'owner' || staff.role === 'manager') && (
           <ReportsView tables={tablesWithStatus} />
+        )}
+
+        {view === 'operations' && (staff.role === 'owner' || staff.role === 'manager') && (
+          <OperationsView />
         )}
 
         {view === 'owner' && staff.role === 'owner' && (

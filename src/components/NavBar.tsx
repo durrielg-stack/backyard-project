@@ -6,7 +6,7 @@ import { useTheme } from '@/lib/ThemeContext'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import type { TableWithStatus, CartLine } from '@/lib/types'
 
-type View = 'floor' | 'expenses' | 'reports' | 'sales' | 'owner' | { kind: 'order'; tableId: string }
+type View = 'floor' | 'expenses' | 'reports' | 'sales' | 'operations' | 'owner' | { kind: 'order'; tableId: string }
 
 interface NavBarProps {
   view: View
@@ -20,6 +20,7 @@ interface NavBarProps {
   onExpenses: () => void
   onReports: () => void
   onSales: () => void
+  onOperations: () => void
   onOwner: () => void
   onOrder: (tableId: string) => void
   onCloseTab: (tableId: string) => void
@@ -139,7 +140,7 @@ function NavTab({ active, onClick, label, sub, dot, dashed, dimmed, onClose, isM
 // ── NavBar ───────────────────────────────────────────────────────────────────
 export default function NavBar({
   view, openTabs, tables, carts,
-  attnCount, now, staff, onFloor, onExpenses, onReports, onSales, onOwner, onOrder, onCloseTab,
+  attnCount, now, staff, onFloor, onExpenses, onReports, onSales, onOperations, onOwner, onOrder, onCloseTab,
   onSignOut, onChangePassword, onManageUsers,
 }: NavBarProps) {
   const { T, mode, toggle } = useTheme()
@@ -257,6 +258,17 @@ export default function NavBar({
             onClick={onReports}
             label="Dashboard"
             sub="Sales · Expenses"
+            isMobile={isMobile}
+          />
+        )}
+
+        {/* Operations — Owner + Manager */}
+        {(isOwner || isManager) && (
+          <NavTab
+            active={view === 'operations'}
+            onClick={onOperations}
+            label="Operations"
+            sub="Recipe · Menu · Inventory"
             isMobile={isMobile}
           />
         )}

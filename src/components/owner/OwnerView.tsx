@@ -43,29 +43,6 @@ interface CategoryBreakdown {
   net:      number
 }
 
-interface MenuRow {
-  id:          string
-  name:        string
-  category:    string
-  category2:   string
-  category3:   string
-  price:       number
-  cost:        number | null
-  isAvailable: boolean
-  sortOrder:   number
-}
-
-interface InvRow {
-  id:             number
-  menuItemId:     string
-  name:           string
-  category:       string
-  quantity:       number
-  unit:           string
-  lowStockThresh: number
-  updatedAt:      string
-}
-
 interface TableRow {
   id:       string
   label:    string
@@ -505,278 +482,6 @@ function TablesTab({ liveTableStatuses }: { liveTableStatuses: TableWithStatus[]
               </div>
             )
           })}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── MENU TAB ──────────────────────────────────────────────────────────────────
-
-function MenuTab() {
-  const { T } = useTheme()
-  const [items,   setItems]   = useState<MenuRow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [editId,  setEditId]  = useState<string | null>(null)
-  const [editPrice, setEditPrice] = useState('')
-  const [filterCat, setFilterCat] = useState<string>('all')
-  const [saving, setSaving]   = useState<string | null>(null)
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sb = getClient() as any
-
-  const fetchItems = useCallback(async () => {
-    const { data } = await sb.from('menu_items').select('id, name, category, category2, category3, price, cost, is_available, sort_order').order('sort_order')
-    setItems((data ?? []).map((r: any) => ({
-      id: r.id, name: r.name, category: r.category, category2: r.category2, category3: r.category3,
-      price: r.price, cost: r.cost, isAvailable: r.is_available, sortOrder: r.sort_order,
-    })))
-    setLoading(false)
-  }, [])
-
-  useEffect(() => { fetchItems() }, [fetchItems])
-
-  async function toggleAvail(item: MenuRow) {
-    setSaving(item.id)
-    await sb.from('menu_items').update({ is_available: !item.isAvailable }).eq('id', item.id)
-    setItems(prev => prev.map(i => i.id === item.id ? { ...i, isAvailable: !i.isAvailable } : i))
-    setSaving(null)
-  }
-
-  async function savePrice(item: MenuRow) {
-    const p = parseFloat(editPrice)
-    if (isNaN(p) || p < 0) { setEditId(null); return }
-    setSaving(item.id)
-    await sb.from('menu_items').update({ price: p }).eq('id', item.id)
-    setItems(prev => prev.map(i => i.id === item.id ? { ...i, price: p } : i))
-    setEditId(null); setSaving(null)
-  }
-
-  const cats = ['all', ...Array.from(new Set(items.map(i => i.category)))]
-  const filtered = filterCat === 'all' ? items : items.filter(i => i.category === filterCat)
-
-  return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-      <SectionHd
-        title="Menu"
-        badge={`${items.filter(i => i.isAvailable).length}/${items.length} available`}
-        action={
-          <div className="bp-no-scrollbar" style={{ display: 'flex', gap: 4, overflowX: 'auto', maxWidth: 480, touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
-            {cats.slice(0, 8).map(c => (
-              <Pill key={c} label={c === 'all' ? 'All' : c} active={filterCat === c} onClick={() => setFilterCat(c)} />
-            ))}
-          </div>
-        }
-      />
-      {loading ? (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
-      ) : (
-        <div className="bp-no-scrollbar" style={{ flex: 1, overflow: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
-          <div style={{ minWidth: 480 }}>
-          {/* Column header */}
-          <div style={{
-            display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px 120px',
-            padding: '0 24px', height: 36, alignItems: 'center',
-            borderBottom: `1px solid ${T.line}`, background: T.surface2,
-            position: 'sticky', top: 0, zIndex: 1,
-          }}>
-            {['Name','Category','Price','Cost','Available'].map(h => (
-              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText }}>
-                {h}
-              </span>
-            ))}
-          </div>
-            {filtered.map((item, i) => {
-              const isEditing = editId === item.id
-              const isSaving  = saving === item.id
-              return (
-                <div key={item.id} style={{
-                  display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px 120px',
-                  padding: '0 24px', height: 44, alignItems: 'center',
-                  borderBottom: `1px solid ${T.line}`,
-                  background: i % 2 === 0 ? 'transparent' : T.surface,
-                  opacity: isSaving ? 0.5 : item.isAvailable ? 1 : 0.45,
-                }}>
-                  <span style={{ fontSize: 13, fontWeight: 500, color: item.isAvailable ? T.text : T.textMute }}>
-                    {item.name}
-                  </span>
-                  <span style={{ fontSize: 11, color: T.textMute }}>{item.category}</span>
-
-                  {/* Price — click to edit */}
-                  {isEditing ? (
-                    <input
-                      autoFocus
-                      value={editPrice}
-                      onChange={e => setEditPrice(e.target.value)}
-                      onBlur={() => savePrice(item)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') savePrice(item)
-                        if (e.key === 'Escape') setEditId(null)
-                      }}
-                      style={{
-                        width: 70, fontFamily: T.mono, fontSize: 13, fontWeight: 600,
-                        background: T.surface, border: `1px solid ${T.accent}88`,
-                        color: T.text, borderRadius: T.radius, padding: '2px 6px', outline: 'none',
-                      }}
-                    />
-                  ) : (
-                    <span
-                      onClick={() => { setEditId(item.id); setEditPrice(item.price.toFixed(0)) }}
-                      title="Click to edit price"
-                      style={{
-                        fontFamily: T.mono, fontSize: 13, fontWeight: 600, color: T.accent,
-                        fontVariantNumeric: 'tabular-nums', cursor: 'pointer',
-                        borderBottom: `1px dashed ${T.accent}44`,
-                      }}
-                    >
-                      ₱{item.price.toFixed(0)}
-                    </span>
-                  )}
-
-                  <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute }}>
-                    {item.cost != null ? `₱${item.cost.toFixed(0)}` : '—'}
-                  </span>
-
-                  {/* Toggle */}
-                  <div>
-                    <button
-                      onClick={() => toggleAvail(item)}
-                      disabled={isSaving}
-                      style={{
-                        padding: '3px 12px', fontSize: 11, fontFamily: 'inherit', fontWeight: 600,
-                        background: item.isAvailable ? `${T.ok}22` : `${T.bad}18`,
-                        border: `1px solid ${item.isAvailable ? T.ok : T.bad}44`,
-                        color: item.isAvailable ? T.ok : T.bad,
-                        borderRadius: T.radius, cursor: 'pointer',
-                      }}
-                    >
-                      {item.isAvailable ? 'Available' : 'Unavailable'}
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── INVENTORY TAB ─────────────────────────────────────────────────────────────
-
-function InventoryTab() {
-  const { T } = useTheme()
-  const [rows,    setRows]    = useState<InvRow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [saving,  setSaving]  = useState<number | null>(null)
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sb = getClient() as any
-
-  const fetchRows = useCallback(async () => {
-    const { data } = await sb
-      .from('inventory')
-      .select('id, menu_item_id, quantity, unit, low_stock_threshold, updated_at, menu_items(name, category)')
-      .order('id')
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setRows((data ?? []).map((r: any) => {
-      const mi = Array.isArray(r.menu_items) ? r.menu_items[0] : r.menu_items
-      return {
-        id: r.id, menuItemId: r.menu_item_id,
-        name: mi?.name ?? '—', category: mi?.category ?? '—',
-        quantity: r.quantity, unit: r.unit,
-        lowStockThresh: r.low_stock_threshold, updatedAt: r.updated_at,
-      }
-    }))
-    setLoading(false)
-  }, [])
-
-  useEffect(() => { fetchRows() }, [fetchRows])
-
-  async function adjust(row: InvRow, delta: number) {
-    const newQty = Math.max(0, row.quantity + delta)
-    setSaving(row.id)
-    await sb.from('inventory').update({ quantity: newQty, updated_at: new Date().toISOString() }).eq('id', row.id)
-    setRows(prev => prev.map(r => r.id === row.id ? { ...r, quantity: newQty } : r))
-    setSaving(null)
-  }
-
-  const lowCount = rows.filter(r => r.quantity <= r.lowStockThresh).length
-
-  return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-      <SectionHd
-        title="Inventory"
-        badge={lowCount > 0 ? `${lowCount} low stock` : `${rows.length} items`}
-      />
-      {loading ? (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
-      ) : (
-        <div className="bp-no-scrollbar" style={{ flex: 1, overflow: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
-          <div style={{ minWidth: 560 }}>
-          <div style={{
-            display: 'grid', gridTemplateColumns: '1fr 120px 80px 80px 120px 160px',
-            padding: '0 24px', height: 36, alignItems: 'center',
-            borderBottom: `1px solid ${T.line}`, background: T.surface2,
-            position: 'sticky', top: 0, zIndex: 1,
-          }}>
-            {['Item','Category','Qty','Unit','Threshold','Adjust'].map(h => (
-              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText }}>
-                {h}
-              </span>
-            ))}
-          </div>
-            {rows.map((row, i) => {
-              const isLow = row.quantity <= row.lowStockThresh
-              const isCritical = row.quantity === 0
-              return (
-                <div key={row.id} style={{
-                  display: 'grid', gridTemplateColumns: '1fr 120px 80px 80px 120px 160px',
-                  padding: '0 24px', height: 44, alignItems: 'center',
-                  borderBottom: `1px solid ${T.line}`,
-                  background: i % 2 === 0 ? 'transparent' : T.surface,
-                  opacity: saving === row.id ? 0.5 : 1,
-                }}>
-                  <span style={{ fontSize: 13, fontWeight: 500, color: T.text }}>{row.name}</span>
-                  <span style={{ fontSize: 11, color: T.textMute }}>{row.category}</span>
-                  <span style={{
-                    fontFamily: T.mono, fontSize: 14, fontWeight: 700,
-                    color: isCritical ? T.bad : isLow ? T.warn : T.ok,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}>
-                    {row.quantity}
-                  </span>
-                  <span style={{ fontSize: 12, color: T.textMute }}>{row.unit}</span>
-                  <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute }}>
-                    {row.lowStockThresh}
-                    {isLow && (
-                      <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', color: isCritical ? T.bad : T.warn }}>
-                        {isCritical ? 'OUT' : 'LOW'}
-                      </span>
-                    )}
-                  </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <button onClick={() => adjust(row, -1)} disabled={saving === row.id} style={{
-                      width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: T.chip, border: `1px solid ${T.line2}`, color: T.textDim,
-                      borderRadius: T.radius, cursor: 'pointer', fontSize: 16, fontFamily: 'inherit',
-                    }}>−</button>
-                    <button onClick={() => adjust(row, 1)} disabled={saving === row.id} style={{
-                      width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: T.chip, border: `1px solid ${T.line2}`, color: T.textDim,
-                      borderRadius: T.radius, cursor: 'pointer', fontSize: 16, fontFamily: 'inherit',
-                    }}>+</button>
-                    <button onClick={() => adjust(row, 10)} disabled={saving === row.id} style={{
-                      padding: '3px 10px', fontSize: 11, fontFamily: 'inherit',
-                      background: T.chip, border: `1px solid ${T.line2}`, color: T.textDim,
-                      borderRadius: T.radius, cursor: 'pointer',
-                    }}>+10</button>
-                  </div>
-                </div>
-              )
-            })}
           </div>
         </div>
       )}
@@ -1307,7 +1012,7 @@ function SavingsTab() {
 
 // ── OwnerView ─────────────────────────────────────────────────────────────────
 
-type OwnerTab = 'reports' | 'tables' | 'menu' | 'inventory' | 'budget' | 'savings' | 'opex' | 'daily'
+type OwnerTab = 'reports' | 'tables' | 'budget' | 'savings' | 'opex' | 'daily'
 
 const TABS: { id: OwnerTab; label: string }[] = [
   { id: 'reports',   label: 'Reports'   },
@@ -1316,8 +1021,6 @@ const TABS: { id: OwnerTab; label: string }[] = [
   { id: 'opex',      label: 'OPEX'      },
   { id: 'savings',   label: 'Savings'   },
   { id: 'tables',    label: 'Tables'    },
-  { id: 'menu',      label: 'Menu'      },
-  { id: 'inventory', label: 'Inventory' },
 ]
 
 interface OwnerViewProps {
@@ -1415,8 +1118,6 @@ export default function OwnerView({ tables, staffName }: OwnerViewProps) {
         {tab === 'opex'      && <OpexTab />}
         {tab === 'savings'   && <SavingsTab />}
         {tab === 'tables'    && <TablesTab liveTableStatuses={tables} />}
-        {tab === 'menu'      && <MenuTab />}
-        {tab === 'inventory' && <InventoryTab />}
       </div>
     </div>
   )

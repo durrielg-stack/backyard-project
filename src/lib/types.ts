@@ -174,9 +174,9 @@ export interface Database {
         Relationships: []
       }
       order_items: {
-        Row: { id: number; order_id: number; menu_item_id: string; qty: number; unit_price: number; modifiers: string[]; notes: string | null; status: ItemStatus; order_type: 'dine_in' | 'takeout'; payment_id: number | null; seat: number | null; fired_at: string | null; completed_at: string | null; voided_by: string | null; void_reason: string | null }
-        Insert: { order_id: number; menu_item_id: string; qty: number; unit_price: number; modifiers?: string[]; notes?: string | null; status?: ItemStatus; order_type?: 'dine_in' | 'takeout'; payment_id?: number | null; seat?: number | null; fired_at?: string | null; completed_at?: string | null; voided_by?: string | null; void_reason?: string | null }
-        Update: { order_id?: number; menu_item_id?: string; qty?: number; unit_price?: number; modifiers?: string[]; notes?: string | null; status?: ItemStatus; order_type?: 'dine_in' | 'takeout'; payment_id?: number | null; seat?: number | null; fired_at?: string | null; completed_at?: string | null; voided_by?: string | null; void_reason?: string | null }
+        Row: { id: number; order_id: number; menu_item_id: string; qty: number; unit_price: number; unit_cost: number | null; modifiers: string[]; notes: string | null; status: ItemStatus; order_type: 'dine_in' | 'takeout'; payment_id: number | null; seat: number | null; fired_at: string | null; completed_at: string | null; voided_by: string | null; void_reason: string | null }
+        Insert: { order_id: number; menu_item_id: string; qty: number; unit_price: number; unit_cost?: number | null; modifiers?: string[]; notes?: string | null; status?: ItemStatus; order_type?: 'dine_in' | 'takeout'; payment_id?: number | null; seat?: number | null; fired_at?: string | null; completed_at?: string | null; voided_by?: string | null; void_reason?: string | null }
+        Update: { order_id?: number; menu_item_id?: string; qty?: number; unit_price?: number; unit_cost?: number | null; modifiers?: string[]; notes?: string | null; status?: ItemStatus; order_type?: 'dine_in' | 'takeout'; payment_id?: number | null; seat?: number | null; fired_at?: string | null; completed_at?: string | null; voided_by?: string | null; void_reason?: string | null }
         Relationships: []
       }
       inventory: {
