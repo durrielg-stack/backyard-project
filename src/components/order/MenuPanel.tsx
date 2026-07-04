@@ -4,21 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTheme } from '@/lib/ThemeContext'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import type { MenuItem } from '@/lib/types'
-
-
-// ── DB category → tab group mapping ─────────────────────────────────────────
-const GROUPS = [
-  { id: 'food',    label: 'Food',    key: '1',
-    cats: ['Meals','Pork','Starters','Chicken','Noodles','Seafood'] },
-  { id: 'drinks',  label: 'Drinks',  key: '2',
-    cats: ['Beer','Cocktails','Hard Drinks','Palit Bote','Non-Alcohol'] },
-  { id: 'addons',  label: 'Add-Ons', key: '3',
-    cats: ['Extra','Others'] },
-  { id: 'others',  label: 'Others',  key: '4',
-    cats: ['Cigarettes','Charges'] },
-] as const
-
-type GroupId = (typeof GROUPS)[number]['id']
+import { MENU_GROUPS as GROUPS, type MenuGroupId as GroupId } from '@/lib/menuGroups'
 
 // ── Kbd hint chip ─────────────────────────────────────────────────────────────
 function Kbd({ children }: { children: string }) {

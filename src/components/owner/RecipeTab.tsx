@@ -5,6 +5,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react'
 import { getClient } from '@/lib/supabase'
 import { SectionHd, Pill, fmtPeso } from './ownerShared'
 import { useSortable } from '@/lib/useSortable'
+import { MENU_GROUPS, type MenuGroupId } from '@/lib/menuGroups'
 
 interface IngredientRow {
   id:           number
@@ -55,7 +56,8 @@ export default function RecipeTab() {
   const [ingredients, setIngredients] = useState<IngredientRow[]>([])
   const [lines,        setLines]      = useState<RecipeLineRow[]>([])
   const [loading,      setLoading]    = useState(true)
-  const [filterCat,    setFilterCat]  = useState<string>('all')
+  const [group,        setGroup]      = useState<MenuGroupId>('food')
+  const [activeCat,    setActiveCat]  = useState<string | null>(null)
   const [expandedId,   setExpandedId] = useState<string | null>(null)
   const [busy,         setBusy]       = useState<string | null>(null)
 
@@ -108,11 +110,20 @@ export default function RecipeTab() {
     return { ...item, lines: itemLines, recipeCost, status }
   }), [items, lines, ingredientById])
 
-  const cats = ['all', ...Array.from(new Set(items.map(i => i.category)))]
-  const baseList = filterCat === 'all' ? view : view.filter(i => i.category === filterCat)
+  const activeGroup = MENU_GROUPS.find(g => g.id === group)!
+  // Sub-categories present in the loaded items for the active group
+  const subCats = activeGroup.cats.filter(c => items.some(i => i.category === c))
+  const baseList = activeCat
+    ? view.filter(i => i.category === activeCat)
+    : view.filter(i => (activeGroup.cats as readonly string[]).includes(i.category))
   const { sorted: filtered, toggle: sortToggle, icon: sortIcon } = useSortable(baseList, 'name' as keyof RecipeItemView)
 
   const confirmedCount = view.filter(v => v.status === 'confirmed').length
+
+  function selectGroup(g: MenuGroupId) {
+    setGroup(g)
+    setActiveCat(null)
+  }
 
   function resetAddForm() {
     setAddMode('closed'); setPickId(''); setQtyInput('')
@@ -238,12 +249,25 @@ export default function RecipeTab() {
         badge={`${confirmedCount}/${items.length} confirmed`}
         action={
           <div className="bp-no-scrollbar" style={{ display: 'flex', gap: 4, overflowX: 'auto', touchAction: 'pan-x pan-y' }}>
-            {cats.slice(0, 8).map(c => (
-              <Pill key={c} label={c === 'all' ? 'All' : c} active={filterCat === c} onClick={() => setFilterCat(c)} />
+            {MENU_GROUPS.map(g => (
+              <Pill key={g.id} label={g.label} active={group === g.id} onClick={() => selectGroup(g.id)} />
             ))}
           </div>
         }
       />
+
+      {/* Sub-category chips — same Food/Drinks/Add-Ons/Others grouping as On-Going */}
+      {subCats.length > 1 && (
+        <div className="bp-no-scrollbar" style={{
+          display: 'flex', gap: 6, padding: '10px 24px',
+          borderBottom: `1px solid ${T.line}`, overflowX: 'auto', flexShrink: 0,
+        }}>
+          <Pill label="All" active={activeCat === null} onClick={() => setActiveCat(null)} />
+          {subCats.map(c => (
+            <Pill key={c} label={c} active={activeCat === c} onClick={() => setActiveCat(c)} />
+          ))}
+        </div>
+      )}
 
       {loading ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
