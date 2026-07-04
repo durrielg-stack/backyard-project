@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { getClient } from '@/lib/supabase'
 import type { CartLine, MenuItem, PayMethod } from '@/lib/types'
+import { type DiscountType, selectSeniorPwdUnits, seniorPwdUnitPrice } from '@/lib/discounts'
 
 interface UseOrderReturn {
   orderId:      number | null
@@ -16,7 +17,7 @@ interface UseOrderReturn {
   voidItem:     (lineId: string, reason: string) => Promise<void>
   setNote:      (lineId: string, note: string) => Promise<void>
   setOrderType: (lineId: string, orderType: 'dine_in' | 'takeout') => Promise<void>
-  closeOrder:   (method: PayMethod, tendered: number, total: number, tip: number, discount?: number) => Promise<boolean>
+  closeOrder:   (method: PayMethod, tendered: number, total: number, tip: number, discount?: number, discountType?: DiscountType, seniorCount?: number) => Promise<boolean>
   payPartial:   (lineIds: string[], method: PayMethod, amount: number, tendered: number, autoClose?: boolean) => Promise<'partial' | 'closed' | 'error'>
   moveItems:    (lineIds: string[], targetTableId: string) => Promise<boolean>
 }
@@ -59,7 +60,7 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
 
       const { data: items, error: iErr } = await sb
         .from('order_items')
-        .select('id, menu_item_id, qty, unit_price, modifiers, notes, status, seat, order_type, menu_items(id, name, category)')
+        .select('id, menu_item_id, qty, unit_price, unit_cost, modifiers, notes, status, seat, order_type, menu_items(id, name, category, category2)')
         .eq('order_id', order.id)
         .neq('status', 'voided')
         .order('id')
@@ -74,6 +75,8 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
         itemName:  row.menu_items?.name ?? '—',
         category:  row.menu_items?.category ?? '',
         unitPrice: row.unit_price,
+        unitCost:  row.unit_cost,
+        isFood:    row.menu_items?.category2 === 'Food',
         qty:       row.qty,
         mods:      row.modifiers ?? [],
         note:      row.notes ?? '',
@@ -170,7 +173,8 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
       const tempLineId = 'L' + (lineCount.current++)
       const optimistic: CartLine = {
         lineId: tempLineId, itemId: item.id, itemName: item.name,
-        category: item.category, unitPrice: item.price, qty, mods, note: '', seat, orderType,
+        category: item.category, unitPrice: item.price, unitCost: item.cost,
+        isFood: item.category2 === 'Food', qty, mods, note: '', seat, orderType,
         status: 'pending',
       }
       setLines(prev => [...prev, optimistic])
@@ -285,6 +289,8 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
     total: number,
     tip: number,
     discount = 0,
+    discountType: DiscountType = 'none',
+    seniorCount = 0,
   ): Promise<boolean> => {
     if (!orderId) return false
     const sb = getClient()
@@ -296,10 +302,66 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
       return false
     }
 
+    // Both discount types rewrite order_items.unit_price directly (not just the
+    // payment amount) so Sales/COGS reporting — which reads unit_price off
+    // order_items, never payments — reflects what was actually charged instead
+    // of silently booking a full-price sale.
+    const current = linesRef.current.filter(l => l.status !== 'voided' && l.dbId)
+
+    if (discountType === 'owner_employee') {
+      // Whole order, every line, charged at cost.
+      for (const line of current) {
+        await sb.from('order_items').update({ unit_price: line.unitCost ?? 0 }).eq('id', line.dbId!)
+      }
+    } else if (discountType === 'senior_pwd') {
+      // Food only, highest price first, one unit per qualifying senior/PWD.
+      // A line with more units than were selected gets split: the discounted
+      // portion becomes its own row so the rest of the line stays full price.
+      const selected = selectSeniorPwdUnits(
+        current.map(l => ({ lineId: l.lineId, unitPrice: l.unitPrice, unitCost: l.unitCost, qty: l.qty, isFood: l.isFood })),
+        seniorCount,
+      )
+      const countByLine = new Map<string, number>()
+      for (const u of selected) countByLine.set(u.lineId, (countByLine.get(u.lineId) ?? 0) + 1)
+
+      for (const line of current) {
+        const discCount = Math.min(countByLine.get(line.lineId) ?? 0, line.qty)
+        if (discCount === 0) continue
+        const discountedPrice = seniorPwdUnitPrice(line.unitPrice)
+
+        if (discCount === line.qty) {
+          // Whole line qualifies — no split needed.
+          await sb.from('order_items').update({ unit_price: discountedPrice }).eq('id', line.dbId!)
+        } else {
+          // Split: shrink the original row to the remaining full-price qty,
+          // insert a new row for the discounted portion.
+          const { data: orig } = await sb.from('order_items').select('*').eq('id', line.dbId!).single()
+          if (!orig) continue
+          await sb.from('order_items').update({ qty: line.qty - discCount }).eq('id', line.dbId!)
+          await sb.from('order_items').insert({
+            order_id:     orig.order_id,
+            menu_item_id: orig.menu_item_id,
+            qty:          discCount,
+            unit_price:   discountedPrice,
+            unit_cost:    orig.unit_cost,
+            modifiers:    orig.modifiers,
+            notes:        orig.notes,
+            status:       orig.status,
+            order_type:   orig.order_type,
+            seat:         orig.seat,
+            fired_at:     orig.fired_at,
+            completed_at: orig.completed_at,
+          })
+        }
+      }
+    }
+
     // Build notes string
     const noteParts: string[] = []
     if (tip > 0)      noteParts.push(`Tip: ₱${tip.toFixed(2)}`)
     if (discount > 0) noteParts.push(`Discount: ₱${discount.toFixed(2)}`)
+    if (discountType === 'owner_employee') noteParts.push('Owner/Employee — billed at cost')
+    if (discountType === 'senior_pwd')     noteParts.push(`Senior/PWD ×${seniorCount} — 20% + VAT exempt`)
 
     // 1. Insert payment row
     const { error: payErr } = await sb.from('payments').insert({

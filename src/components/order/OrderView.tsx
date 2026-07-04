@@ -6,6 +6,7 @@ import { useMenuItems }   from '@/hooks/useMenuItems'
 import { useBreakpoint }  from '@/hooks/useBreakpoint'
 import { useTheme }       from '@/lib/ThemeContext'
 import type { CartLine, TableWithStatus, PayMethod } from '@/lib/types'
+import { type DiscountType, computeDiscount } from '@/lib/discounts'
 import MenuPanel    from './MenuPanel'
 import OrderPanel   from './OrderPanel'
 import PayModal        from '@/components/modals/PayModal'
@@ -47,8 +48,10 @@ export default function OrderView({ tableId, table, tables, staff, onBack, onCar
   const isMobile = bp === 'mobile'
 
   // ── Tip + discount state ──────────────────────────────────────────────────
-  const [tip, setTip]           = useState(0)
-  const [discount, setDiscount] = useState(0)
+  // Exactly two structured discount types — no free-form peso discount.
+  const [tip, setTip]                   = useState(0)
+  const [discountType, setDiscountType] = useState<DiscountType>('none')
+  const [seniorCount, setSeniorCount]   = useState(1)
 
   // ── Selected order line (expanded) ────────────────────────────────────────
   const [selectedLine, setSelectedLine] = useState<string | null>(null)
@@ -102,6 +105,7 @@ export default function OrderView({ tableId, table, tables, staff, onBack, onCar
 
   // ── Totals — prices are tax-inclusive ────────────────────────────────────
   const subtotal = lines.reduce((sum, l) => sum + l.unitPrice * l.qty, 0)
+  const discount = computeDiscount(discountType, lines, seniorCount)
   const total    = Math.max(0, subtotal - discount + tip)
 
   // ── Action handlers ───────────────────────────────────────────────────────
@@ -128,7 +132,7 @@ export default function OrderView({ tableId, table, tables, staff, onBack, onCar
         setModal(modal.singleItem ? { kind: 'none' } : { kind: 'split' })
       }
     } else {
-      const ok = await closeOrder(method, tendered, payAmount, tip, discount)
+      const ok = await closeOrder(method, tendered, payAmount, tip, discount, discountType, seniorCount)
       if (ok) setModal({ kind: 'paid', total: payAmount })
     }
   }
@@ -215,7 +219,10 @@ export default function OrderView({ tableId, table, tables, staff, onBack, onCar
             tip={tip}
             setTip={setTip}
             discount={discount}
-            setDiscount={setDiscount}
+            discountType={discountType}
+            setDiscountType={setDiscountType}
+            seniorCount={seniorCount}
+            setSeniorCount={setSeniorCount}
             total={total}
             selectedLine={selectedLine}
             setSelectedLine={setSelectedLine}

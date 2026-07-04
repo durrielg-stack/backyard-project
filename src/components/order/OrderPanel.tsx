@@ -5,6 +5,7 @@ import { statusColor, statusLabel } from '@/lib/theme'
 import { useTheme } from '@/lib/ThemeContext'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import type { CartLine, TableWithStatus } from '@/lib/types'
+import type { DiscountType } from '@/lib/discounts'
 import OrderLine   from './OrderLine'
 import OrderFooter from './OrderFooter'
 
@@ -18,7 +19,10 @@ interface OrderPanelProps {
   tip:                number
   setTip:             (amount: number) => void
   discount:           number
-  setDiscount:        (amount: number) => void
+  discountType:       DiscountType
+  setDiscountType:    (type: DiscountType) => void
+  seniorCount:        number
+  setSeniorCount:     (count: number) => void
   total:              number
   selectedLine:       string | null
   setSelectedLine:    (id: string | null) => void
@@ -43,7 +47,7 @@ interface OrderPanelProps {
 
 export default function OrderPanel({
   table, orderId, lines,
-  subtotal, tip, setTip, discount, setDiscount, total,
+  subtotal, tip, setTip, discount, discountType, setDiscountType, seniorCount, setSeniorCount, total,
   selectedLine, setSelectedLine, selectedSeat, setSelectedSeat,
   onUpdateQty, onVoid, onSetNote, onSetOrderType, onBillItem,
   onBack, onSplit, onCharge,
@@ -355,7 +359,10 @@ export default function OrderPanel({
         tip={tip}
         setTip={setTip}
         discount={discount}
-        setDiscount={setDiscount}
+        discountType={discountType}
+        setDiscountType={setDiscountType}
+        seniorCount={seniorCount}
+        setSeniorCount={setSeniorCount}
         total={total}
         onSplit={onSplit}
         onCharge={onCharge}

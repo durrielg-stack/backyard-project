@@ -90,6 +90,8 @@ export interface CartLine {
   itemName: string        // denormalised for display
   category: string        // menu_items.category — used for inventory deduction routing
   unitPrice: number
+  unitCost: number | null  // menu_items.cost at add-time — powers Owner/Employee at-cost billing
+  isFood: boolean          // menu_items.category2 === 'Food' at add-time — gates Senior/PWD eligibility
   qty: number
   mods: string[]
   note: string
