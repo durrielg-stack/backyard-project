@@ -133,6 +133,7 @@ export default function InventoryTab() {
             {sortedRows.map((row, i) => {
               const isLow      = row.quantity <= row.lowStockThresh
               const isCritical = row.quantity === 0
+              const isAuto     = row.category === 'Beer'
               return (
                 <div key={row.id} style={{
                   display: 'grid', gridTemplateColumns: '1fr 120px 80px 80px 120px 160px',
@@ -159,21 +160,24 @@ export default function InventoryTab() {
                       </span>
                     )}
                   </span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <button onClick={() => adjust(row, -1)} disabled={saving === row.id} style={{
+                  <div title={isAuto ? 'Beer stock is auto-managed by sales and expense restocks' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <button onClick={() => adjust(row, -1)} disabled={saving === row.id || isAuto} style={{
                       width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: T.chip, border: `1px solid ${T.line2}`, color: T.textDim,
-                      borderRadius: T.radius, cursor: 'pointer', fontSize: 16, fontFamily: 'inherit',
+                      borderRadius: T.radius, cursor: isAuto ? 'not-allowed' : 'pointer', fontSize: 16, fontFamily: 'inherit',
+                      opacity: isAuto ? 0.35 : 1,
                     }}>−</button>
-                    <button onClick={() => adjust(row, 1)} disabled={saving === row.id} style={{
+                    <button onClick={() => adjust(row, 1)} disabled={saving === row.id || isAuto} style={{
                       width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: T.chip, border: `1px solid ${T.line2}`, color: T.textDim,
-                      borderRadius: T.radius, cursor: 'pointer', fontSize: 16, fontFamily: 'inherit',
+                      borderRadius: T.radius, cursor: isAuto ? 'not-allowed' : 'pointer', fontSize: 16, fontFamily: 'inherit',
+                      opacity: isAuto ? 0.35 : 1,
                     }}>+</button>
-                    <button onClick={() => adjust(row, 10)} disabled={saving === row.id} style={{
+                    <button onClick={() => adjust(row, 10)} disabled={saving === row.id || isAuto} style={{
                       padding: '8px 10px', fontSize: 11, fontFamily: 'inherit',
                       background: T.chip, border: `1px solid ${T.line2}`, color: T.textDim,
-                      borderRadius: T.radius, cursor: 'pointer',
+                      borderRadius: T.radius, cursor: isAuto ? 'not-allowed' : 'pointer',
+                      opacity: isAuto ? 0.35 : 1,
                     }}>+10</button>
                   </div>
                 </div>
