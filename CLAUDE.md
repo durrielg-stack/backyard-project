@@ -10,12 +10,13 @@ A full knowledge base lives in `memory-bank/`. **Read these first before scannin
 2. `memory-bank/project-index.md` — fast lookup: features → files, hooks, DB tables, key workflows
 3. `memory-bank/business-rules.md` — domain rules (OPEX, pricing, timezone, KDS thresholds, copy rules)
 4. `memory-bank/mistakes-to-avoid.md` — root-caused bugs; check before touching related code areas
-5. `memory-bank/architecture.md` — component hierarchy, data flow, styling system
-6. `memory-bank/database-schema.md` — all tables, columns, and types with notes
-7. `memory-bank/coding-patterns.md` — reusable patterns (theme, scroll, optimistic updates, visualViewport)
-8. `memory-bank/feature-map.md` — every feature mapped to its files
-9. `memory-bank/active-work.md` — pending features and pre-launch scope
-10. `memory-bank/changelog.md` — major milestones
+5. `memory-bank/engineering-judgment.md` — decision frameworks and the reasoning behind the rules; **read before any change touching money, historical data, or inventory**
+6. `memory-bank/architecture.md` — component hierarchy, data flow, styling system
+7. `memory-bank/database-schema.md` — all tables, columns, and types with notes
+8. `memory-bank/coding-patterns.md` — reusable patterns (theme, scroll, optimistic updates, visualViewport)
+9. `memory-bank/feature-map.md` — every feature mapped to its files
+10. `memory-bank/active-work.md` — pending features and pre-launch scope
+11. `memory-bank/changelog.md` — major milestones
 
 **After significant changes:** update the relevant memory-bank file(s) so future sessions benefit.
 
