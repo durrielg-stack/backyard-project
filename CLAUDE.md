@@ -21,7 +21,8 @@ A full knowledge base lives in `memory-bank/`. **Read these first before scannin
 13. `memory-bank/coding-patterns.md` — reusable patterns (theme, scroll, optimistic updates, visualViewport)
 14. `memory-bank/feature-map.md` — every feature mapped to its files
 15. `memory-bank/active-work.md` — pending features and pre-launch scope
-16. `memory-bank/changelog.md` — major milestones
+16. `memory-bank/refactoring-roadmap.md` — master refactoring assessment (2026-07-06): ranked opportunities, risk analysis, phased plan; re-verify its evidence before executing any phase
+17. `memory-bank/changelog.md` — major milestones
 
 **After significant changes:** update the relevant memory-bank file(s) so future sessions benefit.
 
