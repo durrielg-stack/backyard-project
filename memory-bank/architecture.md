@@ -52,20 +52,20 @@ POSApp
 │       ├── SplitModal
 │       ├── BulkVoidModal
 │       └── MoveItemsModal
-├── ExpensesView
+├── ExpensesView (role="owner" | "manager" — owner expense entry lives here, not in OwnerView)
 ├── ReportsView
 ├── SalesTab
+├── OperationsView
+│   ├── RecipeTab
+│   ├── MenuTab
+│   └── InventoryTab
 └── OwnerView
-    ├── BudgetTab
-    ├── SavingsTab
-    ├── DailyTab
-    ├── OpexTab
-    ├── InventoryTab
-    ├── MenuTab
-    ├── TablesTab
-    ├── OwnerExpensesTab
     ├── ReportsTab
-    └── SalesTab
+    ├── DailyTab
+    ├── BudgetTab
+    ├── OpexTab
+    ├── SavingsTab (inline in OwnerView.tsx, not a separate file)
+    └── TablesTab (inline in OwnerView.tsx, not a separate file)
 
 WaiterApp (src/app/waiter/)
 ├── WaiterLogin

@@ -6,7 +6,7 @@
 - Floor grid + floor-plan toggle: `src/components/floor/FloorView.tsx`
 - Table status derivation: `src/hooks/useAutoStatus.ts`
 - Table DB sync: `src/hooks/useTables.ts`
-- Table config (Owner): `src/components/owner/TablesTab.tsx`
+- Table config (Owner): inline `TablesTab` in `src/components/owner/OwnerView.tsx`
 
 ### Ordering
 - Per-table order state + DB sync: `src/hooks/useOrder.ts`
@@ -48,8 +48,7 @@
 - Move items between tables: `src/components/modals/MoveItemsModal.tsx`
 
 ### Expenses
-- Staff expense entry: `src/components/expenses/ExpensesView.tsx`
-- Owner expense view: `src/components/owner/OwnerExpensesTab.tsx`
+- Expense entry (staff and owner, via `role` prop): `src/components/expenses/ExpensesView.tsx` — the only expense form; includes beer restock linking (`menu_item_id`/`inventory_qty`)
 
 ### Reporting
 - Sales reports: `src/components/owner/SalesTab.tsx`, `src/components/reports/ReportsView.tsx`
@@ -60,7 +59,7 @@
 
 ### Budget / Finance
 - Budget ledger (auto-computed from sales + expenses): `src/components/owner/BudgetTab.tsx`
-- Savings tracker: `src/components/owner/SavingsTab.tsx`
+- Savings tracker: inline `SavingsTab` in `src/components/owner/OwnerView.tsx`
 - OPEX config: `src/components/owner/OpexTab.tsx`
 - OPEX allocation: activity-based — only on days where sales or expenses exist
 

@@ -30,17 +30,16 @@ AI-optimized fast lookup. Use this before scanning the repository.
 | Cart / order panel | `src/components/order/OrderPanel.tsx` |
 | Cart line (with DI/TO toggle) | `src/components/order/OrderLine.tsx` |
 | Payment footer | `src/components/order/OrderFooter.tsx` |
-| Expenses (staff) | `src/components/expenses/ExpensesView.tsx` |
+| Expenses (staff + owner via `role` prop) | `src/components/expenses/ExpensesView.tsx` |
 | Reports | `src/components/reports/ReportsView.tsx` |
 | Owner hub | `src/components/owner/OwnerView.tsx` |
 | Budget ledger | `src/components/owner/BudgetTab.tsx` |
-| Savings | `src/components/owner/SavingsTab.tsx` |
+| Savings | inline `SavingsTab` in `src/components/owner/OwnerView.tsx` |
 | Daily breakdown | `src/components/owner/DailyTab.tsx` |
 | OPEX config | `src/components/owner/OpexTab.tsx` |
 | Inventory (owner) | `src/components/owner/InventoryTab.tsx` |
 | Menu management | `src/components/owner/MenuTab.tsx` |
-| Table management | `src/components/owner/TablesTab.tsx` |
-| Owner expenses | `src/components/owner/OwnerExpensesTab.tsx` |
+| Table management | inline `TablesTab` in `src/components/owner/OwnerView.tsx` |
 | Owner reports | `src/components/owner/ReportsTab.tsx` |
 | Owner sales | `src/components/owner/SalesTab.tsx` |
 | Waiter floor | `src/components/waiter/WaiterFloorView.tsx` |

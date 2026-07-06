@@ -8,7 +8,9 @@ Baseline facts observed: 18,107 lines of TS/TSX. Largest files: `public/page.tsx
 
 ---
 
-## R1 — Delete the dead and orphaned Owner-area code (≈1,000 lines)
+## R1 — Delete the dead and orphaned Owner-area code (≈1,000 lines) — ✅ DONE 2026-07-06
+
+Executed as planned in two commits (`8154ae4` inline ExpensesTab −290 lines, `f2ae8f6` three orphan files −736 lines); typecheck and production build clean; architecture.md / feature-map.md / project-index.md corrected in the same change. Owner localhost click-through of all Owner tabs + one beer-expense restock check remains the acceptance step.
 
 **Summary.** `OwnerView.tsx` contains an inline `ExpensesTab()` (lines ~496–771) that is **never rendered** — the tab dispatch has no `'expenses'` case; owner expense entry actually flows through `ExpensesView` with `role="owner"` (verified at `POSApp.tsx:241`). Additionally, three standalone files — `OwnerExpensesTab.tsx` (336 lines), `SavingsTab.tsx` (255), `TablesTab.tsx` (145) — are **imported by nothing**; OwnerView renders its own inline `SavingsTab`/`TablesTab` copies instead. Net: one dead inline function plus three orphan files ≈ 1,000 lines of code that looks live and isn't.
 
