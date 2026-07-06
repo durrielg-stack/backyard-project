@@ -10,17 +10,18 @@ A full knowledge base lives in `memory-bank/`. **Read these first before scannin
 2. `memory-bank/project-index.md` — fast lookup: features → files, hooks, DB tables, key workflows
 3. `memory-bank/business-rules.md` — domain rules (OPEX, pricing, timezone, KDS thresholds, copy rules)
 4. `memory-bank/mistakes-to-avoid.md` — root-caused bugs; check before touching related code areas
-5. `memory-bank/skill-meta-how-i-think.md` — meta-skill: the reasoning process itself (evidence, decisions, risk, debugging, AI failure compensations); **read before the other skill files**
-6. `memory-bank/engineering-judgment.md` — decision frameworks and the reasoning behind the rules; **read before any change touching money, historical data, or inventory**
-7. `memory-bank/skill-financial-data-integrity.md` — loadable skill: snapshot-vs-derive, silent-failure defenses, verification discipline for the live production DB; **load before money/inventory/report work**
-8. `memory-bank/skill-owner-intent-translation.md` — loadable skill: turning the owner's requests/feedback into correct behavior; vocabulary collisions, ask-vs-decide, correction generalization; **load before designing features or interpreting feedback**
-9. `memory-bank/skill-verification-without-a-net.md` — loadable skill: constructing justified confidence with no test suite; the verification ladder, round-trip testing, failure prediction; **load before claiming any change is done**
-10. `memory-bank/architecture.md` — component hierarchy, data flow, styling system
-11. `memory-bank/database-schema.md` — all tables, columns, and types with notes
-12. `memory-bank/coding-patterns.md` — reusable patterns (theme, scroll, optimistic updates, visualViewport)
-13. `memory-bank/feature-map.md` — every feature mapped to its files
-14. `memory-bank/active-work.md` — pending features and pre-launch scope
-15. `memory-bank/changelog.md` — major milestones
+5. `memory-bank/engineering-mindset.md` — the capstone: the stance above all skills (observation, mental models, hidden assumptions, uncertainty detection, elegance, the four chairs); **read first among the judgment/skill files**
+6. `memory-bank/skill-meta-how-i-think.md` — meta-skill: the reasoning process itself (evidence, decisions, risk, debugging, AI failure compensations); **read before the domain skill files**
+7. `memory-bank/engineering-judgment.md` — decision frameworks and the reasoning behind the rules; **read before any change touching money, historical data, or inventory**
+8. `memory-bank/skill-financial-data-integrity.md` — loadable skill: snapshot-vs-derive, silent-failure defenses, verification discipline for the live production DB; **load before money/inventory/report work**
+9. `memory-bank/skill-owner-intent-translation.md` — loadable skill: turning the owner's requests/feedback into correct behavior; vocabulary collisions, ask-vs-decide, correction generalization; **load before designing features or interpreting feedback**
+10. `memory-bank/skill-verification-without-a-net.md` — loadable skill: constructing justified confidence with no test suite; the verification ladder, round-trip testing, failure prediction; **load before claiming any change is done**
+11. `memory-bank/architecture.md` — component hierarchy, data flow, styling system
+12. `memory-bank/database-schema.md` — all tables, columns, and types with notes
+13. `memory-bank/coding-patterns.md` — reusable patterns (theme, scroll, optimistic updates, visualViewport)
+14. `memory-bank/feature-map.md` — every feature mapped to its files
+15. `memory-bank/active-work.md` — pending features and pre-launch scope
+16. `memory-bank/changelog.md` — major milestones
 
 **After significant changes:** update the relevant memory-bank file(s) so future sessions benefit.
 
