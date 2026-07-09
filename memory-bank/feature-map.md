@@ -48,7 +48,7 @@
 - Move items between tables: `src/components/modals/MoveItemsModal.tsx`
 
 ### Expenses
-- Expense entry (staff and owner, via `role` prop): `src/components/expenses/ExpensesView.tsx` — the only expense form; includes beer restock linking (`menu_item_id`/`inventory_qty`)
+- Expense entry (staff and owner, via `role` prop): `src/components/expenses/ExpensesView.tsx` — the only expense form; includes beer and cigarette restock linking (`menu_item_id`/`inventory_qty`, config-driven via `RESTOCK_CFG`); deleting a linked expense reverses the restock via DB trigger
 
 ### Reporting
 - Sales reports: `src/components/owner/SalesTab.tsx`, `src/components/reports/ReportsView.tsx`

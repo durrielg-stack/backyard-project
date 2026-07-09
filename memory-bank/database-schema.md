@@ -102,6 +102,13 @@ Maps a bundle/bucket menu item to the base item(s) it actually draws stock from,
 | `restore_inventory` | `p_menu_item_id uuid, p_qty` | Restores inventory on void. Same composition-aware logic as `deduct_inventory`. |
 | `verify_staff_login` | `p_name, p_password` | Returns `{ id, name, role }[]` for auth |
 
+## Triggers on `daily_expenses`
+
+| Trigger | Fires | Purpose |
+|---------|-------|---------|
+| `trg_add_inventory_on_expense` (`add_inventory_on_expense()`) | AFTER INSERT | If the expense row has `menu_item_id` + non-zero `inventory_qty`, adds `inventory_qty` to that item's `inventory` row (restock on purchase) |
+| `trg_remove_inventory_on_expense` (`remove_inventory_on_expense()`) | AFTER DELETE | Mirror of the insert trigger (added 2026-07-09): subtracts `inventory_qty` back, clamped at 0, so deleting a mistaken restock expense reverses its stock effect |
+
 ## App-Level Derived Types
 
 ### `CartLine`

@@ -266,12 +266,13 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
     const invQty = fMenuItemId && cfg
       ? (isContainer ? qty * caseSize : qty)
       : null
-    await sb.from('daily_expenses').insert({
+    const { error } = await sb.from('daily_expenses').insert({
       expense_date: expDate, category: fCat, description: fDesc.trim(),
       amount: amt, qty, unit: fUnit.trim() || null, unit_price: up,
       menu_item_id: fMenuItemId || null,
       inventory_qty: fMenuItemId && invQty ? invQty : null,
     })
+    if (error) { console.error('expense insert failed:', error); setSaving(false); return }
     setFDesc(''); setFQty('1'); setFUnit(''); setFUnitPrice(''); setFAmt('')
     setFMenuItemId(''); setFCaseSize('24')
     if (isOwner) setFDate(today)
@@ -286,7 +287,11 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
   }
 
   async function deleteExpense(id: number) {
-    await sb.from('daily_expenses').delete().eq('id', id)
+    // Deleting also reverses any linked inventory restock (DB trigger
+    // remove_inventory_on_expense) — a failed delete must not vanish the row
+    // locally or the reversal silently never happens.
+    const { error } = await sb.from('daily_expenses').delete().eq('id', id)
+    if (error) { console.error('expense delete failed:', error); return }
     setRows(prev => prev.filter(r => r.id !== id))
   }
 
