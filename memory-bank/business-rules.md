@@ -48,6 +48,10 @@
 - Inventory is auto-deducted via `deduct_inventory` RPC on `addItem`
 - Restored via `restore_inventory` RPC on `voidItem`
 - Category routing for deduction: `category` field (= `category3` for Food, `category2` for Bar)
+- **Cigarettes are counted by the stick** (owner decision 2026-07-09): each Pack menu item is an `inventory_compositions` bundle of 20 sticks; selling a pack deducts 20 from the Stick counter; Pack items have no own inventory row
+- Cigarette restocks flow through expense presets ("Marlboro Red/Lights/Blue" → linked Stick item); the expense form's restock section converts packs × pack size (default 20) to sticks, same as beer cases × case size
+- Manual ± inventory adjustment is disabled for **Beer and Cigarettes** (auto-managed; two-writers rule) — corrections happen via a deliberate physical recount, not the buttons
+- Baseline reset 2026-07-09 from owner's physical count: Red Stick 24, Blue Stick 0, Lights Stick 0 (pre-2026-07-04 counts carried drift from the silent `deduct_inventory` no-op bug)
 
 ## Item Lifecycle
 - Items are never hard-deleted — voided via `status = 'voided'` + `void_reason`

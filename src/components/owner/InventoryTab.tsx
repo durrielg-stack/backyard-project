@@ -133,7 +133,7 @@ export default function InventoryTab() {
             {sortedRows.map((row, i) => {
               const isLow      = row.quantity <= row.lowStockThresh
               const isCritical = row.quantity === 0
-              const isAuto     = row.category === 'Beer'
+              const isAuto     = row.category === 'Beer' || row.category === 'Cigarettes'
               return (
                 <div key={row.id} style={{
                   display: 'grid', gridTemplateColumns: '1fr 120px 80px 80px 120px 160px',
@@ -160,7 +160,7 @@ export default function InventoryTab() {
                       </span>
                     )}
                   </span>
-                  <div title={isAuto ? 'Beer stock is auto-managed by sales and expense restocks' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div title={isAuto ? 'This stock is auto-managed by sales and expense restocks' : undefined} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <button onClick={() => adjust(row, -1)} disabled={saving === row.id || isAuto} style={{
                       width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: T.chip, border: `1px solid ${T.line2}`, color: T.textDim,

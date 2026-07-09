@@ -86,7 +86,7 @@ Source of truth: `src/lib/types.ts` (Database interface). All types mirror the l
 | `low_stock_threshold` | number | Alert threshold |
 
 ### `inventory_compositions`
-Maps a bundle/bucket menu item to the base item(s) it actually draws stock from, so a sale deducts real stock rather than an independent (meaningless) counter. Currently populated for beer only (straight buckets = 6 bottles, mixed buckets = 3+3, Red Horse Super 1L bucket = 3); inert for every other item — no row means `deduct_inventory`/`restore_inventory` fall back to the item's own `inventory` row.
+Maps a bundle/bucket menu item to the base item(s) it actually draws stock from, so a sale deducts real stock rather than an independent (meaningless) counter. Populated for beer (straight buckets = 6 bottles, mixed buckets = 3+3, Red Horse Super 1L bucket = 3) and cigarettes (each Marlboro Pack = 20 of its Stick item, added 2026-07-09; Pack items have no `inventory` row — sticks are the only counter); inert for every other item — no row means `deduct_inventory`/`restore_inventory` fall back to the item's own `inventory` row.
 | Column | Type | Notes |
 |--------|------|-------|
 | `id` | number | |
