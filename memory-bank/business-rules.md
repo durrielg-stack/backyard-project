@@ -52,7 +52,7 @@
 - Cigarette restocks flow through expense presets ("Marlboro Red/Lights/Blue" → linked Stick item); the expense form's restock section converts packs × pack size (default 20) to sticks, same as beer cases × case size
 - **Deleting a restock expense reverses its stock effect** (trigger `remove_inventory_on_expense`, added 2026-07-09), clamped at 0 — a mistaken purchase entry is corrected by deleting it, no manual stock fix needed
 - Manual ± inventory adjustment is disabled for **Beer and Cigarettes** (auto-managed; two-writers rule) — corrections happen via a deliberate physical recount, not the buttons
-- Baseline reset 2026-07-09 from owner's physical count: Red Stick 24, Blue Stick 0, Lights Stick 0 (pre-2026-07-04 counts carried drift from the silent `deduct_inventory` no-op bug)
+- Baseline reset 2026-07-09 from owner's physical count: Red Stick 24, Blue Stick 0, Lights Stick 0 (pre-2026-07-04 counts carried drift from the silent `deduct_inventory` no-op bug). Re-corrected to Red 14 the same evening after the `updateQty` phantom-stock bug (see mistakes-to-avoid) inflated the counter by 9 during service
 
 ## Item Lifecycle
 - Items are never hard-deleted — voided via `status = 'voided'` + `void_reason`
