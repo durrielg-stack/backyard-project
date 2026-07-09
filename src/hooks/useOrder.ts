@@ -221,6 +221,18 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
       if (error) { setError(error.message); return }
     }
     setLines(prev => prev.map(l => l.lineId === lineId ? { ...l, qty: newQty } : l))
+
+    // Inventory must track the applied delta (post-floor), or stepper-built
+    // lines under-deduct while voidItem restores the full final qty —
+    // manufacturing phantom stock on every void of a stepped-up line.
+    const applied = newQty - line.qty
+    if (applied > 0) {
+      const { error: invErr } = await sb.rpc('deduct_inventory', { p_menu_item_id: line.itemId, p_qty: applied })
+      if (invErr) console.error('[useOrder] deduct_inventory failed', invErr)
+    } else {
+      const { error: invErr } = await sb.rpc('restore_inventory', { p_menu_item_id: line.itemId, p_qty: -applied })
+      if (invErr) console.error('[useOrder] restore_inventory failed', invErr)
+    }
   }, [lines])
 
   // ── Remove line entirely ─────────────────────────────────────────────────

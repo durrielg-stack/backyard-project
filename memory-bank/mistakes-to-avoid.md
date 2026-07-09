@@ -31,6 +31,11 @@ All entries here are root-caused bugs or rejected patterns from actual developme
 **Why it breaks:** In UTC+8, local midnight is 8 hours off from UTC midnight.
 **Fix:** Always use `MANILA_OFFSET_MS = 8 * 60 * 60 * 1000` when computing day boundaries.
 
+### Every path that changes a line's qty must mirror the change into inventory
+**What (fixed 2026-07-09):** `useOrder.updateQty` (the cart's ± stepper) updated `order_items.qty` without calling `deduct_inventory`/`restore_inventory`, while `voidItem` restored the line's **full final qty**. A stepper-built line under-deducted on the way up but over-restored on void — observed live: a 10-stick line built with +, voided, and re-sold left the counter 9 sticks too high within minutes of a fresh physical baseline.
+**Why it breaks:** Deduct/restore asymmetry doesn't just drift — it manufactures phantom stock on every void of a stepped-up line, in the direction that hides shrinkage.
+**Fix:** `updateQty` now deducts/restores the applied (post-floor) delta. Rule: enumerate every writer of `order_items.qty` (`addItem` stack + insert, `updateQty`, discount split in `payFull`) and confirm each either adjusts inventory by its delta or provably leaves total qty unchanged (the discount split does — it moves qty between rows).
+
 ---
 
 ## Scroll & Mobile
