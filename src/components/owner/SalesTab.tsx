@@ -26,6 +26,8 @@ interface SaleRow {
 interface LineItem {
   id:        string
   time:      string
+  date:      string   // MM-DD of closed_at, for week/month views
+  ts:        number   // closed_at epoch ms, for chronological sort across days
   tableId:   string
   itemName:  string
   category:  string
@@ -91,11 +93,15 @@ export default function SalesTab() {
     const orderIds: string[] = (matchingOrders ?? []).map((o: any) => o.id)
     const orderTableMap: Record<string, string> = {}
     const orderTimeMap:  Record<string, string> = {}
+    const orderDateMap:  Record<string, string> = {}
+    const orderTsMap:    Record<string, number> = {}
     for (const o of (matchingOrders ?? [])) {
       if (!o.closed_at) continue
       orderTableMap[o.id] = o.table_id
       const dt = new Date(o.closed_at)
       orderTimeMap[o.id] = `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`
+      orderDateMap[o.id] = `${String(dt.getMonth() + 1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`
+      orderTsMap[o.id]   = dt.getTime()
     }
 
     if (orderIds.length === 0) {
@@ -138,7 +144,9 @@ export default function SalesTab() {
         : null
       const net = gross - cost
       return {
-        id: r.id, time: orderTimeMap[r.order_id] ?? '—', tableId: orderTableMap[r.order_id] ?? '—',
+        id: r.id, time: orderTimeMap[r.order_id] ?? '—',
+        date: orderDateMap[r.order_id] ?? '—', ts: orderTsMap[r.order_id] ?? 0,
+        tableId: orderTableMap[r.order_id] ?? '—',
         itemName: r.menu_items?.name ?? '—', category: r.menu_items?.category ?? '—',
         qty: r.qty, unitPrice: r.unit_price, gross, cost, net,
         margin: gross > 0 ? (net / gross) * 100 : 0,
@@ -391,6 +399,7 @@ export default function SalesTab() {
                 <thead>
                   <tr>
                     <th style={{ ...th('left', { position: 'sticky', top: 0, left: 0, zIndex: 4, minWidth: 72 }), textDecoration: 'underline', textDecorationStyle: 'dotted', textDecorationColor: T.textMute, cursor: 'help' }} title="When the order was closed/billed, not when it was opened">Time</th>
+                    {nav.mode !== 'today' && <th style={th('left', { minWidth: 64 })}>Date</th>}
                     <th style={th('left', { minWidth: 72 })}>Table</th>
                     <th style={th('left', { minWidth: 130 })}>Category</th>
                     <th style={th('left', { minWidth: 220 })}>Item Name</th>
@@ -403,18 +412,12 @@ export default function SalesTab() {
                   </tr>
                 </thead>
                 <tbody>
-                  {[...filteredLines].sort((a, b) => {
-                    const toMin = (t: string) => {
-                      const parts = t === '—' ? [0, 0] : t.split(':').map(Number)
-                      const h = parts[0] < 4 ? parts[0] + 24 : parts[0]
-                      return h * 60 + (parts[1] ?? 0)
-                    }
-                    return toMin(a.time) - toMin(b.time)
-                  }).map((l, i) => {
+                  {[...filteredLines].sort((a, b) => a.ts - b.ts).map((l, i) => {
                     const rowBg = i % 2 === 0 ? T.surface : T.bg
                     return (
                       <tr key={l.id} style={{ background: rowBg }}>
                         <td style={td('left', { position: 'sticky', left: 0, background: rowBg, zIndex: 1, fontFamily: T.mono, color: T.textMute })}>{l.time}</td>
+                        {nav.mode !== 'today' && <td style={td('left', { fontFamily: T.mono, fontSize: 11, color: T.textMute })}>{l.date}</td>}
                         <td style={td('left', { color: T.textDim })}>{l.tableId}</td>
                         <td style={td('left', { color: T.textDim })}>{l.category}</td>
                         <td style={td('left', { fontWeight: 500 })}>{l.itemName}</td>

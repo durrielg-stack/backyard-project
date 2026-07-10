@@ -26,6 +26,7 @@ export default function InventoryTab() {
   const [loading, setLoading] = useState(true)
   const [saving,  setSaving]  = useState<number | null>(null)
   const [stockFilter, setStockFilter] = useState<StockFilter>('all')
+  const [catFilter, setCatFilter] = useState('all')
   const [search, setSearch] = useState('')
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -64,11 +65,14 @@ export default function InventoryTab() {
     return 'normal'
   }
 
-  const outCount    = rows.filter(r => level(r) === 'out').length
-  const lowCount    = rows.filter(r => level(r) === 'low').length
-  const normalCount = rows.filter(r => level(r) === 'normal').length
+  const categories = Array.from(new Set(rows.map(r => r.category))).sort()
+  const catRows = catFilter === 'all' ? rows : rows.filter(r => r.category === catFilter)
 
-  const stockRows = stockFilter === 'all' ? rows : rows.filter(r => level(r) === stockFilter)
+  const outCount    = catRows.filter(r => level(r) === 'out').length
+  const lowCount    = catRows.filter(r => level(r) === 'low').length
+  const normalCount = catRows.filter(r => level(r) === 'normal').length
+
+  const stockRows = stockFilter === 'all' ? catRows : catRows.filter(r => level(r) === stockFilter)
   const visibleRows = search.trim() ? stockRows.filter(r => r.name.toLowerCase().includes(search.trim().toLowerCase())) : stockRows
   const { sorted: sortedRows, toggle: sortToggle, icon: sortIcon } = useSortable(visibleRows, 'name' as keyof InvRow)
 
@@ -100,6 +104,14 @@ export default function InventoryTab() {
               {stockPill('low',    'Low Stock',    lowCount,    T.warn)}
               {stockPill('normal', 'Normal',       normalCount, T.ok)}
             </div>
+            <select
+              value={catFilter}
+              onChange={e => setCatFilter(e.target.value)}
+              style={{ fontFamily: 'inherit', fontSize: 12, background: T.surface, border: `1px solid ${catFilter !== 'all' ? T.accent : T.line2}`, color: catFilter !== 'all' ? T.accent : T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', cursor: 'pointer' }}
+            >
+              <option value="all">All Categories</option>
+              {categories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
             <SearchBox value={search} onChange={setSearch} placeholder="Search inventory…" />
           </div>
         }
