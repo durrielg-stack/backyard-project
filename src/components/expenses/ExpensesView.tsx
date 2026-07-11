@@ -318,28 +318,26 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
               {showForm ? 'Cancel' : '+ Add'}
             </button>
           </div>
-          {nav.mode !== 'today' && (
-            <div style={{ padding: '0 16px 8px', position: 'relative' }}>
-              <input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search expenses…"
-                style={{
-                  width: '100%', fontFamily: 'inherit', fontSize: 12,
-                  background: T.surface, border: `1px solid ${search ? T.accent : T.line2}`,
-                  color: T.text, borderRadius: T.radius,
-                  padding: '6px 28px 6px 8px', outline: 'none', boxSizing: 'border-box',
-                }}
-              />
-              {search && (
-                <button onClick={() => setSearch('')} style={{
-                  position: 'absolute', right: 22, top: '50%', transform: 'translateY(-50%)',
-                  background: 'transparent', border: 'none', color: T.textMute,
-                  cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1,
-                }}>×</button>
-              )}
-            </div>
-          )}
+          <div style={{ padding: '0 16px 8px', position: 'relative' }}>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search expenses…"
+              style={{
+                width: '100%', fontFamily: 'inherit', fontSize: 12,
+                background: T.surface, border: `1px solid ${search ? T.accent : T.line2}`,
+                color: T.text, borderRadius: T.radius,
+                padding: '6px 28px 6px 8px', outline: 'none', boxSizing: 'border-box',
+              }}
+            />
+            {search && (
+              <button onClick={() => setSearch('')} style={{
+                position: 'absolute', right: 22, top: '50%', transform: 'translateY(-50%)',
+                background: 'transparent', border: 'none', color: T.textMute,
+                cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1,
+              }}>×</button>
+            )}
+          </div>
           <div className="bp-no-scrollbar" style={{ padding: '0 16px 10px', overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
             <DateRangeNav
               mode={nav.mode} date={nav.date} weekRef={nav.weekRef}
@@ -362,28 +360,26 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
             {fmtPeso(totalShown)}
           </span>
           <div style={{ flex: 1 }} />
-          {nav.mode !== 'today' && (
-            <div style={{ position: 'relative' }}>
-              <input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search expenses…"
-                style={{
-                  fontFamily: 'inherit', fontSize: 12,
-                  background: T.surface, border: `1px solid ${search ? T.accent : T.line2}`,
-                  color: T.text, borderRadius: T.radius,
-                  padding: '5px 28px 5px 8px', outline: 'none', width: 180,
-                }}
-              />
-              {search && (
-                <button onClick={() => setSearch('')} style={{
-                  position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
-                  background: 'transparent', border: 'none', color: T.textMute,
-                  cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1,
-                }}>×</button>
-              )}
-            </div>
-          )}
+          <div style={{ position: 'relative' }}>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search expenses…"
+              style={{
+                fontFamily: 'inherit', fontSize: 12,
+                background: T.surface, border: `1px solid ${search ? T.accent : T.line2}`,
+                color: T.text, borderRadius: T.radius,
+                padding: '5px 28px 5px 8px', outline: 'none', width: 180,
+              }}
+            />
+            {search && (
+              <button onClick={() => setSearch('')} style={{
+                position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)',
+                background: 'transparent', border: 'none', color: T.textMute,
+                cursor: 'pointer', fontSize: 14, padding: 0, lineHeight: 1,
+              }}>×</button>
+            )}
+          </div>
           <DateRangeNav
             mode={nav.mode} date={nav.date} weekRef={nav.weekRef}
             month={nav.month} year={nav.year}
