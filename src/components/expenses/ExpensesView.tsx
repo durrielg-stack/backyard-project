@@ -6,7 +6,7 @@ import { useTheme } from '@/lib/ThemeContext'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { getClient } from '@/lib/supabase'
 import DateRangeNav, { useDateNav } from '@/components/shared/DateRangeNav'
-import { localDateStr, dayBounds, weekBounds, monthBounds } from '@/lib/dateNav'
+import { dayBounds, weekBounds, monthBounds, currentShiftDate } from '@/lib/dateNav'
 import { useSortable } from '@/lib/useSortable'
 
 
@@ -133,7 +133,8 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
   const nav = useDateNav()
 
   // Form state
-  const [fDate,       setFDate]       = useState(() => localDateStr(new Date()))
+  // Business day (6am cutoff): a 1am entry defaults to the operating night's date
+  const [fDate,       setFDate]       = useState(() => currentShiftDate())
   const [fCat,        setFCat]        = useState<string>('OPEX')
   const [fDesc,       setFDesc]       = useState('')
   const [fQty,        setFQty]        = useState('1')
@@ -149,7 +150,7 @@ export default function ExpensesView({ role = 'manager' }: { role?: string }) {
   const [suggestionIdx,   setSuggestionIdx]   = useState(-1)
   const descRef = useRef<HTMLInputElement>(null)
 
-  const today = localDateStr(new Date())
+  const today = currentShiftDate()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = getClient() as any
 

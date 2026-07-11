@@ -12,9 +12,14 @@ export function parseLocalDate(s: string): Date {
   return new Date(y, m - 1, day)
 }
 
-// Returns the shift-date string for a timestamp: hours 0–3 belong to the previous day's shift.
+// Business-day cutoff: everything before 6am belongs to the previous night.
+// Owner decision 2026-07-12 after the Jul 11 Saturday (₱15,568 of ₱17,028 was
+// billed after midnight and landed on Sunday's calendar date).
+export const SHIFT_CUTOFF_HOUR = 6
+
+// Returns the shift-date string for a timestamp: hours 0–5 belong to the previous day's shift.
 export function shiftLocalDate(d: Date): string {
-  if (d.getHours() < 4) {
+  if (d.getHours() < SHIFT_CUTOFF_HOUR) {
     const prev = new Date(d)
     prev.setDate(prev.getDate() - 1)
     return localDateStr(prev)
@@ -22,8 +27,8 @@ export function shiftLocalDate(d: Date): string {
   return localDateStr(d)
 }
 
-// Shift hours in order: 2pm open → 3am close (next calendar day)
-export const SHIFT_HOURS = [14,15,16,17,18,19,20,21,22,23,0,1,2,3]
+// Shift hours in order: 2pm open → 6am cutoff (next calendar day)
+export const SHIFT_HOURS = [14,15,16,17,18,19,20,21,22,23,0,1,2,3,4,5]
 
 // Returns the shift hours to display up to the current moment.
 // Outside the shift window (4am–1pm) returns all 14 hours.
@@ -34,10 +39,10 @@ export function shiftHoursUpToNow(): number[] {
 }
 
 // Returns the calendar date the current shift started on.
-// If it's before 4am, the shift started yesterday at 2pm.
+// If it's before the 6am cutoff, the shift started yesterday at 2pm.
 export function currentShiftDate(): string {
   const now = new Date()
-  if (now.getHours() < 4) {
+  if (now.getHours() < SHIFT_CUTOFF_HOUR) {
     const d = new Date(now)
     d.setDate(d.getDate() - 1)
     return localDateStr(d)
@@ -45,12 +50,12 @@ export function currentShiftDate(): string {
   return localDateStr(now)
 }
 
-// ISO boundaries for a shift-day: 2pm on dateStr → 3am the following calendar day
+// ISO boundaries for a shift-day: 2pm on dateStr → 6am the following calendar day
 export function dayBounds(dateStr: string): { start: string; end: string } {
   const [y, m, day] = dateStr.split('-').map(Number)
   return {
     start: new Date(y, m - 1, day, 14, 0, 0, 0).toISOString(),
-    end:   new Date(y, m - 1, day + 1, 3, 0, 0, 0).toISOString(),
+    end:   new Date(y, m - 1, day + 1, SHIFT_CUTOFF_HOUR, 0, 0, 0).toISOString(),
   }
 }
 
@@ -61,14 +66,17 @@ function weekStart(ref: Date): Date {
   // offset back to Wednesday
   const offset = (d.getDay() + 7 - 3) % 7   // days since last Wed
   d.setDate(d.getDate() - offset)
-  d.setHours(0, 0, 0, 0)
+  // Start at the business-day cutoff so Tuesday-night spillover (bar closed
+  // Tuesday anyway) can't leak into Wednesday's week.
+  d.setHours(SHIFT_CUTOFF_HOUR, 0, 0, 0)
   return d
 }
 
 function weekEnd(wed: Date): Date {
   const d = new Date(wed)
-  d.setDate(d.getDate() + 5)   // Wed+5 = Mon
-  d.setHours(23, 59, 59, 999)
+  // Monday's shift runs past midnight: the week ends at Tuesday's 6am cutoff.
+  d.setDate(d.getDate() + 6)   // Wed+6 = Tue
+  d.setHours(SHIFT_CUTOFF_HOUR - 1, 59, 59, 999)
   return d
 }
 
@@ -80,9 +88,11 @@ export function weekBounds(ref: Date): { start: string; end: string; label: stri
 }
 
 export function monthBounds(year: number, month: number): { start: string; end: string } {
+  // Both edges sit at the 6am business-day cutoff: the last day of the month
+  // keeps its after-midnight closes, and the 1st doesn't double-count them.
   return {
-    start: new Date(year, month, 1, 0, 0, 0, 0).toISOString(),
-    end:   new Date(year, month + 1, 0, 23, 59, 59, 999).toISOString(),
+    start: new Date(year, month, 1, SHIFT_CUTOFF_HOUR, 0, 0, 0).toISOString(),
+    end:   new Date(year, month + 1, 1, SHIFT_CUTOFF_HOUR - 1, 59, 59, 999).toISOString(),
   }
 }
 

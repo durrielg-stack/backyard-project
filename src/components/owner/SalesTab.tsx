@@ -6,7 +6,7 @@ import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { getClient } from '@/lib/supabase'
 import { SectionHd, fmtPeso } from './ownerShared'
 import DateRangeNav, { useDateNav } from '@/components/shared/DateRangeNav'
-import { dayBounds, weekBounds, monthBounds } from '@/lib/dateNav'
+import { dayBounds, weekBounds, monthBounds, shiftLocalDate } from '@/lib/dateNav'
 import { useSortable } from '@/lib/useSortable'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -100,7 +100,8 @@ export default function SalesTab() {
       orderTableMap[o.id] = o.table_id
       const dt = new Date(o.closed_at)
       orderTimeMap[o.id] = `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`
-      orderDateMap[o.id] = `${String(dt.getMonth() + 1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`
+      // Business date (6am cutoff), so a 1am close shows under its operating night
+      orderDateMap[o.id] = shiftLocalDate(dt).slice(5)
       orderTsMap[o.id]   = dt.getTime()
     }
 

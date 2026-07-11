@@ -8,9 +8,10 @@
 ## Time & Dates
 - Venue timezone: **Manila (UTC+8)**; use `MANILA_OFFSET_MS` constant for all timezone-aware date math
 - Work week runs **Wed–Mon** (not Mon–Sun); week navigation in date pickers reflects this
-- Operating hours: **4 PM – 12 MN Manila time**
+- Operating hours: **4 PM – 12 MN Manila time** (tabs are often billed after midnight)
 - Pre-open states between 2–4 PM: `preparing` then `opening-soon`
-- All date filtering must use `orders.opened_at`, never `payments.processed_at` or `orders.closed_at`
+- **Business day cuts at 6 AM, not midnight** (owner decision 2026-07-12): anything billed before 6 AM belongs to the previous night. `SHIFT_CUTOFF_HOUR` in `dateNav.ts` is the single source; `shiftLocalDate`/`currentShiftDate`/`dayBounds`/`weekBounds`/`monthBounds` all honor it, and Daily/Budget ledgers key orders by `shiftLocalDate` (was calendar date — caused Jul 11's ₱17,028 night to show as ₱1,685 because ₱15,568 was billed after midnight). Cutoff was previously 4 AM in the shift helpers only
+- Sales/COGS date filtering: DailyTab and SalesTab key by `closed_at` (cash basis — revenue lands when billed); BudgetTab and ReportsTab key by `opened_at`; both run through `shiftLocalDate` so the business-day cutoff applies everywhere
 
 ## OPEX Allocation
 - OPEX is a daily fixed cost split across operating days

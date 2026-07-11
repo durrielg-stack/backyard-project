@@ -4,7 +4,7 @@ import { useTheme } from '@/lib/ThemeContext'
 import { useState, useCallback, useEffect } from 'react'
 import { getClient } from '@/lib/supabase'
 import { SectionHd, fmtPeso } from './ownerShared'
-import { localDateStr, parseLocalDate, currentShiftDate } from '@/lib/dateNav'
+import { localDateStr, parseLocalDate, currentShiftDate, shiftLocalDate } from '@/lib/dateNav'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { BUDGET_CATS, SALES_CAT_MAP, EXP_CAT_MAP, emptyBycat } from './BudgetTab'
 import { computeDailyOpex } from './OpexTab'
@@ -182,7 +182,9 @@ export default function DailyTab({ staffName }: { staffName: string }) {
     const orderDateMap: Record<number, string> = {}
     for (const o of allOrders) {
       if (!o.closed_at) continue
-      orderDateMap[o.id as number] = localDateStr(new Date(o.closed_at as string))
+      // Business-day keying: an order billed at 1am belongs to the previous
+      // night's row, not the next calendar date.
+      orderDateMap[o.id as number] = shiftLocalDate(new Date(o.closed_at as string))
     }
     const orderIds = Object.keys(orderDateMap).map(Number)
     const cogsByDate: Record<string, number> = {}

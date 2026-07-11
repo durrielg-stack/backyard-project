@@ -4,7 +4,7 @@ import { useTheme } from '@/lib/ThemeContext'
 import { useState, useCallback, useEffect } from 'react'
 import { getClient } from '@/lib/supabase'
 import { SectionHd, fmtPeso } from './ownerShared'
-import { localDateStr, parseLocalDate, dayBounds, currentShiftDate } from '@/lib/dateNav'
+import { localDateStr, parseLocalDate, dayBounds, currentShiftDate, shiftLocalDate } from '@/lib/dateNav'
 import { useBreakpoint } from '@/hooks/useBreakpoint'
 import { computeDailyOpex } from './OpexTab'
 import type { OpexItem, MonthConfig } from './OpexTab'
@@ -235,7 +235,7 @@ export default function BudgetTab() {
       if (data.length < PAGE) break
     }
     const orderDateMap: Record<number, string> = {}
-    for (const o of allOrderRows) orderDateMap[o.id] = localDateStr(new Date(o.opened_at))
+    for (const o of allOrderRows) orderDateMap[o.id] = shiftLocalDate(new Date(o.opened_at))
 
     // Step 2: paginate order_items for those orders — COGS from menu_items.cost
     const orderIds = Object.keys(orderDateMap).map(Number)
@@ -326,7 +326,7 @@ export default function BudgetTab() {
     }
 
     // Add cumulative OPEX allocation — one allocation per unique operating day
-    const priorDates: string[] = [...new Set<string>((priorOrders ?? []).map((o: any) => localDateStr(new Date(o.opened_at as string))))]
+    const priorDates: string[] = [...new Set<string>((priorOrders ?? []).map((o: any) => shiftLocalDate(new Date(o.opened_at as string))))]
     for (const priorDate of priorDates) {
       const priorCfg = opexConfigs[priorDate.slice(0, 7)] ?? null
       priorIncoming.opex = (priorIncoming.opex ?? 0) + Math.ceil(computeDailyOpex(opexItems, priorCfg))
@@ -378,7 +378,7 @@ export default function BudgetTab() {
   const totalEnding   = totalStarting + totalIncoming - totalExpenses
 
   const fmtSign  = (v: number) => v === 0 ? '—' : fmtPeso(v)
-  const todayStr = localDateStr(new Date())
+  const todayStr = currentShiftDate()
 
   const actionControls = (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
