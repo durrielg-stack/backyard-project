@@ -45,14 +45,15 @@
 - Takeout items show with blue visual treatment in KDS (blue tint + blue border + "TO" chip)
 
 ## Inventory
-- Inventory is auto-deducted via `deduct_inventory` RPC on `addItem`
-- Restored via `restore_inventory` RPC on `voidItem`
+- **Inventory sync is DB-side since 2026-07-11**: trigger `trg_sync_inventory_on_order_item` on `order_items` (insert deducts, qty update applies the delta, void restores full qty, status-only changes are neutral) calls `deduct_inventory`/`restore_inventory` internally, so stock moves atomically with the order write — no client RPC, no silent-failure drift. The client must NEVER call those RPCs directly (two-writers rule); discount split and `moveItems` stay correctly neutral under the trigger
 - Category routing for deduction: `category` field (= `category3` for Food, `category2` for Bar)
 - **Cigarettes are counted by the stick** (owner decision 2026-07-09): each Pack menu item is an `inventory_compositions` bundle of 20 sticks; selling a pack deducts 20 from the Stick counter; Pack items have no own inventory row
 - Cigarette restocks flow through expense presets ("Marlboro Red/Lights/Blue" → linked Stick item); the expense form's restock section converts packs × pack size (default 20) to sticks, same as beer cases × case size
 - **Deleting a restock expense reverses its stock effect** (trigger `remove_inventory_on_expense`, added 2026-07-09), clamped at 0 — a mistaken purchase entry is corrected by deleting it, no manual stock fix needed
 - Manual ± inventory adjustment is disabled for **Beer and Cigarettes** (auto-managed; two-writers rule) — corrections happen via a deliberate physical recount, not the buttons
 - Baseline reset 2026-07-09 from owner's physical count: Red Stick 24, Blue Stick 0, Lights Stick 0 (pre-2026-07-04 counts carried drift from the silent `deduct_inventory` no-op bug). Re-corrected to Red 14 the same evening after the `updateQty` phantom-stock bug (see mistakes-to-avoid) inflated the counter by 9 during service
+- Beer baseline reset 2026-07-11 from owner's physical count (loose bottles + cases × 24, owner confirmed 24/case for all brands incl. Red Horse Stallion): Red Horse Stallion 125, San Mig Light 47, San Mig Flavors 41, Pale Pilsen 67; pre-reset counts carried the same pre-fix drift as cigarettes (Stallion was 155, Pilsen 116)
+- Mixed buckets are **always exactly 3 + 3** of the two named brands (owner confirmed 2026-07-11) — the fixed `inventory_compositions` split matches service reality; full beer mapping audit same day found every sellable beer item resolves to exactly one deduction path (own row or composition, never neither)
 
 ## Item Lifecycle
 - Items are never hard-deleted — voided via `status = 'voided'` + `void_reason`

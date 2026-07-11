@@ -98,9 +98,15 @@ Maps a bundle/bucket menu item to the base item(s) it actually draws stock from,
 
 | Function | Args | Purpose |
 |---------|------|---------|
-| `deduct_inventory` | `p_menu_item_id uuid, p_qty` | Decrements inventory on sale. Checks `inventory_compositions` first — if the sold item is a bundle, deducts from each component's row instead of its own. (Fixed 2026-07-04: `p_menu_item_id` was typed `text` against a `uuid` column, so every call errored silently since `useOrder.ts` never checked the RPC error — inventory never actually decremented until this was fixed.) |
-| `restore_inventory` | `p_menu_item_id uuid, p_qty` | Restores inventory on void. Same composition-aware logic as `deduct_inventory`. |
+| `deduct_inventory` | `p_menu_item_id uuid, p_qty` | Decrements inventory on sale. Checks `inventory_compositions` first — if the sold item is a bundle, deducts from each component's row instead of its own. (Fixed 2026-07-04: `p_menu_item_id` was typed `text` against a `uuid` column, so every call errored silently since `useOrder.ts` never checked the RPC error — inventory never actually decremented until this was fixed.) **Since 2026-07-11 called only from `trg_sync_inventory_on_order_item` — never from the client.** |
+| `restore_inventory` | `p_menu_item_id uuid, p_qty` | Restores inventory on void. Same composition-aware logic as `deduct_inventory`. **Trigger-only since 2026-07-11, same as above.** |
 | `verify_staff_login` | `p_name, p_password` | Returns `{ id, name, role }[]` for auth |
+
+## Triggers on `order_items`
+
+| Trigger | Fires | Purpose |
+|---------|-------|---------|
+| `trg_sync_inventory_on_order_item` (`sync_inventory_on_order_item()`) | AFTER INSERT/UPDATE/DELETE | Added 2026-07-11: makes inventory atomic with the order write. INSERT deducts `new.qty`; UPDATE applies the qty delta, restores `old.qty` when status flips to `voided` (re-deducts on un-void); status-only updates (KDS bump) and `order_id` moves are neutral; DELETE of a non-voided row restores (app never hard-deletes — safety net). Calls the composition-aware RPCs above. Replaced the client-side RPC calls in `useOrder` (removed same day — two-writers rule: trigger and client RPCs must never coexist). The discount split in `payFull` (qty-down update + new-row insert) nets to zero under this trigger, as intended. |
 
 ## Triggers on `daily_expenses`
 

@@ -140,6 +140,10 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
   }, [tableId, staff])
 
   // ── Add item ─────────────────────────────────────────────────────────────
+  // Inventory is synced by the DB trigger trg_sync_inventory_on_order_item
+  // (2026-07-11): every order_items insert/update adjusts stock atomically.
+  // Never call deduct_inventory/restore_inventory from the client — a second
+  // writer would double-count (two-writers rule).
   const addItem = useCallback(async (
     item: MenuItem,
     qty = 1,
@@ -167,8 +171,6 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
       const { error } = await sb.from('order_items').update({ qty: newQty }).eq('id', match.dbId)
       if (error) { setError(error.message); return }
       setLines(prev => prev.map(l => l.lineId === match.lineId ? { ...l, qty: newQty } : l))
-      const { error: invErr } = await sb.rpc('deduct_inventory', { p_menu_item_id: item.id, p_qty: qty })
-      if (invErr) console.error('[useOrder] deduct_inventory failed', invErr)
     } else {
       const tempLineId = 'L' + (lineCount.current++)
       const optimistic: CartLine = {
@@ -202,8 +204,6 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
         return
       }
       setLines(prev => prev.map(l => l.lineId === tempLineId ? { ...l, dbId: data.id as number } : l))
-      const { error: invErr } = await sb.rpc('deduct_inventory', { p_menu_item_id: item.id, p_qty: qty })
-      if (invErr) console.error('[useOrder] deduct_inventory failed', invErr)
     }
   }, [lines, ensureOrder])
 
@@ -221,18 +221,6 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
       if (error) { setError(error.message); return }
     }
     setLines(prev => prev.map(l => l.lineId === lineId ? { ...l, qty: newQty } : l))
-
-    // Inventory must track the applied delta (post-floor), or stepper-built
-    // lines under-deduct while voidItem restores the full final qty —
-    // manufacturing phantom stock on every void of a stepped-up line.
-    const applied = newQty - line.qty
-    if (applied > 0) {
-      const { error: invErr } = await sb.rpc('deduct_inventory', { p_menu_item_id: line.itemId, p_qty: applied })
-      if (invErr) console.error('[useOrder] deduct_inventory failed', invErr)
-    } else {
-      const { error: invErr } = await sb.rpc('restore_inventory', { p_menu_item_id: line.itemId, p_qty: -applied })
-      if (invErr) console.error('[useOrder] restore_inventory failed', invErr)
-    }
   }, [lines])
 
   // ── Remove line entirely ─────────────────────────────────────────────────
@@ -256,8 +244,6 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
 
     const remaining = lines.filter(l => l.lineId !== lineId)
     setLines(remaining)
-    const { error: invErr } = await sb.rpc('restore_inventory', { p_menu_item_id: line.itemId, p_qty: line.qty })
-    if (invErr) console.error('[useOrder] restore_inventory failed', invErr)
 
     // Auto-close order and free table when last item is voided
     if (remaining.length === 0 && orderIdRef.current) {
