@@ -87,7 +87,6 @@ export default function DailyTab({ staffName }: { staffName: string }) {
 
     const [
       { data: seedRows },
-      { data: expRows },
       { data: savRows },
       { data: adjRows },
       { data: budgetSeedRows },
@@ -95,7 +94,6 @@ export default function DailyTab({ staffName }: { staffName: string }) {
       { data: opexCfgRows },
     ] = await Promise.all([
       sb.from('daily_summary_seed').select('*').order('created_at', { ascending: false }).limit(1),
-      sb.from('daily_expenses').select('expense_date, category, amount'),
       sb.from('partner_remittances').select('remittance_date, total_amount'),
       sb.from('daily_adjustments').select('*').order('adj_date'),
       sb.from('budget_seed').select('*').order('seed_date', { ascending: false }).limit(6),
@@ -106,9 +104,10 @@ export default function DailyTab({ staffName }: { staffName: string }) {
     const seed = seedRows?.[0] ?? null
     if (!seed) { setLoading(false); return }
 
-    // Paginate CLOSED orders from seed date onwards to avoid the server's default
-    // row cap. Only closed (billed) orders count — an open tab is money that
-    // hasn't come in yet and would overstate the cash Ending balance below.
+    // Paginate CLOSED orders and expenses from seed date onwards to avoid the
+    // server's default row cap. Only closed (billed) orders count — an open
+    // tab is money that hasn't come in yet and would overstate the cash
+    // Ending balance below.
     const PAGE = 1000
     const seedStartISO = new Date(seed.seed_date as string).toISOString()
     let allOrders: any[] = []
@@ -120,6 +119,19 @@ export default function DailyTab({ staffName }: { staffName: string }) {
         .range(from, from + PAGE - 1)
       if (!data || data.length === 0) break
       allOrders = allOrders.concat(data)
+      if (data.length < PAGE) break
+    }
+
+    // daily_expenses has no upper bound and already exceeds the row cap —
+    // must be paginated the same way, or rows past row 1000 (i.e. the most
+    // recent expenses once the table grows past 1000) silently vanish.
+    let expRows: any[] = []
+    for (let from = 0; ; from += PAGE) {
+      const { data } = await sb
+        .from('daily_expenses').select('expense_date, category, amount')
+        .range(from, from + PAGE - 1)
+      if (!data || data.length === 0) break
+      expRows = expRows.concat(data)
       if (data.length < PAGE) break
     }
 
