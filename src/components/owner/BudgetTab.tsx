@@ -258,10 +258,21 @@ export default function BudgetTab() {
       }
     }
 
-    // Step 3: all expenses
-    const { data: expRows, error: expErr } = await sb
-      .from('daily_expenses').select('expense_date, category, amount').order('expense_date')
-    if (expErr) console.error('[BudgetTab/ledger] expenses error', expErr)
+    // Step 3: paginate all expenses — this table has no upper bound and
+    // already exceeds the server's default row cap, so an unbounded select
+    // silently drops the newest rows (was truncating everything from Jul 12
+    // onward once the table crossed 1000 rows).
+    let expRows: any[] = []
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await sb
+        .from('daily_expenses').select('expense_date, category, amount')
+        .order('expense_date')
+        .range(from, from + PAGE - 1)
+      if (error) { console.error('[BudgetTab/ledger] expenses error', error); break }
+      if (!data || data.length === 0) break
+      expRows = expRows.concat(data)
+      if (data.length < PAGE) break
+    }
     const allExpenses: Record<string, Record<string, number>> = {}
     for (const r of (expRows ?? [])) {
       const cat = EXP_CAT_MAP[r.category]
@@ -278,6 +289,7 @@ export default function BudgetTab() {
     setLoading(true)
     const { start, end } = dayBounds(d)
     const seedStart = seed?.date ?? '1970-01-01'
+    const PAGE = 1000
 
     // Today's orders
     const { data: dayOrders, error: dOrdErr } = await sb
@@ -332,9 +344,19 @@ export default function BudgetTab() {
       priorIncoming.opex = (priorIncoming.opex ?? 0) + Math.ceil(computeDailyOpex(opexItems, priorCfg))
     }
 
-    const { data: priorExp, error: peErr } = await sb
-      .from('daily_expenses').select('category, amount').lt('expense_date', d).gte('expense_date', seedStart)
-    if (peErr) console.error('[BudgetTab] prior expenses error', peErr)
+    // Paginated — this range already exceeds the server's default row cap
+    // (unbounded select silently dropped rows once daily_expenses passed 1000).
+    let priorExp: any[] = []
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await sb
+        .from('daily_expenses').select('category, amount')
+        .lt('expense_date', d).gte('expense_date', seedStart)
+        .range(from, from + PAGE - 1)
+      if (error) { console.error('[BudgetTab] prior expenses error', error); break }
+      if (!data || data.length === 0) break
+      priorExp = priorExp.concat(data)
+      if (data.length < PAGE) break
+    }
     const priorExpenses = emptyBycat()
     for (const r of (priorExp ?? [])) {
       const cat = EXP_CAT_MAP[r.category]
