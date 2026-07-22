@@ -28,6 +28,7 @@ Categories:
 
 ## Recently Shipped
 
+- **Fix: tables stranded "occupied" after last item removed (2026-07-21)** — `voidItem`/`payPartial`/`moveItems` no longer null local order state on a failed close write; `useOpenOrders` also filters out itemless "open" orders as a defensive net. See `mistakes-to-avoid.md`.
 - **Budget Tab auto-computation + seed balances** — previously listed as pre-launch pending; `BudgetTab.tsx` now computes COGS from `order_items` × `menu_items.cost` and seeds opening balances via the `budget_seed` table with an in-app setup form
 - **Cash Flow formula change (2026-07-02)** — Daily Summary's Cash Flow column now shows the day-over-day change of the Budget ending total (was: day-over-day change of vs Cash); first row shows 0
 - **Dine-In / Takeout per-item toggle** — full implementation including KDS separation by `orderType`
