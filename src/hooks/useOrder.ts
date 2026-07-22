@@ -228,6 +228,19 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
     await updateQty(lineId, -999)
   }, [updateQty])
 
+  // Close order + free table. Returns false (and surfaces setError) if the
+  // orders.status write fails, so callers never null out local orderId state
+  // while the DB row is still 'open' — that mismatch is what let a voided-out
+  // order silently strand a table as occupied forever.
+  const closeOrderAndFreeTable = useCallback(async (id: number): Promise<boolean> => {
+    const sb = getClient()
+    const { error: closeErr } = await sb.from('orders').update({ status: 'closed', closed_at: new Date().toISOString() }).eq('id', id)
+    if (closeErr) { setError(`Could not close order: ${closeErr.message}`); return false }
+    const { error: tableErr } = await sb.from('restaurant_tables').update({ status: 'available' }).eq('id', tableId)
+    if (tableErr) { setError(`Order closed but table status failed to update: ${tableErr.message}`) }
+    return true
+  }, [tableId])
+
   // ── Void item with reason ────────────────────────────────────────────────
   const voidItem = useCallback(async (lineId: string, reason: string) => {
     const sb   = getClient()
@@ -247,12 +260,13 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
 
     // Auto-close order and free table when last item is voided
     if (remaining.length === 0 && orderIdRef.current) {
-      await sb.from('orders').update({ status: 'closed', closed_at: new Date().toISOString() }).eq('id', orderIdRef.current)
-      await sb.from('restaurant_tables').update({ status: 'available' }).eq('id', tableId)
-      orderIdRef.current = null
-      setOrderId(null)
+      const closed = await closeOrderAndFreeTable(orderIdRef.current)
+      if (closed) {
+        orderIdRef.current = null
+        setOrderId(null)
+      }
     }
-  }, [lines, tableId])
+  }, [lines, closeOrderAndFreeTable])
 
   // ── Set note on a line ───────────────────────────────────────────────────
   const setNote = useCallback(async (lineId: string, note: string) => {
@@ -423,17 +437,22 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
     // Close order when all lines are paid, regardless of autoClose flag
     const unpaidLines = lines.filter(l => !lineIds.includes(l.lineId))
     if (unpaidLines.length === 0) {
-      await sb.from('orders').update({ status: 'closed', closed_at: new Date().toISOString() }).eq('id', orderId)
-      await sb.from('restaurant_tables').update({ status: 'available' }).eq('id', tableId)
-      setLines([])
-      setOrderId(null)
-      return 'closed'
+      const closed = await closeOrderAndFreeTable(orderId)
+      if (closed) {
+        setLines([])
+        setOrderId(null)
+        return 'closed'
+      }
+      // Close failed — payment is already recorded, so don't lose it locally,
+      // but leave orderId/lines alone rather than pretending it's closed.
+      setLines(prev => prev.filter(l => !lineIds.includes(l.lineId)))
+      return 'error'
     }
 
     // Remove paid lines from local state
     setLines(prev => prev.filter(l => !lineIds.includes(l.lineId)))
     return 'partial'
-  }, [orderId, tableId, lines])
+  }, [orderId, lines, closeOrderAndFreeTable])
 
   // ── Move items to another table's order ──────────────────────────────────
   const moveItems = useCallback(async (lineIds: string[], targetTableId: string): Promise<boolean> => {
@@ -476,15 +495,18 @@ export function useOrder(tableId: string, staff?: string): UseOrderReturn {
     const remainingLines = lines.filter(l => !lineIds.includes(l.lineId) && l.status !== 'voided')
     if (remainingLines.length === 0 && orderId) {
       // All items moved out — close the source order and free the table
-      await sb.from('orders').update({ status: 'closed', closed_at: new Date().toISOString() }).eq('id', orderId)
-      await sb.from('restaurant_tables').update({ status: 'available' }).eq('id', tableId)
-      setLines([])
-      setOrderId(null)
+      const closed = await closeOrderAndFreeTable(orderId)
+      if (closed) {
+        setLines([])
+        setOrderId(null)
+      } else {
+        setLines(prev => prev.filter(l => !lineIds.includes(l.lineId)))
+      }
     } else {
       setLines(prev => prev.filter(l => !lineIds.includes(l.lineId)))
     }
     return true
-  }, [lines, orderId, tableId])
+  }, [lines, orderId, closeOrderAndFreeTable])
 
   return { orderId, lines, loading, error, clearError: () => setError(null), addItem, updateQty, removeItem, voidItem, setNote, setOrderType, closeOrder, payPartial, moveItems }
 
