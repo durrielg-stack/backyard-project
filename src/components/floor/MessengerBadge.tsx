@@ -1,86 +1,113 @@
-'use client'
+"use client";
 
-import { useEffect, useState, useCallback } from 'react'
-import { useTheme } from '@/lib/ThemeContext'
-import { getClient } from '@/lib/supabase'
+import { useEffect, useState, useCallback } from "react";
+import { useTheme } from "@/lib/ThemeContext";
+import { getClient } from "@/lib/supabase";
 
-const FB_INBOX_URL = 'https://www.facebook.com/messages/t'
+const FB_INBOX_URL = "https://www.facebook.com/messages/t";
 
 export default function MessengerBadge() {
-  const { T } = useTheme()
-  const [unread, setUnread] = useState(0)
+  const { T } = useTheme();
+  const [unread, setUnread] = useState(0);
 
   const fetchUnread = useCallback(async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { count } = await (getClient() as any)
-      .from('notifications')
-      .select('*', { count: 'exact', head: true })
-      .eq('type', 'messenger')
-      .eq('read', false)
-    setUnread(count ?? 0)
-  }, [])
+      .from("notifications")
+      .select("*", { count: "exact", head: true })
+      .eq("type", "messenger")
+      .eq("read", false);
+    setUnread(count ?? 0);
+  }, []);
 
   // Initial load
-  useEffect(() => { fetchUnread() }, [fetchUnread])
+  useEffect(() => {
+    fetchUnread();
+  }, [fetchUnread]);
 
   // Realtime subscription
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sb = getClient() as any
+    const sb = getClient() as any;
     const channel = sb
-      .channel('notifications-badge')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'notifications',
-        filter: 'type=eq.messenger',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }, (_payload: any) => {
-        setUnread(n => n + 1)
-      })
-      .subscribe()
-    return () => { sb.removeChannel(channel) }
-  }, [])
+      .channel("notifications-badge")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: "type=eq.messenger",
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        },
+        (_payload: any) => {
+          setUnread((n) => n + 1);
+        },
+      )
+      .subscribe();
+    return () => {
+      sb.removeChannel(channel);
+    };
+  }, []);
 
   const markReadAndOpen = async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (getClient() as any)
-      .from('notifications')
+      .from("notifications")
       .update({ read: true })
-      .eq('type', 'messenger')
-      .eq('read', false)
-    setUnread(0)
-    window.open(FB_INBOX_URL, '_blank', 'noopener')
-  }
+      .eq("type", "messenger")
+      .eq("read", false);
+    setUnread(0);
+    window.open(FB_INBOX_URL, "_blank", "noopener");
+  };
 
-  const hasNew = unread > 0
+  const hasNew = unread > 0;
 
   return (
-    <div style={{
-      position: 'fixed', bottom: 24, right: 24, zIndex: 200,
-    }}>
+    <div
+      style={{
+        position: "fixed",
+        bottom: 24,
+        right: 24,
+        zIndex: 200,
+      }}
+    >
       {/* Pulse ring — only when unread */}
       {hasNew && (
-        <div style={{
-          position: 'absolute', inset: -6,
-          borderRadius: '50%',
-          border: `2px solid ${T.accent}`,
-          animation: 'bp-attn 1.4s ease-in-out infinite',
-          pointerEvents: 'none',
-        }} />
+        <div
+          style={{
+            position: "absolute",
+            inset: -6,
+            borderRadius: "50%",
+            border: `2px solid ${T.accent}`,
+            animation: "bp-attn 1.4s ease-in-out infinite",
+            pointerEvents: "none",
+          }}
+        />
       )}
 
       <button
         onClick={markReadAndOpen}
-        title={hasNew ? `${unread} new message${unread > 1 ? 's' : ''} on Facebook` : 'Facebook Messages'}
+        title={
+          hasNew
+            ? `${unread} new message${unread > 1 ? "s" : ""} on Facebook`
+            : "Facebook Messages"
+        }
         style={{
-          width: 52, height: 52, borderRadius: '50%',
+          width: 52,
+          height: 52,
+          borderRadius: "50%",
           background: hasNew ? T.accent : T.surface2,
           border: `2px solid ${hasNew ? T.accent : T.line2}`,
-          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: hasNew ? `0 0 0 4px ${T.accent}33` : '0 2px 8px rgba(0,0,0,0.3)',
-          transition: 'background 0.2s, box-shadow 0.2s',
-          position: 'relative',
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: hasNew
+            ? `0 0 0 4px ${T.accent}33`
+            : "0 2px 8px rgba(0,0,0,0.3)",
+          transition: "background 0.2s, box-shadow 0.2s",
+          position: "relative",
         }}
       >
         {/* Messenger icon (simplified) */}
@@ -92,25 +119,39 @@ export default function MessengerBadge() {
           <path
             d="M6.5 13.5 10 9.5l3.5 3.5 3-3.5"
             stroke={hasNew ? `${T.accentInk}88` : T.surface}
-            strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           />
         </svg>
 
         {/* Unread count badge */}
         {hasNew && (
-          <div style={{
-            position: 'absolute', top: -4, right: -4,
-            minWidth: 18, height: 18, borderRadius: 9,
-            background: T.bad, color: '#fff',
-            fontSize: 10, fontWeight: 700, fontFamily: 'inherit',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '0 4px', lineHeight: 1,
-            border: `2px solid ${T.bg}`,
-          }}>
-            {unread > 9 ? '9+' : unread}
+          <div
+            style={{
+              position: "absolute",
+              top: -4,
+              right: -4,
+              minWidth: 18,
+              height: 18,
+              borderRadius: 9,
+              background: T.bad,
+              color: "#fff",
+              fontSize: 10,
+              fontWeight: 700,
+              fontFamily: "inherit",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "0 4px",
+              lineHeight: 1,
+              border: `2px solid ${T.bg}`,
+            }}
+          >
+            {unread > 9 ? "9+" : unread}
           </div>
         )}
       </button>
     </div>
-  )
+  );
 }

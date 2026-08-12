@@ -1,198 +1,281 @@
-'use client'
+"use client";
 
-import { useTheme } from '@/lib/ThemeContext'
-import { useBreakpoint } from '@/hooks/useBreakpoint'
+import { useTheme } from "@/lib/ThemeContext";
+import { useBreakpoint } from "@/hooks/useBreakpoint";
 import {
-  ViewMode, localDateStr, weekBounds, navigateDay, navigateWeek, navigateMonth,
-  todayLabel, MONTH_NAMES, parseLocalDate, currentShiftDate,
-} from '@/lib/dateNav'
+  ViewMode,
+  localDateStr,
+  weekBounds,
+  navigateDay,
+  navigateWeek,
+  navigateMonth,
+  todayLabel,
+  MONTH_NAMES,
+  parseLocalDate,
+  currentShiftDate,
+} from "@/lib/dateNav";
 
 interface DateRangeNavProps {
-  mode:      ViewMode
+  mode: ViewMode;
   // today mode
-  date:      string
+  date: string;
   // week mode
-  weekRef:   Date
+  weekRef: Date;
   // month mode
-  month:     number
-  year:      number
-  onModeChange: (m: ViewMode) => void
-  onDateChange: (d: string) => void
-  onWeekChange: (ref: Date) => void
-  onMonthChange: (year: number, month: number) => void
+  month: number;
+  year: number;
+  onModeChange: (m: ViewMode) => void;
+  onDateChange: (d: string) => void;
+  onWeekChange: (ref: Date) => void;
+  onMonthChange: (year: number, month: number) => void;
 }
 
 export default function DateRangeNav({
-  mode, date, weekRef, month, year,
-  onModeChange, onDateChange, onWeekChange, onMonthChange,
+  mode,
+  date,
+  weekRef,
+  month,
+  year,
+  onModeChange,
+  onDateChange,
+  onWeekChange,
+  onMonthChange,
 }: DateRangeNavProps) {
-  const { T } = useTheme()
-  const bp = useBreakpoint()
-  const isMobile = bp === 'mobile'
+  const { T } = useTheme();
+  const bp = useBreakpoint();
+  const isMobile = bp === "mobile";
 
   const btnBase: React.CSSProperties = {
-    padding: isMobile ? '10px 14px' : '5px 14px',
+    padding: isMobile ? "10px 14px" : "5px 14px",
     minHeight: isMobile ? 44 : undefined,
-    fontSize: 12, fontFamily: 'inherit',
-    border: `1px solid ${T.line2}`, borderRadius: T.radius,
-    cursor: 'pointer', lineHeight: 1,
-  }
-  const activeBtn: React.CSSProperties = { ...btnBase, background: T.accent, color: T.accentInk, borderColor: T.accent, fontWeight: 600 }
-  const inactiveBtn: React.CSSProperties = { ...btnBase, background: T.chip, color: T.textDim, fontWeight: 400 }
+    fontSize: 12,
+    fontFamily: "inherit",
+    border: `1px solid ${T.line2}`,
+    borderRadius: T.radius,
+    cursor: "pointer",
+    lineHeight: 1,
+  };
+  const activeBtn: React.CSSProperties = {
+    ...btnBase,
+    background: T.accent,
+    color: T.accentInk,
+    borderColor: T.accent,
+    fontWeight: 600,
+  };
+  const inactiveBtn: React.CSSProperties = {
+    ...btnBase,
+    background: T.chip,
+    color: T.textDim,
+    fontWeight: 400,
+  };
 
   const navBtn: React.CSSProperties = {
-    width: isMobile ? 44 : 28, height: isMobile ? 44 : 28,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    background: T.chip, border: `1px solid ${T.line2}`, borderRadius: T.radius,
-    cursor: 'pointer', color: T.textDim, fontSize: isMobile ? 18 : 14, lineHeight: 1, flexShrink: 0,
-  }
+    width: isMobile ? 44 : 28,
+    height: isMobile ? 44 : 28,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: T.chip,
+    border: `1px solid ${T.line2}`,
+    borderRadius: T.radius,
+    cursor: "pointer",
+    color: T.textDim,
+    fontSize: isMobile ? 18 : 14,
+    lineHeight: 1,
+    flexShrink: 0,
+  };
 
   function handlePrev() {
-    if (mode === 'today') onDateChange(navigateDay(date, -1))
-    else if (mode === 'week') onWeekChange(navigateWeek(weekRef, -1))
+    if (mode === "today") onDateChange(navigateDay(date, -1));
+    else if (mode === "week") onWeekChange(navigateWeek(weekRef, -1));
     else {
-      const { year: y, month: m } = navigateMonth(year, month, -1)
-      onMonthChange(y, m)
+      const { year: y, month: m } = navigateMonth(year, month, -1);
+      onMonthChange(y, m);
     }
   }
 
   function handleNext() {
-    if (mode === 'today') onDateChange(navigateDay(date, 1))
-    else if (mode === 'week') onWeekChange(navigateWeek(weekRef, 1))
+    if (mode === "today") onDateChange(navigateDay(date, 1));
+    else if (mode === "week") onWeekChange(navigateWeek(weekRef, 1));
     else {
-      const { year: y, month: m } = navigateMonth(year, month, 1)
-      onMonthChange(y, m)
+      const { year: y, month: m } = navigateMonth(year, month, 1);
+      onMonthChange(y, m);
     }
   }
 
   // Center label / picker
   function CenterControl() {
-    if (mode === 'today') {
+    if (mode === "today") {
       return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <input
             type="date"
             value={date}
-            onChange={e => e.target.value && onDateChange(e.target.value)}
+            onChange={(e) => e.target.value && onDateChange(e.target.value)}
             style={{
-              padding: isMobile ? '10px 8px' : '4px 8px',
+              padding: isMobile ? "10px 8px" : "4px 8px",
               minHeight: isMobile ? 44 : undefined,
-              fontSize: 12, fontFamily: T.mono,
-              background: T.surface2, color: T.text,
-              border: `1px solid ${T.line2}`, borderRadius: T.radius,
-              outline: 'none', cursor: 'pointer',
+              fontSize: 12,
+              fontFamily: T.mono,
+              background: T.surface2,
+              color: T.text,
+              border: `1px solid ${T.line2}`,
+              borderRadius: T.radius,
+              outline: "none",
+              cursor: "pointer",
             }}
           />
           {date !== localDateStr(new Date()) && (
             <button
               onClick={() => onDateChange(localDateStr(new Date()))}
-              style={{ ...inactiveBtn, padding: '3px 8px', fontSize: 11 }}
+              style={{ ...inactiveBtn, padding: "3px 8px", fontSize: 11 }}
             >
               Today
             </button>
           )}
         </div>
-      )
+      );
     }
 
-    if (mode === 'week') {
-      const { label, start: weekStartISO } = weekBounds(weekRef)
-      const weekStartStr = localDateStr(new Date(weekStartISO))
-      const todayWeekStr = localDateStr(new Date(weekBounds(new Date()).start))
+    if (mode === "week") {
+      const { label, start: weekStartISO } = weekBounds(weekRef);
+      const weekStartStr = localDateStr(new Date(weekStartISO));
+      const todayWeekStr = localDateStr(new Date(weekBounds(new Date()).start));
       return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <input
             type="date"
             value={weekStartStr}
             title={label}
-            onChange={e => e.target.value && onWeekChange(parseLocalDate(e.target.value))}
+            onChange={(e) =>
+              e.target.value && onWeekChange(parseLocalDate(e.target.value))
+            }
             style={{
-              padding: isMobile ? '10px 8px' : '4px 8px',
+              padding: isMobile ? "10px 8px" : "4px 8px",
               minHeight: isMobile ? 44 : undefined,
-              fontSize: 12, fontFamily: T.mono,
-              background: T.surface2, color: T.text,
-              border: `1px solid ${T.line2}`, borderRadius: T.radius,
-              outline: 'none', cursor: 'pointer',
+              fontSize: 12,
+              fontFamily: T.mono,
+              background: T.surface2,
+              color: T.text,
+              border: `1px solid ${T.line2}`,
+              borderRadius: T.radius,
+              outline: "none",
+              cursor: "pointer",
             }}
           />
-          <span style={{ fontSize: 11, fontFamily: T.mono, color: T.textDim, whiteSpace: 'nowrap' }}>{label}</span>
+          <span
+            style={{
+              fontSize: 11,
+              fontFamily: T.mono,
+              color: T.textDim,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {label}
+          </span>
           {weekStartStr !== todayWeekStr && (
             <button
               onClick={() => onWeekChange(new Date())}
-              style={{ ...inactiveBtn, padding: '3px 8px', fontSize: 11 }}
+              style={{ ...inactiveBtn, padding: "3px 8px", fontSize: 11 }}
             >
               This Week
             </button>
           )}
         </div>
-      )
+      );
     }
 
     // month
-    const todayDate = new Date()
-    const isCurrentMonth = year === todayDate.getFullYear() && month === todayDate.getMonth()
+    const todayDate = new Date();
+    const isCurrentMonth =
+      year === todayDate.getFullYear() && month === todayDate.getMonth();
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <select
           value={month}
-          onChange={e => onMonthChange(year, parseInt(e.target.value))}
+          onChange={(e) => onMonthChange(year, parseInt(e.target.value))}
           style={{
-            padding: '4px 8px', fontSize: 12, fontFamily: T.mono,
-            background: T.surface2, color: T.text,
-            border: `1px solid ${T.line2}`, borderRadius: T.radius,
-            outline: 'none', cursor: 'pointer',
+            padding: "4px 8px",
+            fontSize: 12,
+            fontFamily: T.mono,
+            background: T.surface2,
+            color: T.text,
+            border: `1px solid ${T.line2}`,
+            borderRadius: T.radius,
+            outline: "none",
+            cursor: "pointer",
           }}
         >
           {MONTH_NAMES.map((name, i) => (
-            <option key={name} value={i}>{name}</option>
+            <option key={name} value={i}>
+              {name}
+            </option>
           ))}
         </select>
         <select
           value={year}
-          onChange={e => onMonthChange(parseInt(e.target.value), month)}
+          onChange={(e) => onMonthChange(parseInt(e.target.value), month)}
           style={{
-            padding: '4px 8px', fontSize: 12, fontFamily: T.mono,
-            background: T.surface2, color: T.text,
-            border: `1px solid ${T.line2}`, borderRadius: T.radius,
-            outline: 'none', cursor: 'pointer',
+            padding: "4px 8px",
+            fontSize: 12,
+            fontFamily: T.mono,
+            background: T.surface2,
+            color: T.text,
+            border: `1px solid ${T.line2}`,
+            borderRadius: T.radius,
+            outline: "none",
+            cursor: "pointer",
           }}
         >
-          {[todayDate.getFullYear() - 1, todayDate.getFullYear()].map(y => (
-            <option key={y} value={y}>{y}</option>
+          {[todayDate.getFullYear() - 1, todayDate.getFullYear()].map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
           ))}
         </select>
         {!isCurrentMonth && (
           <button
-            onClick={() => onMonthChange(todayDate.getFullYear(), todayDate.getMonth())}
-            style={{ ...inactiveBtn, padding: '3px 8px', fontSize: 11 }}
+            onClick={() =>
+              onMonthChange(todayDate.getFullYear(), todayDate.getMonth())
+            }
+            style={{ ...inactiveBtn, padding: "3px 8px", fontSize: 11 }}
           >
             This Month
           </button>
         )}
       </div>
-    )
+    );
   }
 
   // Jump to today's week / month when switching modes
   function handleModeChange(m: ViewMode) {
-    const now = new Date()
-    if (m === 'today') onDateChange(localDateStr(now))
-    else if (m === 'week') onWeekChange(now)
-    else onMonthChange(now.getFullYear(), now.getMonth())
-    onModeChange(m)
+    const now = new Date();
+    if (m === "today") onDateChange(localDateStr(now));
+    else if (m === "week") onWeekChange(now);
+    else onMonthChange(now.getFullYear(), now.getMonth());
+    onModeChange(m);
   }
 
   return (
-    <div className={isMobile ? 'bp-no-scrollbar' : ''} style={{
-      display: 'flex', alignItems: 'center', gap: 8,
-      overflowX: 'auto', touchAction: 'pan-x pan-y',
-    }}>
+    <div
+      className={isMobile ? "bp-no-scrollbar" : ""}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        overflowX: "auto",
+        touchAction: "pan-x pan-y",
+      }}
+    >
       {/* Mode pills */}
-      <div style={{ display: 'flex', gap: 2 }}>
-        {(['today', 'week', 'month'] as ViewMode[]).map(m => (
-          <button key={m} onClick={() => handleModeChange(m)}
-            style={mode === m ? activeBtn : inactiveBtn}>
-            {m === 'today' ? 'Today' : m === 'week' ? 'Week' : 'Month'}
+      <div style={{ display: "flex", gap: 2 }}>
+        {(["today", "week", "month"] as ViewMode[]).map((m) => (
+          <button
+            key={m}
+            onClick={() => handleModeChange(m)}
+            style={mode === m ? activeBtn : inactiveBtn}
+          >
+            {m === "today" ? "Today" : m === "week" ? "Week" : "Month"}
           </button>
         ))}
       </div>
@@ -200,24 +283,41 @@ export default function DateRangeNav({
       <div style={{ width: 1, height: 20, background: T.line2 }} />
 
       {/* Prev / center / next */}
-      <button onClick={handlePrev} style={navBtn}>‹</button>
+      <button onClick={handlePrev} style={navBtn}>
+        ‹
+      </button>
       <CenterControl />
-      <button onClick={handleNext} style={navBtn}>›</button>
+      <button onClick={handleNext} style={navBtn}>
+        ›
+      </button>
     </div>
-  )
+  );
 }
 
 // ── Hook: manage all date nav state in one place ──────────────────────────────
 export function useDateNav() {
-  const now = new Date()
-  const [mode,    setMode]    = useState<ViewMode>('today')
-  const [date,    setDate]    = useState(currentShiftDate())
-  const [weekRef, setWeekRef] = useState<Date>(now)
-  const [month,   setMonth]   = useState(now.getMonth())
-  const [year,    setYear]    = useState(now.getFullYear())
+  const now = new Date();
+  const [mode, setMode] = useState<ViewMode>("today");
+  const [date, setDate] = useState(currentShiftDate());
+  const [weekRef, setWeekRef] = useState<Date>(now);
+  const [month, setMonth] = useState(now.getMonth());
+  const [year, setYear] = useState(now.getFullYear());
 
-  return { mode, setMode, date, setDate, weekRef, setWeekRef, month, year, setMonth: (y: number, m: number) => { setYear(y); setMonth(m) } }
+  return {
+    mode,
+    setMode,
+    date,
+    setDate,
+    weekRef,
+    setWeekRef,
+    month,
+    year,
+    setMonth: (y: number, m: number) => {
+      setYear(y);
+      setMonth(m);
+    },
+  };
 }
 
 // useState import needed in this file
-import { useState } from 'react'
+import { useState } from "react";

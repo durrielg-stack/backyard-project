@@ -1,294 +1,587 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useTheme } from '@/lib/ThemeContext'
-import { getClient } from '@/lib/supabase'
-import type { TableWithStatus } from '@/lib/types'
-import BudgetTab from './BudgetTab'
-import OpexTab from './OpexTab'
-import DailyTab from './DailyTab'
-import ReportsTab from './ReportsTab'
-import { useBreakpoint } from '@/hooks/useBreakpoint'
-
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useTheme } from "@/lib/ThemeContext";
+import { getClient } from "@/lib/supabase";
+import type { TableWithStatus } from "@/lib/types";
+import BudgetTab from "./BudgetTab";
+import OpexTab from "./OpexTab";
+import DailyTab from "./DailyTab";
+import ReportsTab from "./ReportsTab";
+import { useBreakpoint } from "@/hooks/useBreakpoint";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-interface RevenueBar { label: string; value: number; isPeak: boolean }
+interface RevenueBar {
+  label: string;
+  value: number;
+  isPeak: boolean;
+}
 
 interface SummaryRow {
-  date:     string   // YYYY-MM-DD
-  label:    string   // 'Mon 19'
-  revenue:  number
-  txCount:  number
+  date: string; // YYYY-MM-DD
+  label: string; // 'Mon 19'
+  revenue: number;
+  txCount: number;
 }
 
 interface CategoryBreakdown {
-  category: string
-  gross:    number
-  cost:     number
-  net:      number
+  category: string;
+  gross: number;
+  cost: number;
+  net: number;
 }
 
 interface TableRow {
-  id:       string
-  label:    string
-  section:  string
-  capacity: number
-  status:   string
+  id: string;
+  label: string;
+  section: string;
+  capacity: number;
+  status: string;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const DAY_ABBR = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
-const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+const DAY_ABBR = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_ABBR = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 
-function makePeak(bars: Omit<RevenueBar,'isPeak'>[]): RevenueBar[] {
-  const max = Math.max(...bars.map(b => b.value), 0.01)
-  return bars.map(b => ({ ...b, isPeak: b.value === max && b.value > 0 }))
+function makePeak(bars: Omit<RevenueBar, "isPeak">[]): RevenueBar[] {
+  const max = Math.max(...bars.map((b) => b.value), 0.01);
+  return bars.map((b) => ({ ...b, isPeak: b.value === max && b.value > 0 }));
 }
 
 function fmtPeso(v: number) {
-  return `₱${v.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return `₱${v.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function fmtDate(d: Date) {
-  return `${DAY_ABBR[d.getDay()]} ${d.getDate()} ${MONTH_ABBR[d.getMonth()]} '${String(d.getFullYear()).slice(2)}`
+  return `${DAY_ABBR[d.getDay()]} ${d.getDate()} ${MONTH_ABBR[d.getMonth()]} '${String(d.getFullYear()).slice(2)}`;
 }
 
 // ── Shared UI atoms ───────────────────────────────────────────────────────────
 
-function SectionHd({ title, badge, action }: { title: string; badge?: React.ReactNode; action?: React.ReactNode }) {
-  const { T } = useTheme()
+function SectionHd({
+  title,
+  badge,
+  action,
+}: {
+  title: string;
+  badge?: React.ReactNode;
+  action?: React.ReactNode;
+}) {
+  const { T } = useTheme();
   return (
-    <div style={{
-      height: 48, padding: '0 24px', flexShrink: 0,
-      display: 'flex', alignItems: 'center', gap: 10,
-      borderBottom: `1px solid ${T.line}`,
-    }}>
-      <span style={{
-        fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
-        textTransform: 'uppercase', color: T.textMute,
-      }}>
+    <div
+      style={{
+        height: 48,
+        padding: "0 24px",
+        flexShrink: 0,
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        borderBottom: `1px solid ${T.line}`,
+      }}
+    >
+      <span
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          color: T.textMute,
+        }}
+      >
         {title}
       </span>
       {badge != null && (
-        <span style={{
-          fontFamily: T.mono, fontSize: 12, fontWeight: 600,
-          color: T.accent, background: `${T.accent}18`,
-          border: `1px solid ${T.accent}44`,
-          padding: '2px 8px', borderRadius: T.radius,
-        }}>
+        <span
+          style={{
+            fontFamily: T.mono,
+            fontSize: 12,
+            fontWeight: 600,
+            color: T.accent,
+            background: `${T.accent}18`,
+            border: `1px solid ${T.accent}44`,
+            padding: "2px 8px",
+            borderRadius: T.radius,
+          }}
+        >
           {badge}
         </span>
       )}
       <div style={{ flex: 1 }} />
       {action}
     </div>
-  )
+  );
 }
 
-function Pill({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  const { T } = useTheme()
+function Pill({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  const { T } = useTheme();
   return (
-    <button onClick={onClick} style={{
-      padding: '4px 14px', fontSize: 12, fontFamily: 'inherit',
-      background: active ? T.accent : T.chip,
-      color:      active ? T.accentInk : T.textDim,
-      border:     `1px solid ${active ? T.accent : T.line2}`,
-      borderRadius: T.radius, cursor: 'pointer',
-      fontWeight: active ? 600 : 400,
-      transition: 'background 0.12s ease',
-    }}>
+    <button
+      onClick={onClick}
+      style={{
+        padding: "4px 14px",
+        fontSize: 12,
+        fontFamily: "inherit",
+        background: active ? T.accent : T.chip,
+        color: active ? T.accentInk : T.textDim,
+        border: `1px solid ${active ? T.accent : T.line2}`,
+        borderRadius: T.radius,
+        cursor: "pointer",
+        fontWeight: active ? 600 : 400,
+        transition: "background 0.12s ease",
+      }}
+    >
       {label}
     </button>
-  )
+  );
 }
 
 // ── Bar chart (shared) ────────────────────────────────────────────────────────
-function BarChart({ bars, height = 200 }: { bars: RevenueBar[]; height?: number }) {
-  const { T } = useTheme()
+function BarChart({
+  bars,
+  height = 200,
+}: {
+  bars: RevenueBar[];
+  height?: number;
+}) {
+  const { T } = useTheme();
   if (bars.length === 0) {
     return (
-      <div style={{
-        height, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: T.textMute, fontFamily: T.mono, fontSize: 12,
-      }}>
+      <div
+        style={{
+          height,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: T.textMute,
+          fontFamily: T.mono,
+          fontSize: 12,
+        }}
+      >
         No data
       </div>
-    )
+    );
   }
-  const maxVal = Math.max(...bars.map(b => b.value), 1)
+  const maxVal = Math.max(...bars.map((b) => b.value), 1);
   return (
-    <div style={{ height, padding: '12px 24px 0', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
-        {[0.25, 0.5, 0.75, 1.0].map(pct => (
-          <div key={pct} style={{
-            position: 'absolute', left: 0, right: 0,
-            top: `${(1 - pct) * 100}%`,
-            borderTop: `1px solid ${T.line}`,
-            pointerEvents: 'none',
-          }}>
-            <span style={{
-              position: 'absolute', right: 0, transform: 'translateY(-100%)',
-              fontSize: 9, fontFamily: T.mono, color: T.textMute,
-              fontVariantNumeric: 'tabular-nums', paddingBottom: 1,
-            }}>
-              {(maxVal * pct) >= 1000
+    <div
+      style={{
+        height,
+        padding: "12px 24px 0",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      <div style={{ flex: 1, position: "relative", minHeight: 0 }}>
+        {[0.25, 0.5, 0.75, 1.0].map((pct) => (
+          <div
+            key={pct}
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              top: `${(1 - pct) * 100}%`,
+              borderTop: `1px solid ${T.line}`,
+              pointerEvents: "none",
+            }}
+          >
+            <span
+              style={{
+                position: "absolute",
+                right: 0,
+                transform: "translateY(-100%)",
+                fontSize: 9,
+                fontFamily: T.mono,
+                color: T.textMute,
+                fontVariantNumeric: "tabular-nums",
+                paddingBottom: 1,
+              }}
+            >
+              {maxVal * pct >= 1000
                 ? `${((maxVal * pct) / 1000).toFixed(1)}k`
                 : (maxVal * pct).toFixed(0)}
             </span>
           </div>
         ))}
-        <div style={{
-          position: 'absolute', inset: 0,
-          display: 'grid',
-          gridTemplateColumns: `repeat(${bars.length}, 1fr)`,
-          alignItems: 'flex-end',
-        }}>
-          {bars.map(bar => {
-            const h = maxVal > 0 ? (bar.value / maxVal) * 100 : 0
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "grid",
+            gridTemplateColumns: `repeat(${bars.length}, 1fr)`,
+            alignItems: "flex-end",
+          }}
+        >
+          {bars.map((bar) => {
+            const h = maxVal > 0 ? (bar.value / maxVal) * 100 : 0;
             return (
-              <div key={bar.label} style={{
-                display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'flex-end', height: '100%',
-              }}>
+              <div
+                key={bar.label}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "flex-end",
+                  height: "100%",
+                }}
+              >
                 {bar.value > 0 && (
-                  <div style={{
-                    fontFamily: T.mono, fontSize: 8, fontWeight: 600,
-                    color: bar.isPeak ? T.accent : T.textMute,
-                    marginBottom: 2, whiteSpace: 'nowrap',
-                  }}>
-                    {bar.value >= 1000 ? `${(bar.value / 1000).toFixed(1)}k` : bar.value.toFixed(0)}
+                  <div
+                    style={{
+                      fontFamily: T.mono,
+                      fontSize: 8,
+                      fontWeight: 600,
+                      color: bar.isPeak ? T.accent : T.textMute,
+                      marginBottom: 2,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {bar.value >= 1000
+                      ? `${(bar.value / 1000).toFixed(1)}k`
+                      : bar.value.toFixed(0)}
                   </div>
                 )}
-                <div style={{
-                  width: '70%', height: h > 0 ? `${h}%` : 2,
-                  background: bar.isPeak ? T.accent : `${T.accent}44`,
-                  borderRadius: `${T.radius} ${T.radius} 0 0`,
-                  minHeight: bar.value > 0 ? 4 : 2,
-                  transition: 'height 0.4s ease',
-                }} />
+                <div
+                  style={{
+                    width: "70%",
+                    height: h > 0 ? `${h}%` : 2,
+                    background: bar.isPeak ? T.accent : `${T.accent}44`,
+                    borderRadius: `${T.radius} ${T.radius} 0 0`,
+                    minHeight: bar.value > 0 ? 4 : 2,
+                    transition: "height 0.4s ease",
+                  }}
+                />
               </div>
-            )
+            );
           })}
         </div>
       </div>
-      <div style={{
-        display: 'grid', gridTemplateColumns: `repeat(${bars.length}, 1fr)`,
-        marginTop: 4, paddingBottom: 8,
-      }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${bars.length}, 1fr)`,
+          marginTop: 4,
+          paddingBottom: 8,
+        }}
+      >
         {bars.map((bar, i) => (
-          <div key={bar.label} style={{
-            textAlign: 'center', fontFamily: T.mono, fontSize: 8, color: T.textMute,
-            visibility: (bars.length > 14 && i % 2 !== 0) ? 'hidden' : 'visible',
-          }}>
+          <div
+            key={bar.label}
+            style={{
+              textAlign: "center",
+              fontFamily: T.mono,
+              fontSize: 8,
+              color: T.textMute,
+              visibility:
+                bars.length > 14 && i % 2 !== 0 ? "hidden" : "visible",
+            }}
+          >
             {bar.label}
           </div>
         ))}
       </div>
     </div>
-  )
+  );
 }
 
 // ── Horizontal bar chart (category breakdown) ─────────────────────────────────
 
-function HBarChart({ data, color }: { data: { category: string; value: number; sub?: string }[]; color: string }) {
-  const { T } = useTheme()
+function HBarChart({
+  data,
+  color,
+}: {
+  data: { category: string; value: number; sub?: string }[];
+  color: string;
+}) {
+  const { T } = useTheme();
   if (data.length === 0) {
-    return <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No data</div>
+    return (
+      <div
+        style={{
+          padding: "24px",
+          color: T.textMute,
+          fontFamily: T.mono,
+          fontSize: 12,
+        }}
+      >
+        No data
+      </div>
+    );
   }
-  const max = Math.max(...data.map(d => d.value), 1)
+  const max = Math.max(...data.map((d) => d.value), 1);
   return (
-    <div style={{ padding: '8px 0' }}>
-      {data.map(d => (
-        <div key={d.category} style={{ padding: '5px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 130, fontSize: 11, color: T.text, textAlign: 'right', flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+    <div style={{ padding: "8px 0" }}>
+      {data.map((d) => (
+        <div
+          key={d.category}
+          style={{
+            padding: "5px 20px",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <div
+            style={{
+              width: 130,
+              fontSize: 11,
+              color: T.text,
+              textAlign: "right",
+              flexShrink: 0,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
             {d.category}
           </div>
-          <div style={{ flex: 1, height: 18, background: T.line2, borderRadius: T.radius, position: 'relative', overflow: 'hidden' }}>
-            <div style={{
-              position: 'absolute', left: 0, top: 0, bottom: 0,
-              width: `${(d.value / max) * 100}%`,
-              background: color, borderRadius: T.radius,
-              transition: 'width 0.4s ease',
-            }} />
+          <div
+            style={{
+              flex: 1,
+              height: 18,
+              background: T.line2,
+              borderRadius: T.radius,
+              position: "relative",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: `${(d.value / max) * 100}%`,
+                background: color,
+                borderRadius: T.radius,
+                transition: "width 0.4s ease",
+              }}
+            />
           </div>
-          <div style={{ width: 96, fontFamily: T.mono, fontSize: 11, color: T.text, fontVariantNumeric: 'tabular-nums', flexShrink: 0, textAlign: 'right' }}>
+          <div
+            style={{
+              width: 96,
+              fontFamily: T.mono,
+              fontSize: 11,
+              color: T.text,
+              fontVariantNumeric: "tabular-nums",
+              flexShrink: 0,
+              textAlign: "right",
+            }}
+          >
             {fmtPeso(d.value)}
           </div>
           {d.sub && (
-            <div style={{ width: 64, fontFamily: T.mono, fontSize: 10, color: T.textMute, flexShrink: 0 }}>
+            <div
+              style={{
+                width: 64,
+                fontFamily: T.mono,
+                fontSize: 10,
+                color: T.textMute,
+                flexShrink: 0,
+              }}
+            >
               {d.sub}
             </div>
           )}
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 // ── Grouped bar chart ─────────────────────────────────────────────────────────
 
-interface MultiBar { label: string; gross: number; cost: number; expenses: number }
+interface MultiBar {
+  label: string;
+  gross: number;
+  cost: number;
+  expenses: number;
+}
 
-function GroupedBarChart({ bars, height = 220, mode = 'bar' }: { bars: MultiBar[]; height?: number; mode?: 'bar' | 'line' }) {
-  const { T } = useTheme()
+function GroupedBarChart({
+  bars,
+  height = 220,
+  mode = "bar",
+}: {
+  bars: MultiBar[];
+  height?: number;
+  mode?: "bar" | "line";
+}) {
+  const { T } = useTheme();
   if (bars.length === 0) {
-    return <div style={{ height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No data</div>
+    return (
+      <div
+        style={{
+          height,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: T.textMute,
+          fontFamily: T.mono,
+          fontSize: 12,
+        }}
+      >
+        No data
+      </div>
+    );
   }
   const SERIES = [
-    { key: 'gross',    color: T.accent  },
-    { key: 'cost',     color: T.textDim },
-    { key: 'net',      color: T.ok      },
-    { key: 'expenses', color: T.bad     },
-  ] as const
-  const allVals = bars.flatMap(b => [b.gross, b.cost, Math.max(0, b.gross - b.cost), b.expenses])
-  const maxVal  = Math.max(...allVals, 1)
+    { key: "gross", color: T.accent },
+    { key: "cost", color: T.textDim },
+    { key: "net", color: T.ok },
+    { key: "expenses", color: T.bad },
+  ] as const;
+  const allVals = bars.flatMap((b) => [
+    b.gross,
+    b.cost,
+    Math.max(0, b.gross - b.cost),
+    b.expenses,
+  ]);
+  const maxVal = Math.max(...allVals, 1);
 
   return (
-    <div style={{ height, padding: '10px 24px 0', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', gap: 14, paddingBottom: 6, flexShrink: 0 }}>
-        {(['Gross','Cost','Net','Expenses'] as const).map((lbl, i) => (
-          <div key={lbl} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <div style={{
-              width: mode === 'line' ? 16 : 8,
-              height: mode === 'line' ? 2 : 8,
-              borderRadius: 1, background: SERIES[i].color,
-            }} />
-            <span style={{ fontSize: 9, color: T.textMute, fontFamily: T.mono, letterSpacing: '0.06em' }}>{lbl}</span>
+    <div
+      style={{
+        height,
+        padding: "10px 24px 0",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      <div
+        style={{ display: "flex", gap: 14, paddingBottom: 6, flexShrink: 0 }}
+      >
+        {(["Gross", "Cost", "Net", "Expenses"] as const).map((lbl, i) => (
+          <div
+            key={lbl}
+            style={{ display: "flex", alignItems: "center", gap: 4 }}
+          >
+            <div
+              style={{
+                width: mode === "line" ? 16 : 8,
+                height: mode === "line" ? 2 : 8,
+                borderRadius: 1,
+                background: SERIES[i].color,
+              }}
+            />
+            <span
+              style={{
+                fontSize: 9,
+                color: T.textMute,
+                fontFamily: T.mono,
+                letterSpacing: "0.06em",
+              }}
+            >
+              {lbl}
+            </span>
           </div>
         ))}
       </div>
 
-      <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+      <div style={{ flex: 1, position: "relative", minHeight: 0 }}>
         {/* Grid lines + y-axis labels */}
-        {[0.25, 0.5, 0.75, 1.0].map(pct => (
-          <div key={pct} style={{ position: 'absolute', left: 0, right: 0, top: `${(1-pct)*100}%`, borderTop: `1px solid ${T.line}`, pointerEvents: 'none' }}>
-            <span style={{ position: 'absolute', right: 0, transform: 'translateY(-100%)', fontSize: 9, fontFamily: T.mono, color: T.textMute, paddingBottom: 1 }}>
-              {(maxVal*pct) >= 1000 ? `${((maxVal*pct)/1000).toFixed(1)}k` : (maxVal*pct).toFixed(0)}
+        {[0.25, 0.5, 0.75, 1.0].map((pct) => (
+          <div
+            key={pct}
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              top: `${(1 - pct) * 100}%`,
+              borderTop: `1px solid ${T.line}`,
+              pointerEvents: "none",
+            }}
+          >
+            <span
+              style={{
+                position: "absolute",
+                right: 0,
+                transform: "translateY(-100%)",
+                fontSize: 9,
+                fontFamily: T.mono,
+                color: T.textMute,
+                paddingBottom: 1,
+              }}
+            >
+              {maxVal * pct >= 1000
+                ? `${((maxVal * pct) / 1000).toFixed(1)}k`
+                : (maxVal * pct).toFixed(0)}
             </span>
           </div>
         ))}
 
-        {mode === 'bar' ? (
-          <div style={{ position: 'absolute', inset: 0, display: 'grid', gridTemplateColumns: `repeat(${bars.length}, 1fr)`, alignItems: 'flex-end' }}>
-            {bars.map(bar => {
-              const vals = [bar.gross, bar.cost, Math.max(0, bar.gross - bar.cost), bar.expenses]
+        {mode === "bar" ? (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "grid",
+              gridTemplateColumns: `repeat(${bars.length}, 1fr)`,
+              alignItems: "flex-end",
+            }}
+          >
+            {bars.map((bar) => {
+              const vals = [
+                bar.gross,
+                bar.cost,
+                Math.max(0, bar.gross - bar.cost),
+                bar.expenses,
+              ];
               return (
-                <div key={bar.label} style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', height: '100%', gap: 1 }}>
+                <div
+                  key={bar.label}
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-end",
+                    justifyContent: "center",
+                    height: "100%",
+                    gap: 1,
+                  }}
+                >
                   {SERIES.map((s, si) => {
-                    const v = vals[si]
-                    const h = maxVal > 0 ? (v / maxVal) * 100 : 0
+                    const v = vals[si];
+                    const h = maxVal > 0 ? (v / maxVal) * 100 : 0;
                     return (
-                      <div key={s.key} style={{
-                        width: '20%', height: h > 0 ? `${h}%` : 2,
-                        background: s.color, borderRadius: `${T.radius} ${T.radius} 0 0`,
-                        minHeight: v > 0 ? 3 : 2, opacity: v > 0 ? 1 : 0.2, transition: 'height 0.4s ease',
-                      }} />
-                    )
+                      <div
+                        key={s.key}
+                        style={{
+                          width: "20%",
+                          height: h > 0 ? `${h}%` : 2,
+                          background: s.color,
+                          borderRadius: `${T.radius} ${T.radius} 0 0`,
+                          minHeight: v > 0 ? 3 : 2,
+                          opacity: v > 0 ? 1 : 0.2,
+                          transition: "height 0.4s ease",
+                        }}
+                      />
+                    );
                   })}
                 </div>
-              )
+              );
             })}
           </div>
         ) : (
@@ -296,18 +589,31 @@ function GroupedBarChart({ bars, height = 220, mode = 'bar' }: { bars: MultiBar[
           <svg
             viewBox="0 0 100 100"
             preserveAspectRatio="none"
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+            }}
           >
             {SERIES.map((s, si) => {
-              const vals = bars.map(b => {
-                const row = [b.gross, b.cost, Math.max(0, b.gross - b.cost), b.expenses]
-                return row[si]
-              })
-              const points = vals.map((v, i) => {
-                const x = bars.length > 1 ? (i / (bars.length - 1)) * 100 : 50
-                const y = 100 - (maxVal > 0 ? (v / maxVal) * 96 : 0)  // 96 = leave 2% padding top/bottom
-                return `${x.toFixed(2)},${y.toFixed(2)}`
-              }).join(' ')
+              const vals = bars.map((b) => {
+                const row = [
+                  b.gross,
+                  b.cost,
+                  Math.max(0, b.gross - b.cost),
+                  b.expenses,
+                ];
+                return row[si];
+              });
+              const points = vals
+                .map((v, i) => {
+                  const x =
+                    bars.length > 1 ? (i / (bars.length - 1)) * 100 : 50;
+                  const y = 100 - (maxVal > 0 ? (v / maxVal) * 96 : 0); // 96 = leave 2% padding top/bottom
+                  return `${x.toFixed(2)},${y.toFixed(2)}`;
+                })
+                .join(" ");
               return (
                 <g key={s.key}>
                   <polyline
@@ -321,282 +627,571 @@ function GroupedBarChart({ bars, height = 220, mode = 'bar' }: { bars: MultiBar[
                     vectorEffect="non-scaling-stroke"
                   />
                 </g>
-              )
+              );
             })}
           </svg>
         )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${bars.length}, 1fr)`, marginTop: 4, paddingBottom: 8 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${bars.length}, 1fr)`,
+          marginTop: 4,
+          paddingBottom: 8,
+        }}
+      >
         {bars.map((bar, i) => (
-          <div key={bar.label} style={{ textAlign: 'center', fontFamily: T.mono, fontSize: 8, color: T.textMute, visibility: (bars.length > 14 && i % 2 !== 0) ? 'hidden' : 'visible' }}>
+          <div
+            key={bar.label}
+            style={{
+              textAlign: "center",
+              fontFamily: T.mono,
+              fontSize: 8,
+              color: T.textMute,
+              visibility:
+                bars.length > 14 && i % 2 !== 0 ? "hidden" : "visible",
+            }}
+          >
             {bar.label}
           </div>
         ))}
       </div>
     </div>
-  )
+  );
 }
 
 // ── TABLES TAB ────────────────────────────────────────────────────────────────
 
-function TablesTab({ liveTableStatuses }: { liveTableStatuses: TableWithStatus[] }) {
-  const { T } = useTheme()
-  const [tables, setTables]   = useState<TableRow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [working, setWorking] = useState<string | null>(null)
+function TablesTab({
+  liveTableStatuses,
+}: {
+  liveTableStatuses: TableWithStatus[];
+}) {
+  const { T } = useTheme();
+  const [tables, setTables] = useState<TableRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [working, setWorking] = useState<string | null>(null);
 
   const fetchTables = useCallback(async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data } = await (getClient() as any).from('restaurant_tables').select('id, label, section, capacity, status').order('id')
-    setTables(data ?? [])
-    setLoading(false)
-  }, [])
+    const { data } = await (getClient() as any)
+      .from("restaurant_tables")
+      .select("id, label, section, capacity, status")
+      .order("id");
+    setTables(data ?? []);
+    setLoading(false);
+  }, []);
 
-  useEffect(() => { fetchTables() }, [fetchTables])
+  useEffect(() => {
+    fetchTables();
+  }, [fetchTables]);
 
   // Merge live statuses from POSApp
-  const merged = tables.map(t => {
-    const live = liveTableStatuses.find(l => l.id === t.id)
-    return { ...t, status: live?.status ?? t.status, openMin: live?.openMin ?? 0, checkTotal: live?.checkTotal ?? 0 }
-  })
+  const merged = tables.map((t) => {
+    const live = liveTableStatuses.find((l) => l.id === t.id);
+    return {
+      ...t,
+      status: live?.status ?? t.status,
+      openMin: live?.openMin ?? 0,
+      checkTotal: live?.checkTotal ?? 0,
+    };
+  });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sb = getClient() as any
+  const sb = getClient() as any;
 
   async function setReserved(tableId: string, reserve: boolean) {
-    setWorking(tableId)
-    await sb.from('restaurant_tables').update({ status: reserve ? 'reserved' : 'available' }).eq('id', tableId)
-    await fetchTables()
-    setWorking(null)
+    setWorking(tableId);
+    await sb
+      .from("restaurant_tables")
+      .update({ status: reserve ? "reserved" : "available" })
+      .eq("id", tableId);
+    await fetchTables();
+    setWorking(null);
   }
 
   async function forceClose(tableId: string) {
-    setWorking(tableId)
+    setWorking(tableId);
     // Close any open orders for this table
-    const { data: orders } = await sb.from('orders').select('id').eq('table_id', tableId).eq('status', 'open')
-    for (const o of (orders ?? [])) {
-      await sb.from('orders').update({ status: 'closed', closed_at: new Date().toISOString() }).eq('id', o.id)
+    const { data: orders } = await sb
+      .from("orders")
+      .select("id")
+      .eq("table_id", tableId)
+      .eq("status", "open");
+    for (const o of orders ?? []) {
+      await sb
+        .from("orders")
+        .update({ status: "closed", closed_at: new Date().toISOString() })
+        .eq("id", o.id);
     }
-    await sb.from('restaurant_tables').update({ status: 'available' }).eq('id', tableId)
-    await fetchTables()
-    setWorking(null)
+    await sb
+      .from("restaurant_tables")
+      .update({ status: "available" })
+      .eq("id", tableId);
+    await fetchTables();
+    setWorking(null);
   }
 
   const statusColor: Record<string, string> = {
-    available: T.ok, occupied: T.accent, aging: T.warn,
-    attention: T.bad, reserved: T.info,
-  }
+    available: T.ok,
+    occupied: T.accent,
+    aging: T.warn,
+    attention: T.bad,
+    reserved: T.info,
+  };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+    <div
+      style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
+      }}
+    >
       <SectionHd title="Tables" badge={`${tables.length} total`} />
       {loading ? (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: T.textMute,
+            fontFamily: T.mono,
+            fontSize: 12,
+          }}
+        >
+          Loading…
+        </div>
       ) : (
-        <div className="bp-no-scrollbar" style={{ flex: 1, overflow: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+        <div
+          className="bp-no-scrollbar"
+          style={{
+            flex: 1,
+            overflow: "auto",
+            touchAction: "pan-x pan-y",
+            overscrollBehaviorX: "contain",
+            overscrollBehaviorY: "none",
+          }}
+        >
           <div style={{ minWidth: 640 }}>
-          {/* Header */}
-          <div style={{
-            display: 'grid', gridTemplateColumns: '64px 1fr 80px 60px 80px 1fr 220px',
-            padding: '0 24px', height: 36, alignItems: 'center',
-            borderBottom: `1px solid ${T.line}`, background: T.surface2,
-            position: 'sticky', top: 0, zIndex: 1,
-          }}>
-            {['Table','Section','Seats','Status','Open','Check','Actions'].map(h => (
-              <span key={h} style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText }}>
-                {h}
-              </span>
-            ))}
-          </div>
-
-          {merged.map((t, i) => {
-            const sc = statusColor[t.status] ?? T.textDim
-            const isWorking = working === t.id
-            return (
-              <div key={t.id} style={{
-                display: 'grid', gridTemplateColumns: '64px 1fr 80px 60px 80px 1fr 220px',
-                padding: '0 24px', height: 48, alignItems: 'center',
+            {/* Header */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "64px 1fr 80px 60px 80px 1fr 220px",
+                padding: "0 24px",
+                height: 36,
+                alignItems: "center",
                 borderBottom: `1px solid ${T.line}`,
-                background: i % 2 === 0 ? 'transparent' : T.surface,
-                opacity: isWorking ? 0.5 : 1,
-              }}>
-                <span style={{ fontFamily: T.mono, fontSize: 14, fontWeight: 700, color: T.text }}>{t.label}</span>
-                <span style={{ fontSize: 12, color: T.textDim }}>{t.section}</span>
-                <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textDim }}>{t.capacity}</span>
-                <span style={{
-                  fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-                  color: sc,
-                }}>
-                  {t.status}
+                background: T.surface2,
+                position: "sticky",
+                top: 0,
+                zIndex: 1,
+              }}
+            >
+              {[
+                "Table",
+                "Section",
+                "Seats",
+                "Status",
+                "Open",
+                "Check",
+                "Actions",
+              ].map((h) => (
+                <span
+                  key={h}
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    letterSpacing: "0.12em",
+                    textTransform: "uppercase",
+                    color: T.headerText,
+                  }}
+                >
+                  {h}
                 </span>
-                <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute, fontVariantNumeric: 'tabular-nums' }}>
-                  {(t as any).openMin > 0 ? `${(t as any).openMin}m` : '—'}
-                </span>
-                <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textDim, fontVariantNumeric: 'tabular-nums' }}>
-                  {(t as any).checkTotal > 0 ? fmtPeso((t as any).checkTotal) : '—'}
-                </span>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  {t.status === 'reserved' ? (
-                    <button onClick={() => setReserved(t.id, false)} disabled={isWorking} style={{
-                      padding: '4px 10px', fontSize: 11, fontFamily: 'inherit',
-                      background: `${T.info}18`, border: `1px solid ${T.info}44`,
-                      color: T.info, borderRadius: T.radius, cursor: 'pointer',
-                    }}>
-                      Clear Reserve
-                    </button>
-                  ) : t.status === 'available' ? (
-                    <button onClick={() => setReserved(t.id, true)} disabled={isWorking} style={{
-                      padding: '4px 10px', fontSize: 11, fontFamily: 'inherit',
-                      background: T.chip, border: `1px solid ${T.line2}`,
-                      color: T.textDim, borderRadius: T.radius, cursor: 'pointer',
-                    }}>
-                      Reserve
-                    </button>
-                  ) : null}
+              ))}
+            </div>
 
-                  {['occupied','aging','attention'].includes(t.status) && (
-                    <button onClick={() => forceClose(t.id)} disabled={isWorking} style={{
-                      padding: '4px 10px', fontSize: 11, fontFamily: 'inherit',
-                      background: `${T.bad}18`, border: `1px solid ${T.bad}44`,
-                      color: T.bad, borderRadius: T.radius, cursor: 'pointer',
-                    }}>
-                      Force Close
-                    </button>
-                  )}
+            {merged.map((t, i) => {
+              const sc = statusColor[t.status] ?? T.textDim;
+              const isWorking = working === t.id;
+              return (
+                <div
+                  key={t.id}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "64px 1fr 80px 60px 80px 1fr 220px",
+                    padding: "0 24px",
+                    height: 48,
+                    alignItems: "center",
+                    borderBottom: `1px solid ${T.line}`,
+                    background: i % 2 === 0 ? "transparent" : T.surface,
+                    opacity: isWorking ? 0.5 : 1,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontFamily: T.mono,
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: T.text,
+                    }}
+                  >
+                    {t.label}
+                  </span>
+                  <span style={{ fontSize: 12, color: T.textDim }}>
+                    {t.section}
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: T.mono,
+                      fontSize: 12,
+                      color: T.textDim,
+                    }}
+                  >
+                    {t.capacity}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      color: sc,
+                    }}
+                  >
+                    {t.status}
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: T.mono,
+                      fontSize: 12,
+                      color: T.textMute,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    {(t as any).openMin > 0 ? `${(t as any).openMin}m` : "—"}
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: T.mono,
+                      fontSize: 12,
+                      color: T.textDim,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    {(t as any).checkTotal > 0
+                      ? fmtPeso((t as any).checkTotal)
+                      : "—"}
+                  </span>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    {t.status === "reserved" ? (
+                      <button
+                        onClick={() => setReserved(t.id, false)}
+                        disabled={isWorking}
+                        style={{
+                          padding: "4px 10px",
+                          fontSize: 11,
+                          fontFamily: "inherit",
+                          background: `${T.info}18`,
+                          border: `1px solid ${T.info}44`,
+                          color: T.info,
+                          borderRadius: T.radius,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Clear Reserve
+                      </button>
+                    ) : t.status === "available" ? (
+                      <button
+                        onClick={() => setReserved(t.id, true)}
+                        disabled={isWorking}
+                        style={{
+                          padding: "4px 10px",
+                          fontSize: 11,
+                          fontFamily: "inherit",
+                          background: T.chip,
+                          border: `1px solid ${T.line2}`,
+                          color: T.textDim,
+                          borderRadius: T.radius,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Reserve
+                      </button>
+                    ) : null}
+
+                    {["occupied", "aging", "attention"].includes(t.status) && (
+                      <button
+                        onClick={() => forceClose(t.id)}
+                        disabled={isWorking}
+                        style={{
+                          padding: "4px 10px",
+                          fontSize: 11,
+                          fontFamily: "inherit",
+                          background: `${T.bad}18`,
+                          border: `1px solid ${T.bad}44`,
+                          color: T.bad,
+                          borderRadius: T.radius,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Force Close
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )
-          })}
+              );
+            })}
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }
 
 // ── SAVINGS TAB ───────────────────────────────────────────────────────────────
 
-const PARTNERS = ['Albert', 'Arvin', 'Benok', 'Bimbo', 'Durriel', 'Ramon'] as const
+const PARTNERS = [
+  "Albert",
+  "Arvin",
+  "Benok",
+  "Bimbo",
+  "Durriel",
+  "Ramon",
+] as const;
 
 interface Remittance {
-  id:             number
-  date:           string
-  total:          number
-  notes:          string | null
-  splits:         RemittanceSplit[]
+  id: number;
+  date: string;
+  total: number;
+  notes: string | null;
+  splits: RemittanceSplit[];
 }
 interface RemittanceSplit {
-  id:          number
-  partner:     string
-  dividends:   number
-  bonus:       number
-  licensing:   number
-  others:      number
-  paidOut:     number
+  id: number;
+  partner: string;
+  dividends: number;
+  bonus: number;
+  licensing: number;
+  others: number;
+  paidOut: number;
 }
 
 function SavingsTab() {
-  const { T } = useTheme()
-  const bp = useBreakpoint()
-  const isMobile = bp === 'mobile'
-  const [rows,     setRows]     = useState<Remittance[]>([])
-  const [loading,  setLoading]  = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [saving,   setSaving]   = useState(false)
-  const [expanded, setExpanded] = useState<number | null>(null)
+  const { T } = useTheme();
+  const bp = useBreakpoint();
+  const isMobile = bp === "mobile";
+  const [rows, setRows] = useState<Remittance[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [expanded, setExpanded] = useState<number | null>(null);
 
   // Form state
-  const [fDate,   setFDate]   = useState(() => new Date().toISOString().slice(0, 10))
-  const [fTotal,  setFTotal]  = useState('')
-  const [fNotes,  setFNotes]  = useState('')
-  const [fPaidOut, setFPaidOut] = useState<Record<string, string>>({})
+  const [fDate, setFDate] = useState(() =>
+    new Date().toISOString().slice(0, 10),
+  );
+  const [fTotal, setFTotal] = useState("");
+  const [fNotes, setFNotes] = useState("");
+  const [fPaidOut, setFPaidOut] = useState<Record<string, string>>({});
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sb = getClient() as any
+  const sb = getClient() as any;
 
   const fetchRows = useCallback(async () => {
-    const { data: remits } = await sb.from('partner_remittances').select('*').order('remittance_date', { ascending: false })
-    const { data: splits } = await sb.from('partner_remittance_splits').select('*')
-    const splitMap: Record<number, RemittanceSplit[]> = {}
-    for (const s of (splits ?? [])) {
-      if (!splitMap[s.remittance_id]) splitMap[s.remittance_id] = []
-      splitMap[s.remittance_id].push({ id: s.id, partner: s.partner_name, dividends: s.dividends, bonus: s.bonus, licensing: s.licensing, others: s.others, paidOut: s.paid_out })
+    const { data: remits } = await sb
+      .from("partner_remittances")
+      .select("*")
+      .order("remittance_date", { ascending: false });
+    const { data: splits } = await sb
+      .from("partner_remittance_splits")
+      .select("*");
+    const splitMap: Record<number, RemittanceSplit[]> = {};
+    for (const s of splits ?? []) {
+      if (!splitMap[s.remittance_id]) splitMap[s.remittance_id] = [];
+      splitMap[s.remittance_id].push({
+        id: s.id,
+        partner: s.partner_name,
+        dividends: s.dividends,
+        bonus: s.bonus,
+        licensing: s.licensing,
+        others: s.others,
+        paidOut: s.paid_out,
+      });
     }
-    setRows((remits ?? []).map((r: any) => ({ id: r.id, date: r.remittance_date, total: r.total_amount, notes: r.notes, splits: splitMap[r.id] ?? [] })))
-    setLoading(false)
-  }, [])
+    setRows(
+      (remits ?? []).map((r: any) => ({
+        id: r.id,
+        date: r.remittance_date,
+        total: r.total_amount,
+        notes: r.notes,
+        splits: splitMap[r.id] ?? [],
+      })),
+    );
+    setLoading(false);
+  }, []);
 
-  useEffect(() => { fetchRows() }, [fetchRows])
+  useEffect(() => {
+    fetchRows();
+  }, [fetchRows]);
 
   async function addRemittance() {
-    const total = parseFloat(fTotal)
-    if (isNaN(total) || total <= 0) return
-    setSaving(true)
+    const total = parseFloat(fTotal);
+    if (isNaN(total) || total <= 0) return;
+    setSaving(true);
 
-    const { data: rem } = await sb.from('partner_remittances').insert({ remittance_date: fDate, total_amount: total, notes: fNotes.trim() || null }).select('id').single()
-    const remId = rem.id
+    const { data: rem } = await sb
+      .from("partner_remittances")
+      .insert({
+        remittance_date: fDate,
+        total_amount: total,
+        notes: fNotes.trim() || null,
+      })
+      .select("id")
+      .single();
+    const remId = rem.id;
 
-    const perPartner = total / PARTNERS.length
-    const dividends  = parseFloat((total * 0.7 / PARTNERS.length).toFixed(2))
-    const bonus      = parseFloat((total * 0.1 / PARTNERS.length).toFixed(2))
-    const licensing  = parseFloat((total * 0.1 / PARTNERS.length).toFixed(2))
-    const others     = parseFloat((perPartner - dividends - bonus - licensing).toFixed(2))
+    const perPartner = total / PARTNERS.length;
+    const dividends = parseFloat(((total * 0.7) / PARTNERS.length).toFixed(2));
+    const bonus = parseFloat(((total * 0.1) / PARTNERS.length).toFixed(2));
+    const licensing = parseFloat(((total * 0.1) / PARTNERS.length).toFixed(2));
+    const others = parseFloat(
+      (perPartner - dividends - bonus - licensing).toFixed(2),
+    );
 
-    await sb.from('partner_remittance_splits').insert(
-      PARTNERS.map(p => ({
+    await sb.from("partner_remittance_splits").insert(
+      PARTNERS.map((p) => ({
         remittance_id: remId,
-        partner_name:  p,
+        partner_name: p,
         dividends,
         bonus,
         licensing,
         others,
-        paid_out: parseFloat(fPaidOut[p] ?? '0') || 0,
-      }))
-    )
+        paid_out: parseFloat(fPaidOut[p] ?? "0") || 0,
+      })),
+    );
 
-    setFTotal(''); setFNotes(''); setFPaidOut({}); setShowForm(false)
-    await fetchRows()
-    setSaving(false)
+    setFTotal("");
+    setFNotes("");
+    setFPaidOut({});
+    setShowForm(false);
+    await fetchRows();
+    setSaving(false);
   }
 
   async function deleteRemittance(id: number) {
-    await sb.from('partner_remittances').delete().eq('id', id)
-    setRows(prev => prev.filter(r => r.id !== id))
+    await sb.from("partner_remittances").delete().eq("id", id);
+    setRows((prev) => prev.filter((r) => r.id !== id));
   }
 
   // Running balance per partner = sum(dividends+bonus+licensing+others) - sum(paidOut)
-  const balances: Record<string, number> = {}
-  for (const p of PARTNERS) balances[p] = 0
+  const balances: Record<string, number> = {};
+  for (const p of PARTNERS) balances[p] = 0;
   for (const r of rows) {
     for (const s of r.splits) {
-      balances[s.partner] = (balances[s.partner] ?? 0) + s.dividends + s.bonus + s.licensing + s.others - s.paidOut
+      balances[s.partner] =
+        (balances[s.partner] ?? 0) +
+        s.dividends +
+        s.bonus +
+        s.licensing +
+        s.others -
+        s.paidOut;
     }
   }
 
-  const previewTotal = parseFloat(fTotal) || 0
-  const previewPer   = previewTotal > 0 ? previewTotal / PARTNERS.length : 0
+  const previewTotal = parseFloat(fTotal) || 0;
+  const previewPer = previewTotal > 0 ? previewTotal / PARTNERS.length : 0;
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+    <div
+      style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
+      }}
+    >
       <SectionHd
         title="Partner Savings"
         badge={`${rows.length} remittances`}
         action={
-          <button onClick={() => setShowForm(v => !v)} style={{ padding: '5px 14px', fontSize: 12, fontFamily: 'inherit', fontWeight: 600, background: showForm ? T.chip : T.accent, color: showForm ? T.textDim : T.accentInk, border: `1px solid ${showForm ? T.line2 : T.accent}`, borderRadius: T.radius, cursor: 'pointer' }}>
-            {showForm ? 'Cancel' : '+ New Remittance'}
+          <button
+            onClick={() => setShowForm((v) => !v)}
+            style={{
+              padding: "5px 14px",
+              fontSize: 12,
+              fontFamily: "inherit",
+              fontWeight: 600,
+              background: showForm ? T.chip : T.accent,
+              color: showForm ? T.textDim : T.accentInk,
+              border: `1px solid ${showForm ? T.line2 : T.accent}`,
+              borderRadius: T.radius,
+              cursor: "pointer",
+            }}
+          >
+            {showForm ? "Cancel" : "+ New Remittance"}
           </button>
         }
       />
 
       {/* Running balance per partner */}
-      <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none', flexShrink: 0, borderBottom: `1px solid ${T.line}` }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', minWidth: 600 }}>
+      <div
+        className="bp-no-scrollbar"
+        style={{
+          overflowX: "auto",
+          touchAction: "pan-x pan-y",
+          overscrollBehaviorX: "contain",
+          overscrollBehaviorY: "none",
+          flexShrink: 0,
+          borderBottom: `1px solid ${T.line}`,
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(6, 1fr)",
+            minWidth: 600,
+          }}
+        >
           {PARTNERS.map((p, i) => (
-            <div key={p} style={{ padding: '14px 20px', borderRight: i < 5 ? `1px solid ${T.line}` : 'none' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>{p}</div>
-              <div style={{ fontFamily: T.mono, fontSize: 18, fontWeight: 700, color: balances[p] >= 0 ? T.ok : T.bad, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(balances[p])}</div>
-              <div style={{ fontSize: 10, color: T.textMute, marginTop: 2 }}>running balance</div>
+            <div
+              key={p}
+              style={{
+                padding: "14px 20px",
+                borderRight: i < 5 ? `1px solid ${T.line}` : "none",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  color: T.textMute,
+                  marginBottom: 4,
+                }}
+              >
+                {p}
+              </div>
+              <div
+                style={{
+                  fontFamily: T.mono,
+                  fontSize: 18,
+                  fontWeight: 700,
+                  color: balances[p] >= 0 ? T.ok : T.bad,
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                {fmtPeso(balances[p])}
+              </div>
+              <div style={{ fontSize: 10, color: T.textMute, marginTop: 2 }}>
+                running balance
+              </div>
             </div>
           ))}
         </div>
@@ -604,202 +1199,652 @@ function SavingsTab() {
 
       {/* Add form */}
       {showForm && (
-        <div style={{ background: T.surface2, borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
-        <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
-        <div style={{ minWidth: 480, padding: '20px 24px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '160px 160px 1fr auto', gap: 12, marginBottom: 16 }}>
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Date</div>
-              <input type="date" value={fDate} onChange={e => setFDate(e.target.value)} style={{ width: '100%', fontFamily: T.mono, fontSize: 12, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box' }} />
-            </div>
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Total Amount ₱ *</div>
-              <input value={fTotal} onChange={e => setFTotal(e.target.value)} placeholder="0.00" type="number" min="0" style={{ width: '100%', fontFamily: T.mono, fontSize: 13, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box' }} />
-            </div>
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Notes</div>
-              <input value={fNotes} onChange={e => setFNotes(e.target.value)} placeholder="Optional note" style={{ width: '100%', fontFamily: 'inherit', fontSize: 12, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '6px 8px', outline: 'none', boxSizing: 'border-box' }} />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-              <button onClick={addRemittance} disabled={saving || !fTotal} style={{ padding: '7px 20px', fontSize: 13, fontFamily: 'inherit', fontWeight: 700, background: T.accent, color: T.accentInk, border: 'none', borderRadius: T.radius, cursor: 'pointer', opacity: !fTotal ? 0.4 : 1 }}>
-                {saving ? 'Saving…' : 'Save'}
-              </button>
-            </div>
-          </div>
-
-          {/* Per-partner paid-out fields + preview */}
-          {previewTotal > 0 && (
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 8 }}>
-                Paid Out per Partner — each earns {fmtPeso(previewPer)} (auto-split equally)
-              </div>
-              <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, minWidth: 520 }}>
-                  {PARTNERS.map(p => (
-                    <div key={p}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: T.textDim, marginBottom: 4 }}>{p}</div>
-                      <input value={fPaidOut[p] ?? ''} onChange={e => setFPaidOut(prev => ({ ...prev, [p]: e.target.value }))} placeholder={fmtPeso(previewPer)} type="number" min="0" style={{ width: '100%', fontFamily: T.mono, fontSize: 12, background: T.surface, border: `1px solid ${T.line2}`, color: T.text, borderRadius: T.radius, padding: '5px 8px', outline: 'none', boxSizing: 'border-box' }} />
-                    </div>
-                  ))}
+        <div
+          style={{
+            background: T.surface2,
+            borderBottom: `1px solid ${T.line}`,
+            flexShrink: 0,
+          }}
+        >
+          <div
+            className="bp-no-scrollbar"
+            style={{
+              overflowX: "auto",
+              touchAction: "pan-x pan-y",
+              overscrollBehaviorX: "contain",
+              overscrollBehaviorY: "none",
+            }}
+          >
+            <div style={{ minWidth: 480, padding: "20px 24px" }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "160px 160px 1fr auto",
+                  gap: 12,
+                  marginBottom: 16,
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 600,
+                      letterSpacing: "0.10em",
+                      textTransform: "uppercase",
+                      color: T.textMute,
+                      marginBottom: 4,
+                    }}
+                  >
+                    Date
+                  </div>
+                  <input
+                    type="date"
+                    value={fDate}
+                    onChange={(e) => setFDate(e.target.value)}
+                    style={{
+                      width: "100%",
+                      fontFamily: T.mono,
+                      fontSize: 12,
+                      background: T.surface,
+                      border: `1px solid ${T.line2}`,
+                      color: T.text,
+                      borderRadius: T.radius,
+                      padding: "6px 8px",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+                <div>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 600,
+                      letterSpacing: "0.10em",
+                      textTransform: "uppercase",
+                      color: T.textMute,
+                      marginBottom: 4,
+                    }}
+                  >
+                    Total Amount ₱ *
+                  </div>
+                  <input
+                    value={fTotal}
+                    onChange={(e) => setFTotal(e.target.value)}
+                    placeholder="0.00"
+                    type="number"
+                    min="0"
+                    style={{
+                      width: "100%",
+                      fontFamily: T.mono,
+                      fontSize: 13,
+                      background: T.surface,
+                      border: `1px solid ${T.line2}`,
+                      color: T.text,
+                      borderRadius: T.radius,
+                      padding: "6px 8px",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+                <div>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 600,
+                      letterSpacing: "0.10em",
+                      textTransform: "uppercase",
+                      color: T.textMute,
+                      marginBottom: 4,
+                    }}
+                  >
+                    Notes
+                  </div>
+                  <input
+                    value={fNotes}
+                    onChange={(e) => setFNotes(e.target.value)}
+                    placeholder="Optional note"
+                    style={{
+                      width: "100%",
+                      fontFamily: "inherit",
+                      fontSize: 12,
+                      background: T.surface,
+                      border: `1px solid ${T.line2}`,
+                      color: T.text,
+                      borderRadius: T.radius,
+                      padding: "6px 8px",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                </div>
+                <div style={{ display: "flex", alignItems: "flex-end" }}>
+                  <button
+                    onClick={addRemittance}
+                    disabled={saving || !fTotal}
+                    style={{
+                      padding: "7px 20px",
+                      fontSize: 13,
+                      fontFamily: "inherit",
+                      fontWeight: 700,
+                      background: T.accent,
+                      color: T.accentInk,
+                      border: "none",
+                      borderRadius: T.radius,
+                      cursor: "pointer",
+                      opacity: !fTotal ? 0.4 : 1,
+                    }}
+                  >
+                    {saving ? "Saving…" : "Save"}
+                  </button>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
-        </div>
-        </div>
-      )}
 
-      {/* Remittance list */}
-      <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto' }}>
-        {loading ? (
-          <div style={{ padding: '24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
-        ) : rows.length === 0 ? (
-          <div style={{ padding: '32px 24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No remittances recorded yet</div>
-        ) : rows.map((r, i) => {
-          const isOpen = expanded === r.id
-          return (
-            <div key={r.id} style={{ borderBottom: `1px solid ${T.line}` }}>
-              {/* Row header */}
-              <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
-              <div
-                onClick={() => setExpanded(isOpen ? null : r.id)}
-                style={{ display: 'grid', gridTemplateColumns: '120px 160px 1fr 160px 36px', padding: '0 24px', height: 48, alignItems: 'center', background: i % 2 === 0 ? 'transparent' : T.surface, cursor: 'pointer', minWidth: 480 }}
-              >
-                <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute }}>{r.date}</span>
-                <span style={{ fontFamily: T.mono, fontSize: 15, fontWeight: 700, color: T.accent, fontVariantNumeric: 'tabular-nums' }}>{fmtPeso(r.total)}</span>
-                <span style={{ fontSize: 12, color: T.textDim }}>{r.notes ?? `${PARTNERS.length} partners · ${fmtPeso(r.total / PARTNERS.length)} each`}</span>
-                <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute }}>
-                  paid out: {fmtPeso(r.splits.reduce((s, sp) => s + sp.paidOut, 0))}
-                </span>
-                <span style={{ color: T.textMute, fontSize: 14 }}>{isOpen ? '▲' : '▼'}</span>
-              </div>
-              </div>
-
-              {/* Expanded detail */}
-              {isOpen && (
-                <div style={{ background: T.surface2, borderTop: `1px solid ${T.line}` }}>
-                  <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
-                  <div style={{ minWidth: 480, padding: '12px 24px 16px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: `140px repeat(${PARTNERS.length}, 1fr)`, gap: 0, marginBottom: 8 }}>
-                    <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.headerText }}></span>
-                    {PARTNERS.map(p => (
-                      <span key={p} style={{ fontSize: 11, fontWeight: 700, color: T.textDim, textAlign: 'right' }}>{p}</span>
-                    ))}
+              {/* Per-partner paid-out fields + preview */}
+              {previewTotal > 0 && (
+                <div>
+                  <div
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 600,
+                      letterSpacing: "0.10em",
+                      textTransform: "uppercase",
+                      color: T.textMute,
+                      marginBottom: 8,
+                    }}
+                  >
+                    Paid Out per Partner — each earns {fmtPeso(previewPer)}{" "}
+                    (auto-split equally)
                   </div>
-                  {(['dividends','bonus','licensing','others'] as const).map(field => (
-                    <div key={field} style={{ display: 'grid', gridTemplateColumns: `140px repeat(${PARTNERS.length}, 1fr)`, marginBottom: 4 }}>
-                      <span style={{ fontSize: 11, color: T.textMute, textTransform: 'capitalize' }}>{field}</span>
-                      {PARTNERS.map(p => {
-                        const sp = r.splits.find(s => s.partner === p)
-                        return <span key={p} style={{ fontFamily: T.mono, fontSize: 11, color: T.text, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{sp ? fmtPeso(sp[field]) : '—'}</span>
-                      })}
+                  <div
+                    className="bp-no-scrollbar"
+                    style={{
+                      overflowX: "auto",
+                      touchAction: "pan-x pan-y",
+                      overscrollBehaviorX: "contain",
+                      overscrollBehaviorY: "none",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(6, 1fr)",
+                        gap: 8,
+                        minWidth: 520,
+                      }}
+                    >
+                      {PARTNERS.map((p) => (
+                        <div key={p}>
+                          <div
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 600,
+                              color: T.textDim,
+                              marginBottom: 4,
+                            }}
+                          >
+                            {p}
+                          </div>
+                          <input
+                            value={fPaidOut[p] ?? ""}
+                            onChange={(e) =>
+                              setFPaidOut((prev) => ({
+                                ...prev,
+                                [p]: e.target.value,
+                              }))
+                            }
+                            placeholder={fmtPeso(previewPer)}
+                            type="number"
+                            min="0"
+                            style={{
+                              width: "100%",
+                              fontFamily: T.mono,
+                              fontSize: 12,
+                              background: T.surface,
+                              border: `1px solid ${T.line2}`,
+                              color: T.text,
+                              borderRadius: T.radius,
+                              padding: "5px 8px",
+                              outline: "none",
+                              boxSizing: "border-box",
+                            }}
+                          />
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                  <div style={{ borderTop: `1px solid ${T.line}`, paddingTop: 6, marginTop: 6, display: 'grid', gridTemplateColumns: `140px repeat(${PARTNERS.length}, 1fr)` }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: T.textDim }}>Paid Out</span>
-                    {PARTNERS.map(p => {
-                      const sp = r.splits.find(s => s.partner === p)
-                      return <span key={p} style={{ fontFamily: T.mono, fontSize: 12, fontWeight: 700, color: T.bad, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{sp ? fmtPeso(sp.paidOut) : '—'}</span>
-                    })}
-                  </div>
-                  <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
-                    <button onClick={() => deleteRemittance(r.id)} style={{ padding: '4px 12px', fontSize: 11, fontFamily: 'inherit', background: `${T.bad}18`, border: `1px solid ${T.bad}44`, color: T.bad, borderRadius: T.radius, cursor: 'pointer' }}>
-                      Delete remittance
-                    </button>
-                  </div>
-                  </div>
                   </div>
                 </div>
               )}
             </div>
-          )
-        })}
+          </div>
+        </div>
+      )}
+
+      {/* Remittance list */}
+      <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: "auto" }}>
+        {loading ? (
+          <div
+            style={{
+              padding: "24px",
+              color: T.textMute,
+              fontFamily: T.mono,
+              fontSize: 12,
+            }}
+          >
+            Loading…
+          </div>
+        ) : rows.length === 0 ? (
+          <div
+            style={{
+              padding: "32px 24px",
+              color: T.textMute,
+              fontFamily: T.mono,
+              fontSize: 12,
+            }}
+          >
+            No remittances recorded yet
+          </div>
+        ) : (
+          rows.map((r, i) => {
+            const isOpen = expanded === r.id;
+            return (
+              <div key={r.id} style={{ borderBottom: `1px solid ${T.line}` }}>
+                {/* Row header */}
+                <div
+                  className="bp-no-scrollbar"
+                  style={{
+                    overflowX: "auto",
+                    touchAction: "pan-x pan-y",
+                    overscrollBehaviorX: "contain",
+                    overscrollBehaviorY: "none",
+                  }}
+                >
+                  <div
+                    onClick={() => setExpanded(isOpen ? null : r.id)}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "120px 160px 1fr 160px 36px",
+                      padding: "0 24px",
+                      height: 48,
+                      alignItems: "center",
+                      background: i % 2 === 0 ? "transparent" : T.surface,
+                      cursor: "pointer",
+                      minWidth: 480,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontFamily: T.mono,
+                        fontSize: 12,
+                        color: T.textMute,
+                      }}
+                    >
+                      {r.date}
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: T.mono,
+                        fontSize: 15,
+                        fontWeight: 700,
+                        color: T.accent,
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      {fmtPeso(r.total)}
+                    </span>
+                    <span style={{ fontSize: 12, color: T.textDim }}>
+                      {r.notes ??
+                        `${PARTNERS.length} partners · ${fmtPeso(r.total / PARTNERS.length)} each`}
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: T.mono,
+                        fontSize: 11,
+                        color: T.textMute,
+                      }}
+                    >
+                      paid out:{" "}
+                      {fmtPeso(r.splits.reduce((s, sp) => s + sp.paidOut, 0))}
+                    </span>
+                    <span style={{ color: T.textMute, fontSize: 14 }}>
+                      {isOpen ? "▲" : "▼"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Expanded detail */}
+                {isOpen && (
+                  <div
+                    style={{
+                      background: T.surface2,
+                      borderTop: `1px solid ${T.line}`,
+                    }}
+                  >
+                    <div
+                      className="bp-no-scrollbar"
+                      style={{
+                        overflowX: "auto",
+                        touchAction: "pan-x pan-y",
+                        overscrollBehaviorX: "contain",
+                        overscrollBehaviorY: "none",
+                      }}
+                    >
+                      <div style={{ minWidth: 480, padding: "12px 24px 16px" }}>
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: `140px repeat(${PARTNERS.length}, 1fr)`,
+                            gap: 0,
+                            marginBottom: 8,
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 600,
+                              letterSpacing: "0.10em",
+                              textTransform: "uppercase",
+                              color: T.headerText,
+                            }}
+                          ></span>
+                          {PARTNERS.map((p) => (
+                            <span
+                              key={p}
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 700,
+                                color: T.textDim,
+                                textAlign: "right",
+                              }}
+                            >
+                              {p}
+                            </span>
+                          ))}
+                        </div>
+                        {(
+                          ["dividends", "bonus", "licensing", "others"] as const
+                        ).map((field) => (
+                          <div
+                            key={field}
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: `140px repeat(${PARTNERS.length}, 1fr)`,
+                              marginBottom: 4,
+                            }}
+                          >
+                            <span
+                              style={{
+                                fontSize: 11,
+                                color: T.textMute,
+                                textTransform: "capitalize",
+                              }}
+                            >
+                              {field}
+                            </span>
+                            {PARTNERS.map((p) => {
+                              const sp = r.splits.find((s) => s.partner === p);
+                              return (
+                                <span
+                                  key={p}
+                                  style={{
+                                    fontFamily: T.mono,
+                                    fontSize: 11,
+                                    color: T.text,
+                                    textAlign: "right",
+                                    fontVariantNumeric: "tabular-nums",
+                                  }}
+                                >
+                                  {sp ? fmtPeso(sp[field]) : "—"}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        ))}
+                        <div
+                          style={{
+                            borderTop: `1px solid ${T.line}`,
+                            paddingTop: 6,
+                            marginTop: 6,
+                            display: "grid",
+                            gridTemplateColumns: `140px repeat(${PARTNERS.length}, 1fr)`,
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              color: T.textDim,
+                            }}
+                          >
+                            Paid Out
+                          </span>
+                          {PARTNERS.map((p) => {
+                            const sp = r.splits.find((s) => s.partner === p);
+                            return (
+                              <span
+                                key={p}
+                                style={{
+                                  fontFamily: T.mono,
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  color: T.bad,
+                                  textAlign: "right",
+                                  fontVariantNumeric: "tabular-nums",
+                                }}
+                              >
+                                {sp ? fmtPeso(sp.paidOut) : "—"}
+                              </span>
+                            );
+                          })}
+                        </div>
+                        <div
+                          style={{
+                            marginTop: 12,
+                            display: "flex",
+                            justifyContent: "flex-end",
+                          }}
+                        >
+                          <button
+                            onClick={() => deleteRemittance(r.id)}
+                            style={{
+                              padding: "4px 12px",
+                              fontSize: 11,
+                              fontFamily: "inherit",
+                              background: `${T.bad}18`,
+                              border: `1px solid ${T.bad}44`,
+                              color: T.bad,
+                              borderRadius: T.radius,
+                              cursor: "pointer",
+                            }}
+                          >
+                            Delete remittance
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
-  )
+  );
 }
 
 // ── OwnerView ─────────────────────────────────────────────────────────────────
 
-type OwnerTab = 'reports' | 'tables' | 'budget' | 'savings' | 'opex' | 'daily'
+type OwnerTab = "reports" | "tables" | "budget" | "savings" | "opex" | "daily";
 
 const TABS: { id: OwnerTab; label: string }[] = [
-  { id: 'reports',   label: 'Reports'   },
-  { id: 'daily',     label: 'Daily'     },
-  { id: 'budget',    label: 'Budget'    },
-  { id: 'opex',      label: 'OPEX'      },
-  { id: 'savings',   label: 'Savings'   },
-  { id: 'tables',    label: 'Tables'    },
-]
+  { id: "reports", label: "Reports" },
+  { id: "daily", label: "Daily" },
+  { id: "budget", label: "Budget" },
+  { id: "opex", label: "OPEX" },
+  { id: "savings", label: "Savings" },
+  { id: "tables", label: "Tables" },
+];
 
 interface OwnerViewProps {
-  tables:    TableWithStatus[]
-  staffName: string
+  tables: TableWithStatus[];
+  staffName: string;
 }
 
 export default function OwnerView({ tables, staffName }: OwnerViewProps) {
-  const { T } = useTheme()
-  const bp = useBreakpoint()
-  const isMobile = bp === 'mobile'
-  const [tab, setTab] = useState<OwnerTab>('reports')
-  const today = new Date()
+  const { T } = useTheme();
+  const bp = useBreakpoint();
+  const isMobile = bp === "mobile";
+  const [tab, setTab] = useState<OwnerTab>("reports");
+  const today = new Date();
 
   const tabStrip = (
-    <div className="bp-no-scrollbar" style={{ display: 'flex', gap: 2, overflowX: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
-      {TABS.map(t => (
-        <button key={t.id} onClick={() => setTab(t.id)} style={{
-          padding: '10px 16px', fontSize: 12, fontFamily: 'inherit', fontWeight: tab === t.id ? 700 : 400,
-          flexShrink: 0,
-          background: tab === t.id ? T.surface2 : 'transparent',
-          color:      tab === t.id ? T.text : T.textDim,
-          border:     `1px solid ${tab === t.id ? T.line2 : 'transparent'}`,
-          borderRadius: T.radius, cursor: 'pointer',
-          borderBottom: tab === t.id ? `2px solid ${T.accent}` : `2px solid transparent`,
-          transition: 'background 0.12s ease',
-        }}>
+    <div
+      className="bp-no-scrollbar"
+      style={{
+        display: "flex",
+        gap: 2,
+        overflowX: "auto",
+        touchAction: "pan-x pan-y",
+        overscrollBehaviorX: "contain",
+        overscrollBehaviorY: "none",
+      }}
+    >
+      {TABS.map((t) => (
+        <button
+          key={t.id}
+          onClick={() => setTab(t.id)}
+          style={{
+            padding: "10px 16px",
+            fontSize: 12,
+            fontFamily: "inherit",
+            fontWeight: tab === t.id ? 700 : 400,
+            flexShrink: 0,
+            background: tab === t.id ? T.surface2 : "transparent",
+            color: tab === t.id ? T.text : T.textDim,
+            border: `1px solid ${tab === t.id ? T.line2 : "transparent"}`,
+            borderRadius: T.radius,
+            cursor: "pointer",
+            borderBottom:
+              tab === t.id ? `2px solid ${T.accent}` : `2px solid transparent`,
+            transition: "background 0.12s ease",
+          }}
+        >
           {t.label}
         </button>
       ))}
     </div>
-  )
+  );
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: T.bg }}>
-
+    <div
+      style={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        background: T.bg,
+      }}
+    >
       {/* ── Owner header ──────────────────────────────────────────────────── */}
       {isMobile ? (
-        <div style={{ flexShrink: 0, background: T.bg, borderBottom: `1px solid ${T.line}` }}>
+        <div
+          style={{
+            flexShrink: 0,
+            background: T.bg,
+            borderBottom: `1px solid ${T.line}`,
+          }}
+        >
           {/* Row 1: lock + Owner + divider + date */}
-          <div style={{ height: 44, padding: '0 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.accent }}>
-              <svg viewBox="0 0 16 16" width={13} height={13} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinejoin="round">
+          <div
+            style={{
+              height: 44,
+              padding: "0 16px",
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: T.accent,
+              }}
+            >
+              <svg
+                viewBox="0 0 16 16"
+                width={13}
+                height={13}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                strokeLinejoin="round"
+              >
                 <rect x="3" y="7" width="10" height="7" rx="1" />
                 <path d="M5 7V5a3 3 0 016 0v2" />
               </svg>
               Owner
             </div>
             <div style={{ width: 1, height: 16, background: T.line2 }} />
-            <span style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute }}>{fmtDate(today)}</span>
+            <span
+              style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute }}
+            >
+              {fmtDate(today)}
+            </span>
           </div>
           {/* Row 2: tab strip */}
-          <div style={{ height: 44, display: 'flex', alignItems: 'center', padding: '0 8px' }}>
+          <div
+            style={{
+              height: 44,
+              display: "flex",
+              alignItems: "center",
+              padding: "0 8px",
+            }}
+          >
             {tabStrip}
           </div>
         </div>
       ) : (
-        <div style={{
-          height: 52, padding: '0 24px', flexShrink: 0,
-          background: T.bg, borderBottom: `1px solid ${T.line}`,
-          display: 'flex', alignItems: 'center', gap: 16,
-        }}>
+        <div
+          style={{
+            height: 52,
+            padding: "0 24px",
+            flexShrink: 0,
+            background: T.bg,
+            borderBottom: `1px solid ${T.line}`,
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+          }}
+        >
           {/* Lock icon */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            fontSize: 11, fontWeight: 700, letterSpacing: '0.12em',
-            textTransform: 'uppercase', color: T.accent,
-          }}>
-            <svg viewBox="0 0 16 16" width={13} height={13} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinejoin="round">
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: T.accent,
+            }}
+          >
+            <svg
+              viewBox="0 0 16 16"
+              width={13}
+              height={13}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.5}
+              strokeLinejoin="round"
+            >
               <rect x="3" y="7" width="10" height="7" rx="1" />
               <path d="M5 7V5a3 3 0 016 0v2" />
             </svg>
@@ -820,15 +1865,22 @@ export default function OwnerView({ tables, staffName }: OwnerViewProps) {
       )}
 
       {/* ── Tab content ───────────────────────────────────────────────────── */}
-      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-        {tab === 'reports'   && <ReportsTab />}
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {tab === "reports" && <ReportsTab />}
 
-        {tab === 'daily'     && <DailyTab staffName={staffName} />}
-        {tab === 'budget'    && <BudgetTab />}
-        {tab === 'opex'      && <OpexTab />}
-        {tab === 'savings'   && <SavingsTab />}
-        {tab === 'tables'    && <TablesTab liveTableStatuses={tables} />}
+        {tab === "daily" && <DailyTab staffName={staffName} />}
+        {tab === "budget" && <BudgetTab />}
+        {tab === "opex" && <OpexTab />}
+        {tab === "savings" && <SavingsTab />}
+        {tab === "tables" && <TablesTab liveTableStatuses={tables} />}
       </div>
     </div>
-  )
+  );
 }

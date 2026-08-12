@@ -1,48 +1,62 @@
-'use client'
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { THEME, LIGHT_THEME, type ThemeTokens } from './theme'
+"use client";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import { THEME, LIGHT_THEME, type ThemeTokens } from "./theme";
 
-type ThemeMode = 'dark' | 'light'
+type ThemeMode = "dark" | "light";
 
 const THEMES: Record<ThemeMode, ThemeTokens> = {
-  dark:  THEME,
+  dark: THEME,
   light: LIGHT_THEME,
-}
+};
 
-const CYCLE: ThemeMode[] = ['dark', 'light']
+const CYCLE: ThemeMode[] = ["dark", "light"];
 
 interface ThemeContextValue {
-  T:      ThemeTokens
-  mode:   ThemeMode
-  isDark: boolean
-  toggle: () => void
+  T: ThemeTokens;
+  mode: ThemeMode;
+  isDark: boolean;
+  toggle: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
-  T: THEME, mode: 'dark', isDark: true, toggle: () => {},
-})
+  T: THEME,
+  mode: "dark",
+  isDark: true,
+  toggle: () => {},
+});
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [mode, setMode] = useState<ThemeMode>('dark')
+  const [mode, setMode] = useState<ThemeMode>("dark");
 
   useEffect(() => {
-    const saved = localStorage.getItem('bp-theme') as ThemeMode | null
-    if (saved && (CYCLE as string[]).includes(saved)) setMode(saved as ThemeMode)
-  }, [])
+    const saved = localStorage.getItem("bp-theme") as ThemeMode | null;
+    if (saved && (CYCLE as string[]).includes(saved))
+      setMode(saved as ThemeMode);
+  }, []);
 
   function toggle() {
-    setMode(current => {
-      const next = CYCLE[(CYCLE.indexOf(current) + 1) % CYCLE.length]
-      localStorage.setItem('bp-theme', next)
-      return next
-    })
+    setMode((current) => {
+      const next = CYCLE[(CYCLE.indexOf(current) + 1) % CYCLE.length];
+      localStorage.setItem("bp-theme", next);
+      return next;
+    });
   }
 
   return (
-    <ThemeContext.Provider value={{ T: THEMES[mode], mode, isDark: mode === 'dark', toggle }}>
+    <ThemeContext.Provider
+      value={{ T: THEMES[mode], mode, isDark: mode === "dark", toggle }}
+    >
       {children}
     </ThemeContext.Provider>
-  )
+  );
 }
 
-export function useTheme() { return useContext(ThemeContext) }
+export function useTheme() {
+  return useContext(ThemeContext);
+}

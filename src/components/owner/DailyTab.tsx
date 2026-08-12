@@ -1,89 +1,106 @@
-'use client'
+"use client";
 
-import { useTheme } from '@/lib/ThemeContext'
-import { useState, useCallback, useEffect } from 'react'
-import { getClient } from '@/lib/supabase'
-import { SectionHd, fmtPeso } from './ownerShared'
-import { localDateStr, parseLocalDate, currentShiftDate, shiftLocalDate } from '@/lib/dateNav'
-import { useBreakpoint } from '@/hooks/useBreakpoint'
-import { BUDGET_CATS, SALES_CAT_MAP, EXP_CAT_MAP, emptyBycat } from './BudgetTab'
-import { computeDailyOpex } from './OpexTab'
-import type { OpexItem, MonthConfig } from './OpexTab'
+import { useTheme } from "@/lib/ThemeContext";
+import { useState, useCallback, useEffect } from "react";
+import { getClient } from "@/lib/supabase";
+import { SectionHd, fmtPeso } from "./ownerShared";
+import {
+  localDateStr,
+  parseLocalDate,
+  currentShiftDate,
+  shiftLocalDate,
+} from "@/lib/dateNav";
+import { useBreakpoint } from "@/hooks/useBreakpoint";
+import {
+  BUDGET_CATS,
+  SALES_CAT_MAP,
+  EXP_CAT_MAP,
+  emptyBycat,
+} from "./BudgetTab";
+import { computeDailyOpex } from "./OpexTab";
+import type { OpexItem, MonthConfig } from "./OpexTab";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 interface AdjRow {
-  id:        number
-  amount:    number
-  notes:     string
-  addedBy:   string
-  createdAt: string
+  id: number;
+  amount: number;
+  notes: string;
+  addedBy: string;
+  createdAt: string;
 }
 
 interface DaySummaryRow {
-  date:        string
-  starting:    number
-  expenses:    number
-  sales:       number
-  savings:     number
-  adjNet:      number
-  adjDetails:  AdjRow[]
-  ending:      number
-  budgetEnd:   number
-  vsCash:      number
-  cashFlow:    number
-  opProfit:    number
+  date: string;
+  starting: number;
+  expenses: number;
+  sales: number;
+  savings: number;
+  adjNet: number;
+  adjDetails: AdjRow[];
+  ending: number;
+  budgetEnd: number;
+  vsCash: number;
+  cashFlow: number;
+  opProfit: number;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function dateRange(from: string, to: string): string[] {
-  const dates: string[] = []
-  const d   = parseLocalDate(from)
-  const end = parseLocalDate(to)
-  while (d <= end) { dates.push(localDateStr(new Date(d))); d.setDate(d.getDate() + 1) }
-  return dates
+  const dates: string[] = [];
+  const d = parseLocalDate(from);
+  const end = parseLocalDate(to);
+  while (d <= end) {
+    dates.push(localDateStr(new Date(d)));
+    d.setDate(d.getDate() + 1);
+  }
+  return dates;
 }
 
 // Hover text for column headers whose meaning isn't obvious at a glance.
 const COLUMN_TIPS: Record<string, string> = {
-  Budget:      'Cost-accounting running total — NOT your literal cash balance. Rolls forward COGS from sales plus allocated daily OPEX (rent, salaries, etc.), minus budget-tracked expenses.',
-  'vs Cash':   'Ending (actual cash) minus Budget. Positive = actual cash is running ahead of the cost model; negative = behind. A steady drift usually means an expense category isn’t being tracked consistently.',
-  'Cash Flow': 'Day-over-day change in the Budget total (today’s Budget minus yesterday’s) = COGS + allocated OPEX − expenses paid that day. Does not include Sales directly — it’s a costs-side number, not a profit number.',
-  'Op. Profit': 'Today’s operating profit: Sales − COGS − allocated daily OPEX (± adjustments). This is the number that answers "did today make money?"',
-}
+  Budget:
+    "Cost-accounting running total — NOT your literal cash balance. Rolls forward COGS from sales plus allocated daily OPEX (rent, salaries, etc.), minus budget-tracked expenses.",
+  "vs Cash":
+    "Ending (actual cash) minus Budget. Positive = actual cash is running ahead of the cost model; negative = behind. A steady drift usually means an expense category isn’t being tracked consistently.",
+  "Cash Flow":
+    "Day-over-day change in the Budget total (today’s Budget minus yesterday’s) = COGS + allocated OPEX − expenses paid that day. Does not include Sales directly — it’s a costs-side number, not a profit number.",
+  "Op. Profit":
+    'Today’s operating profit: Sales − COGS − allocated daily OPEX (± adjustments). This is the number that answers "did today make money?"',
+};
 
 function fmtDate(d: string) {
-  const dt = parseLocalDate(d)
-  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
-  return `${days[dt.getDay()]} ${d.slice(5)}`
+  const dt = parseLocalDate(d);
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  return `${days[dt.getDay()]} ${d.slice(5)}`;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function DailyTab({ staffName }: { staffName: string }) {
-  const { T } = useTheme()
-  const bp = useBreakpoint()
-  const isMobile = bp === 'mobile'
+  const { T } = useTheme();
+  const bp = useBreakpoint();
+  const isMobile = bp === "mobile";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sb = getClient() as any
-  const todayStr = currentShiftDate()
+  const sb = getClient() as any;
+  const todayStr = currentShiftDate();
 
-  const [rows,    setRows]    = useState<DaySummaryRow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [expanded, setExpanded] = useState<string | null>(null)
+  const [rows, setRows] = useState<DaySummaryRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   // Adjustment form
-  const [showAdjForm, setShowAdjForm] = useState(false)
-  const [adjDate,  setAdjDate]  = useState(todayStr)
-  const [adjAmt,   setAdjAmt]   = useState('')
-  const [adjNotes, setAdjNotes] = useState('')
-  const [adjBy,    setAdjBy]    = useState(staffName)
-  const [adjSaving, setAdjSaving] = useState(false)
+  const [showAdjForm, setShowAdjForm] = useState(false);
+  const [adjDate, setAdjDate] = useState(todayStr);
+  const [adjAmt, setAdjAmt] = useState("");
+  const [adjNotes, setAdjNotes] = useState("");
+  const [adjBy, setAdjBy] = useState(staffName);
+  const [adjSaving, setAdjSaving] = useState(false);
 
   // ── Fetch + compute ledger ──────────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
-    setLoading(true)
+    setLoading(true);
 
     const [
       { data: seedRows },
@@ -93,46 +110,59 @@ export default function DailyTab({ staffName }: { staffName: string }) {
       { data: opexItemRows },
       { data: opexCfgRows },
     ] = await Promise.all([
-      sb.from('daily_summary_seed').select('*').order('created_at', { ascending: false }).limit(1),
-      sb.from('partner_remittances').select('remittance_date, total_amount'),
-      sb.from('daily_adjustments').select('*').order('adj_date'),
-      sb.from('budget_seed').select('*').order('seed_date', { ascending: false }).limit(6),
-      sb.from('opex_items').select('*').eq('is_active', true),
-      sb.from('opex_monthly_config').select('*'),
-    ])
+      sb
+        .from("daily_summary_seed")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(1),
+      sb.from("partner_remittances").select("remittance_date, total_amount"),
+      sb.from("daily_adjustments").select("*").order("adj_date"),
+      sb
+        .from("budget_seed")
+        .select("*")
+        .order("seed_date", { ascending: false })
+        .limit(6),
+      sb.from("opex_items").select("*").eq("is_active", true),
+      sb.from("opex_monthly_config").select("*"),
+    ]);
 
-    const seed = seedRows?.[0] ?? null
-    if (!seed) { setLoading(false); return }
+    const seed = seedRows?.[0] ?? null;
+    if (!seed) {
+      setLoading(false);
+      return;
+    }
 
     // Paginate CLOSED orders and expenses from seed date onwards to avoid the
     // server's default row cap. Only closed (billed) orders count — an open
     // tab is money that hasn't come in yet and would overstate the cash
     // Ending balance below.
-    const PAGE = 1000
-    const seedStartISO = new Date(seed.seed_date as string).toISOString()
-    let allOrders: any[] = []
+    const PAGE = 1000;
+    const seedStartISO = new Date(seed.seed_date as string).toISOString();
+    let allOrders: any[] = [];
     for (let from = 0; ; from += PAGE) {
       const { data } = await sb
-        .from('orders').select('id, closed_at')
-        .eq('status', 'closed')
-        .gte('closed_at', seedStartISO)
-        .range(from, from + PAGE - 1)
-      if (!data || data.length === 0) break
-      allOrders = allOrders.concat(data)
-      if (data.length < PAGE) break
+        .from("orders")
+        .select("id, closed_at")
+        .eq("status", "closed")
+        .gte("closed_at", seedStartISO)
+        .range(from, from + PAGE - 1);
+      if (!data || data.length === 0) break;
+      allOrders = allOrders.concat(data);
+      if (data.length < PAGE) break;
     }
 
     // daily_expenses has no upper bound and already exceeds the row cap —
     // must be paginated the same way, or rows past row 1000 (i.e. the most
     // recent expenses once the table grows past 1000) silently vanish.
-    let expRows: any[] = []
+    let expRows: any[] = [];
     for (let from = 0; ; from += PAGE) {
       const { data } = await sb
-        .from('daily_expenses').select('expense_date, category, amount')
-        .range(from, from + PAGE - 1)
-      if (!data || data.length === 0) break
-      expRows = expRows.concat(data)
-      if (data.length < PAGE) break
+        .from("daily_expenses")
+        .select("expense_date, category, amount")
+        .range(from, from + PAGE - 1);
+      if (!data || data.length === 0) break;
+      expRows = expRows.concat(data);
+      if (data.length < PAGE) break;
     }
 
     // ── Group daily data ───────────────────────────────────────────────────
@@ -141,48 +171,69 @@ export default function DailyTab({ staffName }: { staffName: string }) {
     // same orderDateMap as COGS — never from payments, which include tips and
     // are net of discounts, and would otherwise land on a different date than
     // COGS for any order paid on a different shift-day than it was opened.
-    const salesByDate: Record<string, number> = {}
+    const salesByDate: Record<string, number> = {};
 
     // Expenses: sum daily_expenses by date
-    const expByDate: Record<string, number> = {}
-    for (const r of (expRows ?? [])) {
-      expByDate[r.expense_date] = (expByDate[r.expense_date] ?? 0) + (r.amount as number)
+    const expByDate: Record<string, number> = {};
+    for (const r of expRows ?? []) {
+      expByDate[r.expense_date] =
+        (expByDate[r.expense_date] ?? 0) + (r.amount as number);
     }
 
     // Savings: sum remittances by date
-    const savByDate: Record<string, number> = {}
-    for (const r of (savRows ?? [])) {
-      savByDate[r.remittance_date] = (savByDate[r.remittance_date] ?? 0) + (r.total_amount as number)
+    const savByDate: Record<string, number> = {};
+    for (const r of savRows ?? []) {
+      savByDate[r.remittance_date] =
+        (savByDate[r.remittance_date] ?? 0) + (r.total_amount as number);
     }
 
     // Adjustments: group by date with details
-    const adjByDate: Record<string, AdjRow[]> = {}
-    for (const r of (adjRows ?? [])) {
-      if (!adjByDate[r.adj_date]) adjByDate[r.adj_date] = []
-      adjByDate[r.adj_date].push({ id: r.id, amount: r.amount, notes: r.notes, addedBy: r.added_by, createdAt: r.created_at })
+    const adjByDate: Record<string, AdjRow[]> = {};
+    for (const r of adjRows ?? []) {
+      if (!adjByDate[r.adj_date]) adjByDate[r.adj_date] = [];
+      adjByDate[r.adj_date].push({
+        id: r.id,
+        amount: r.amount,
+        notes: r.notes,
+        addedBy: r.added_by,
+        createdAt: r.created_at,
+      });
     }
 
     // ── Budget ledger computation ──────────────────────────────────────────
 
     // OPEX setup
     const opexItems: OpexItem[] = (opexItemRows ?? []).map((r: any) => ({
-      id: r.id, name: r.name, type: r.type, amount: r.amount,
-      bandDay: r.band_day ?? null, notes: r.notes ?? null, isActive: r.is_active,
-    }))
-    const opexConfigs: Record<string, MonthConfig> = {}
-    for (const r of (opexCfgRows ?? [])) {
-      const key = `${r.year}-${String(r.month).padStart(2, '0')}`
-      opexConfigs[key] = { id: r.id, year: r.year, month: r.month, workingDays: r.working_days, fridays: r.fridays, saturdays: r.saturdays }
+      id: r.id,
+      name: r.name,
+      type: r.type,
+      amount: r.amount,
+      bandDay: r.band_day ?? null,
+      notes: r.notes ?? null,
+      isActive: r.is_active,
+    }));
+    const opexConfigs: Record<string, MonthConfig> = {};
+    for (const r of opexCfgRows ?? []) {
+      const key = `${r.year}-${String(r.month).padStart(2, "0")}`;
+      opexConfigs[key] = {
+        id: r.id,
+        year: r.year,
+        month: r.month,
+        workingDays: r.working_days,
+        fridays: r.fridays,
+        saturdays: r.saturdays,
+      };
     }
 
     // Budget seed total
-    let budgetSeedTotal = 0
-    let budgetSeedDate  = seed.seed_date as string
+    let budgetSeedTotal = 0;
+    let budgetSeedDate = seed.seed_date as string;
     if (budgetSeedRows && budgetSeedRows.length > 0) {
-      const latestBudgetDate = budgetSeedRows[0].seed_date
-      budgetSeedDate = latestBudgetDate
+      const latestBudgetDate = budgetSeedRows[0].seed_date;
+      budgetSeedDate = latestBudgetDate;
       for (const r of budgetSeedRows) {
-        if (r.seed_date === latestBudgetDate) budgetSeedTotal += r.balance as number
+        if (r.seed_date === latestBudgetDate)
+          budgetSeedTotal += r.balance as number;
       }
     }
 
@@ -191,332 +242,695 @@ export default function DailyTab({ staffName }: { staffName: string }) {
     // Keyed by closed_at (when the order was actually billed/paid), not
     // opened_at — this is a cash ledger, so revenue lands on the day the
     // money came in, not the day the tab was opened.
-    const orderDateMap: Record<number, string> = {}
+    const orderDateMap: Record<number, string> = {};
     for (const o of allOrders) {
-      if (!o.closed_at) continue
+      if (!o.closed_at) continue;
       // Business-day keying: an order billed at 1am belongs to the previous
       // night's row, not the next calendar date.
-      orderDateMap[o.id as number] = shiftLocalDate(new Date(o.closed_at as string))
+      orderDateMap[o.id as number] = shiftLocalDate(
+        new Date(o.closed_at as string),
+      );
     }
-    const orderIds = Object.keys(orderDateMap).map(Number)
-    const cogsByDate: Record<string, number> = {}
+    const orderIds = Object.keys(orderDateMap).map(Number);
+    const cogsByDate: Record<string, number> = {};
     if (orderIds.length > 0) {
       for (let from = 0; ; from += PAGE) {
         const { data: itemRows } = await sb
-          .from('order_items').select('order_id, qty, unit_price, unit_cost, menu_items(category, cost)')
-          .in('order_id', orderIds).neq('status', 'voided')
-          .range(from, from + PAGE - 1)
-        if (!itemRows || itemRows.length === 0) break
+          .from("order_items")
+          .select(
+            "order_id, qty, unit_price, unit_cost, menu_items(category, cost)",
+          )
+          .in("order_id", orderIds)
+          .neq("status", "voided")
+          .range(from, from + PAGE - 1);
+        if (!itemRows || itemRows.length === 0) break;
         for (const row of itemRows) {
-          const dk = orderDateMap[row.order_id as number]
-          if (!dk) continue
+          const dk = orderDateMap[row.order_id as number];
+          if (!dk) continue;
           // Sales counts every non-voided item (matches SalesTab's gross) —
           // unlike COGS below, it is not restricted to SALES_CAT_MAP categories,
           // so Charges-category items (corkage, breakage fees, etc.) still count.
-          salesByDate[dk] = (salesByDate[dk] ?? 0) + (row.qty as number) * ((row.unit_price ?? 0) as number)
+          salesByDate[dk] =
+            (salesByDate[dk] ?? 0) +
+            (row.qty as number) * ((row.unit_price ?? 0) as number);
 
-          const mi  = Array.isArray(row.menu_items) ? row.menu_items[0] : row.menu_items
-          const cat = SALES_CAT_MAP[mi?.category ?? '']
-          if (!cat) continue
+          const mi = Array.isArray(row.menu_items)
+            ? row.menu_items[0]
+            : row.menu_items;
+          const cat = SALES_CAT_MAP[mi?.category ?? ""];
+          if (!cat) continue;
           // unit_cost is the cost snapshot at time of sale — falls back to the
           // live menu_items.cost only for rows sold before the snapshot existed.
-          const cost = (row.unit_cost ?? mi?.cost ?? 0) as number
-          cogsByDate[dk] = (cogsByDate[dk] ?? 0) + (row.qty as number) * cost
+          const cost = (row.unit_cost ?? mi?.cost ?? 0) as number;
+          cogsByDate[dk] = (cogsByDate[dk] ?? 0) + (row.qty as number) * cost;
         }
-        if (itemRows.length < PAGE) break
+        if (itemRows.length < PAGE) break;
       }
     }
 
     // Budget expenses (daily_expenses) per date — total across all categories
-    const budgetExpByDate: Record<string, number> = {}
-    for (const r of (expRows ?? [])) {
-      const cat = EXP_CAT_MAP[r.category]
-      if (!cat) continue
-      budgetExpByDate[r.expense_date] = (budgetExpByDate[r.expense_date] ?? 0) + (r.amount as number)
+    const budgetExpByDate: Record<string, number> = {};
+    for (const r of expRows ?? []) {
+      const cat = EXP_CAT_MAP[r.category];
+      if (!cat) continue;
+      budgetExpByDate[r.expense_date] =
+        (budgetExpByDate[r.expense_date] ?? 0) + (r.amount as number);
     }
 
     // ── Build daily ledger ─────────────────────────────────────────────────
 
-    const fromDate = seed.seed_date as string
-    const dates    = dateRange(fromDate, todayStr)
+    const fromDate = seed.seed_date as string;
+    const dates = dateRange(fromDate, todayStr);
 
-    const result: DaySummaryRow[] = []
-    let runningBalance = seed.seed_balance as number
-    let runningBudget  = budgetSeedTotal
-    let prevBudgetEnd: number | null = null
+    const result: DaySummaryRow[] = [];
+    let runningBalance = seed.seed_balance as number;
+    let runningBudget = budgetSeedTotal;
+    let prevBudgetEnd: number | null = null;
 
     // Pre-compute budget running up to seed date
     // (if budget seed predates daily seed, catch up)
     if (budgetSeedDate < fromDate) {
-      const catchupDates = dateRange(budgetSeedDate, dates[0])
-      catchupDates.pop() // exclude the first daily date (handled in main loop)
+      const catchupDates = dateRange(budgetSeedDate, dates[0]);
+      catchupDates.pop(); // exclude the first daily date (handled in main loop)
       for (const d of catchupDates) {
-        const cogs    = cogsByDate[d] ?? 0
-        const bExp    = budgetExpByDate[d] ?? 0
-        const hasActivity = cogs > 0 || bExp > 0
-        const dayOpex = hasActivity ? Math.ceil(computeDailyOpex(opexItems, opexConfigs[d.slice(0, 7)] ?? null)) : 0
-        runningBudget += cogs + dayOpex - bExp
+        const cogs = cogsByDate[d] ?? 0;
+        const bExp = budgetExpByDate[d] ?? 0;
+        const hasActivity = cogs > 0 || bExp > 0;
+        const dayOpex = hasActivity
+          ? Math.ceil(
+              computeDailyOpex(opexItems, opexConfigs[d.slice(0, 7)] ?? null),
+            )
+          : 0;
+        runningBudget += cogs + dayOpex - bExp;
       }
     }
 
     for (const date of dates) {
-      const starting   = runningBalance
-      const expenses   = expByDate[date] ?? 0
-      const sales      = salesByDate[date] ?? 0
-      const savings    = savByDate[date] ?? 0
-      const adjDetails = adjByDate[date] ?? []
-      const adjNet     = adjDetails.reduce((s, a) => s + a.amount, 0)
-      const ending     = starting + sales - expenses - savings + adjNet
+      const starting = runningBalance;
+      const expenses = expByDate[date] ?? 0;
+      const sales = salesByDate[date] ?? 0;
+      const savings = savByDate[date] ?? 0;
+      const adjDetails = adjByDate[date] ?? [];
+      const adjNet = adjDetails.reduce((s, a) => s + a.amount, 0);
+      const ending = starting + sales - expenses - savings + adjNet;
 
       // Budget running total for this day — only allocate OPEX on days with activity
-      const cogs    = cogsByDate[date] ?? 0
-      const bExp    = budgetExpByDate[date] ?? 0
-      const hasActivity = (salesByDate[date] ?? 0) > 0 || (expByDate[date] ?? 0) > 0
-      const dayOpex = hasActivity ? Math.ceil(computeDailyOpex(opexItems, opexConfigs[date.slice(0, 7)] ?? null)) : 0
-      runningBudget += cogs + dayOpex - bExp
-      const budgetEnd = runningBudget
+      const cogs = cogsByDate[date] ?? 0;
+      const bExp = budgetExpByDate[date] ?? 0;
+      const hasActivity =
+        (salesByDate[date] ?? 0) > 0 || (expByDate[date] ?? 0) > 0;
+      const dayOpex = hasActivity
+        ? Math.ceil(
+            computeDailyOpex(opexItems, opexConfigs[date.slice(0, 7)] ?? null),
+          )
+        : 0;
+      runningBudget += cogs + dayOpex - bExp;
+      const budgetEnd = runningBudget;
 
-      const vsCash    = ending - budgetEnd
-      const cashFlow  = prevBudgetEnd === null ? 0 : budgetEnd - prevBudgetEnd
-      const opProfit  = sales - cogs - dayOpex + adjNet
+      const vsCash = ending - budgetEnd;
+      const cashFlow = prevBudgetEnd === null ? 0 : budgetEnd - prevBudgetEnd;
+      const opProfit = sales - cogs - dayOpex + adjNet;
 
       result.push({
-        date, starting, expenses, sales, savings,
-        adjNet, adjDetails, ending,
-        budgetEnd, vsCash, cashFlow, opProfit,
-      })
+        date,
+        starting,
+        expenses,
+        sales,
+        savings,
+        adjNet,
+        adjDetails,
+        ending,
+        budgetEnd,
+        vsCash,
+        cashFlow,
+        opProfit,
+      });
 
-      runningBalance = ending
-      prevBudgetEnd  = budgetEnd
+      runningBalance = ending;
+      prevBudgetEnd = budgetEnd;
     }
 
-    setRows([...result].reverse()) // most recent first
-    setLoading(false)
-  }, [sb, todayStr])
+    setRows([...result].reverse()); // most recent first
+    setLoading(false);
+  }, [sb, todayStr]);
 
-  useEffect(() => { fetchAll() }, [fetchAll])
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
   async function saveAdjustment() {
-    const amt = parseFloat(adjAmt)
-    if (isNaN(amt) || amt === 0 || !adjNotes.trim() || !adjBy.trim()) return
-    setAdjSaving(true)
-    await sb.from('daily_adjustments').insert({
-      adj_date: adjDate, amount: amt, notes: adjNotes.trim(), added_by: adjBy.trim(),
-    })
-    setAdjAmt(''); setAdjNotes(''); setShowAdjForm(false)
-    await fetchAll()
-    setAdjSaving(false)
+    const amt = parseFloat(adjAmt);
+    if (isNaN(amt) || amt === 0 || !adjNotes.trim() || !adjBy.trim()) return;
+    setAdjSaving(true);
+    await sb.from("daily_adjustments").insert({
+      adj_date: adjDate,
+      amount: amt,
+      notes: adjNotes.trim(),
+      added_by: adjBy.trim(),
+    });
+    setAdjAmt("");
+    setAdjNotes("");
+    setShowAdjForm(false);
+    await fetchAll();
+    setAdjSaving(false);
   }
 
   async function deleteAdj(id: number) {
-    await sb.from('daily_adjustments').delete().eq('id', id)
-    await fetchAll()
+    await sb.from("daily_adjustments").delete().eq("id", id);
+    await fetchAll();
   }
 
-  const todayRow = rows.find(r => r.date === todayStr)
+  const todayRow = rows.find((r) => r.date === todayStr);
 
-  const colStyle = (align: 'left' | 'right' = 'right') => ({
-    fontFamily: T.mono, fontSize: 12, color: T.textDim,
-    fontVariantNumeric: 'tabular-nums' as const,
+  const colStyle = (align: "left" | "right" = "right") => ({
+    fontFamily: T.mono,
+    fontSize: 12,
+    color: T.textDim,
+    fontVariantNumeric: "tabular-nums" as const,
     textAlign: align,
-  })
+  });
 
   const inputStyle = {
-    fontFamily: 'inherit', fontSize: 12,
-    background: T.surface, border: `1px solid ${T.line2}`,
-    color: T.text, borderRadius: T.radius, padding: '6px 8px',
-    outline: 'none', boxSizing: 'border-box' as const,
-  }
+    fontFamily: "inherit",
+    fontSize: 12,
+    background: T.surface,
+    border: `1px solid ${T.line2}`,
+    color: T.text,
+    borderRadius: T.radius,
+    padding: "6px 8px",
+    outline: "none",
+    boxSizing: "border-box" as const,
+  };
 
   const COL_WIDTHS = isMobile
-    ? '80px 90px 90px 90px 70px 90px 90px 90px 80px 90px 28px'
-    : '96px 120px 120px 120px 80px 120px 120px 110px 100px 120px 28px'
-  const MIN_W = isMobile ? 870 : 1210
+    ? "80px 90px 90px 90px 70px 90px 90px 90px 80px 90px 28px"
+    : "96px 120px 120px 120px 80px 120px 120px 110px 100px 120px 28px";
+  const MIN_W = isMobile ? 870 : 1210;
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+    <div
+      style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
+      }}
+    >
       <SectionHd
         title="Daily Summary"
         badge={todayRow ? `Today ${fmtPeso(todayRow.ending)}` : undefined}
         action={
-          <button onClick={() => setShowAdjForm(v => !v)} style={{
-            padding: '5px 14px', fontSize: 12, fontFamily: 'inherit', fontWeight: 600,
-            background: showAdjForm ? T.chip : T.accent,
-            color: showAdjForm ? T.textDim : T.accentInk,
-            border: `1px solid ${showAdjForm ? T.line2 : T.accent}`,
-            borderRadius: T.radius, cursor: 'pointer',
-          }}>
-            {showAdjForm ? 'Cancel' : '+ Adjustment'}
+          <button
+            onClick={() => setShowAdjForm((v) => !v)}
+            style={{
+              padding: "5px 14px",
+              fontSize: 12,
+              fontFamily: "inherit",
+              fontWeight: 600,
+              background: showAdjForm ? T.chip : T.accent,
+              color: showAdjForm ? T.textDim : T.accentInk,
+              border: `1px solid ${showAdjForm ? T.line2 : T.accent}`,
+              borderRadius: T.radius,
+              cursor: "pointer",
+            }}
+          >
+            {showAdjForm ? "Cancel" : "+ Adjustment"}
           </button>
         }
       />
 
       {/* Adjustment form */}
       {showAdjForm && (
-        <div style={{ padding: '14px 24px', background: T.surface2, borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '130px 110px 1fr 160px auto', gap: 8, alignItems: 'end' }}>
+        <div
+          style={{
+            padding: "14px 24px",
+            background: T.surface2,
+            borderBottom: `1px solid ${T.line}`,
+            flexShrink: 0,
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "130px 110px 1fr 160px auto",
+              gap: 8,
+              alignItems: "end",
+            }}
+          >
             <div>
-              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Date</div>
-              <input type="date" value={adjDate} onChange={e => setAdjDate(e.target.value)} style={{ ...inputStyle, width: '100%', fontFamily: T.mono }} />
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: "0.10em",
+                  textTransform: "uppercase",
+                  color: T.textMute,
+                  marginBottom: 4,
+                }}
+              >
+                Date
+              </div>
+              <input
+                type="date"
+                value={adjDate}
+                onChange={(e) => setAdjDate(e.target.value)}
+                style={{ ...inputStyle, width: "100%", fontFamily: T.mono }}
+              />
             </div>
             <div>
-              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Amount ₱ *</div>
-              <input value={adjAmt} onChange={e => setAdjAmt(e.target.value)} placeholder="+/−" type="number" step="0.01" style={{ ...inputStyle, width: '100%', fontFamily: T.mono, fontSize: 13 }} />
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: "0.10em",
+                  textTransform: "uppercase",
+                  color: T.textMute,
+                  marginBottom: 4,
+                }}
+              >
+                Amount ₱ *
+              </div>
+              <input
+                value={adjAmt}
+                onChange={(e) => setAdjAmt(e.target.value)}
+                placeholder="+/−"
+                type="number"
+                step="0.01"
+                style={{
+                  ...inputStyle,
+                  width: "100%",
+                  fontFamily: T.mono,
+                  fontSize: 13,
+                }}
+              />
             </div>
             <div>
-              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Notes *</div>
-              <input value={adjNotes} onChange={e => setAdjNotes(e.target.value)} placeholder="Reason for adjustment" style={{ ...inputStyle, width: '100%' }} />
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: "0.10em",
+                  textTransform: "uppercase",
+                  color: T.textMute,
+                  marginBottom: 4,
+                }}
+              >
+                Notes *
+              </div>
+              <input
+                value={adjNotes}
+                onChange={(e) => setAdjNotes(e.target.value)}
+                placeholder="Reason for adjustment"
+                style={{ ...inputStyle, width: "100%" }}
+              />
             </div>
             <div>
-              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 4 }}>Added By</div>
-              <input value={adjBy} onChange={e => setAdjBy(e.target.value)} style={{ ...inputStyle, width: '100%' }} />
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: "0.10em",
+                  textTransform: "uppercase",
+                  color: T.textMute,
+                  marginBottom: 4,
+                }}
+              >
+                Added By
+              </div>
+              <input
+                value={adjBy}
+                onChange={(e) => setAdjBy(e.target.value)}
+                style={{ ...inputStyle, width: "100%" }}
+              />
             </div>
             <button
               onClick={saveAdjustment}
               disabled={adjSaving || !adjAmt || !adjNotes.trim()}
               style={{
-                padding: '7px 18px', fontSize: 12, fontFamily: 'inherit', fontWeight: 700,
-                background: T.accent, color: T.accentInk, border: 'none',
-                borderRadius: T.radius, cursor: 'pointer',
-                opacity: (!adjAmt || !adjNotes.trim()) ? 0.4 : 1,
+                padding: "7px 18px",
+                fontSize: 12,
+                fontFamily: "inherit",
+                fontWeight: 700,
+                background: T.accent,
+                color: T.accentInk,
+                border: "none",
+                borderRadius: T.radius,
+                cursor: "pointer",
+                opacity: !adjAmt || !adjNotes.trim() ? 0.4 : 1,
               }}
             >
               Save
             </button>
           </div>
           <div style={{ marginTop: 6, fontSize: 11, color: T.textMute }}>
-            Positive = cash in (e.g. loan received) · Negative = cash out (e.g. correction, transfer)
+            Positive = cash in (e.g. loan received) · Negative = cash out (e.g.
+            correction, transfer)
           </div>
         </div>
       )}
 
       {/* Table header */}
-      <div className="bp-no-scrollbar" style={{ overflowX: 'auto', touchAction: 'pan-x', flexShrink: 0 }}>
+      <div
+        className="bp-no-scrollbar"
+        style={{ overflowX: "auto", touchAction: "pan-x", flexShrink: 0 }}
+      >
         <div style={{ minWidth: MIN_W }}>
-          <div style={{
-            display: 'grid', gridTemplateColumns: COL_WIDTHS,
-            padding: '0 16px', height: 36, alignItems: 'center',
-            borderBottom: `1px solid ${T.line}`, background: T.surface2,
-          }}>
-            {(['Date','Starting','Expenses','Sales','Savings','Ending','Budget','vs Cash','Cash Flow','Op. Profit',''] as string[]).map((h, i) => {
-              const tip = COLUMN_TIPS[h]
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: COL_WIDTHS,
+              padding: "0 16px",
+              height: 36,
+              alignItems: "center",
+              borderBottom: `1px solid ${T.line}`,
+              background: T.surface2,
+            }}
+          >
+            {(
+              [
+                "Date",
+                "Starting",
+                "Expenses",
+                "Sales",
+                "Savings",
+                "Ending",
+                "Budget",
+                "vs Cash",
+                "Cash Flow",
+                "Op. Profit",
+                "",
+              ] as string[]
+            ).map((h, i) => {
+              const tip = COLUMN_TIPS[h];
               return (
                 <span
                   key={h || `col-${i}`}
                   title={tip}
                   style={{
-                    fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase',
-                    color: T.headerText, textAlign: h === 'Date' ? 'left' : 'right',
-                    ...(tip ? { textDecoration: 'underline', textDecorationStyle: 'dotted', textDecorationColor: T.textMute, cursor: 'help' } : {}),
+                    fontSize: 10,
+                    fontWeight: 600,
+                    letterSpacing: "0.10em",
+                    textTransform: "uppercase",
+                    color: T.headerText,
+                    textAlign: h === "Date" ? "left" : "right",
+                    ...(tip
+                      ? {
+                          textDecoration: "underline",
+                          textDecorationStyle: "dotted",
+                          textDecorationColor: T.textMute,
+                          cursor: "help",
+                        }
+                      : {}),
                   }}
-                >{h}</span>
-              )
+                >
+                  {h}
+                </span>
+              );
             })}
           </div>
         </div>
       </div>
 
       {/* Table body */}
-      <div className="bp-no-scrollbar" style={{ flex: 1, minHeight: 0, overflow: 'auto', touchAction: 'pan-x pan-y' }}>
+      <div
+        className="bp-no-scrollbar"
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflow: "auto",
+          touchAction: "pan-x pan-y",
+        }}
+      >
         {loading ? (
-          <div style={{ padding: 24, color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
+          <div
+            style={{
+              padding: 24,
+              color: T.textMute,
+              fontFamily: T.mono,
+              fontSize: 12,
+            }}
+          >
+            Loading…
+          </div>
         ) : rows.length === 0 ? (
-          <div style={{ padding: '32px 24px', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>No data yet — set opening balance to begin.</div>
+          <div
+            style={{
+              padding: "32px 24px",
+              color: T.textMute,
+              fontFamily: T.mono,
+              fontSize: 12,
+            }}
+          >
+            No data yet — set opening balance to begin.
+          </div>
         ) : (
           <div style={{ minWidth: MIN_W }}>
             {rows.map((row, i) => {
-              const isToday = row.date === todayStr
-              const hasAdj  = row.adjDetails.length > 0
-              const isOpen  = expanded === row.date
+              const isToday = row.date === todayStr;
+              const hasAdj = row.adjDetails.length > 0;
+              const isOpen = expanded === row.date;
 
               return (
-                <div key={row.date} style={{ borderBottom: `1px solid ${T.line}` }}>
+                <div
+                  key={row.date}
+                  style={{ borderBottom: `1px solid ${T.line}` }}
+                >
                   {/* Main row */}
                   <div
-                    onClick={() => hasAdj && setExpanded(isOpen ? null : row.date)}
+                    onClick={() =>
+                      hasAdj && setExpanded(isOpen ? null : row.date)
+                    }
                     style={{
-                      display: 'grid', gridTemplateColumns: COL_WIDTHS,
-                      padding: '0 16px', height: 44, alignItems: 'center',
-                      background: isToday ? `${T.accent}0d` : i % 2 === 0 ? 'transparent' : T.surface,
-                      cursor: hasAdj ? 'pointer' : 'default',
+                      display: "grid",
+                      gridTemplateColumns: COL_WIDTHS,
+                      padding: "0 16px",
+                      height: 44,
+                      alignItems: "center",
+                      background: isToday
+                        ? `${T.accent}0d`
+                        : i % 2 === 0
+                          ? "transparent"
+                          : T.surface,
+                      cursor: hasAdj ? "pointer" : "default",
                     }}
                   >
                     {/* Date */}
                     <div>
-                      <div style={{ fontFamily: T.mono, fontSize: 12, color: isToday ? T.accent : T.textDim, fontWeight: isToday ? 700 : 400 }}>
+                      <div
+                        style={{
+                          fontFamily: T.mono,
+                          fontSize: 12,
+                          color: isToday ? T.accent : T.textDim,
+                          fontWeight: isToday ? 700 : 400,
+                        }}
+                      >
                         {fmtDate(row.date)}
                       </div>
-                      {isToday && <div style={{ fontSize: 8, color: T.accent, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Today</div>}
+                      {isToday && (
+                        <div
+                          style={{
+                            fontSize: 8,
+                            color: T.accent,
+                            letterSpacing: "0.08em",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          Today
+                        </div>
+                      )}
                     </div>
 
                     {/* Starting */}
-                    <span style={{ ...colStyle(), color: T.textDim }}>{fmtPeso(row.starting)}</span>
+                    <span style={{ ...colStyle(), color: T.textDim }}>
+                      {fmtPeso(row.starting)}
+                    </span>
 
                     {/* Expenses */}
-                    <span style={{ ...colStyle(), color: row.expenses > 0 ? T.bad : T.textMute }}>
-                      {row.expenses > 0 ? fmtPeso(row.expenses) : '—'}
+                    <span
+                      style={{
+                        ...colStyle(),
+                        color: row.expenses > 0 ? T.bad : T.textMute,
+                      }}
+                    >
+                      {row.expenses > 0 ? fmtPeso(row.expenses) : "—"}
                     </span>
 
                     {/* Sales */}
-                    <span style={{ ...colStyle(), color: row.sales > 0 ? T.ok : T.textMute }}>
-                      {row.sales > 0 ? fmtPeso(row.sales) : '—'}
+                    <span
+                      style={{
+                        ...colStyle(),
+                        color: row.sales > 0 ? T.ok : T.textMute,
+                      }}
+                    >
+                      {row.sales > 0 ? fmtPeso(row.sales) : "—"}
                     </span>
 
                     {/* Savings */}
-                    <span style={{ ...colStyle(), color: row.savings > 0 ? T.warn : T.textMute }}>
-                      {row.savings > 0 ? fmtPeso(row.savings) : '—'}
+                    <span
+                      style={{
+                        ...colStyle(),
+                        color: row.savings > 0 ? T.warn : T.textMute,
+                      }}
+                    >
+                      {row.savings > 0 ? fmtPeso(row.savings) : "—"}
                     </span>
 
                     {/* Ending */}
-                    <span style={{ ...colStyle(), fontWeight: 700, fontSize: 13, color: row.ending >= 0 ? T.ok : T.bad }}>
+                    <span
+                      style={{
+                        ...colStyle(),
+                        fontWeight: 700,
+                        fontSize: 13,
+                        color: row.ending >= 0 ? T.ok : T.bad,
+                      }}
+                    >
                       {fmtPeso(row.ending)}
                     </span>
 
                     {/* Budget */}
                     <span style={{ ...colStyle(), color: T.textDim }}>
-                      {row.budgetEnd !== 0 ? fmtPeso(row.budgetEnd) : '—'}
+                      {row.budgetEnd !== 0 ? fmtPeso(row.budgetEnd) : "—"}
                     </span>
 
                     {/* vs Cash */}
-                    <span style={{ ...colStyle(), color: row.vsCash >= 0 ? T.ok : T.bad }}>
-                      {row.budgetEnd !== 0 ? (row.vsCash >= 0 ? '+' : '') + fmtPeso(row.vsCash) : '—'}
+                    <span
+                      style={{
+                        ...colStyle(),
+                        color: row.vsCash >= 0 ? T.ok : T.bad,
+                      }}
+                    >
+                      {row.budgetEnd !== 0
+                        ? (row.vsCash >= 0 ? "+" : "") + fmtPeso(row.vsCash)
+                        : "—"}
                     </span>
 
                     {/* Cash Flow */}
-                    <span style={{ ...colStyle(), color: row.cashFlow >= 0 ? T.ok : T.bad }}>
-                      {(row.cashFlow >= 0 ? '+' : '') + fmtPeso(row.cashFlow)}
+                    <span
+                      style={{
+                        ...colStyle(),
+                        color: row.cashFlow >= 0 ? T.ok : T.bad,
+                      }}
+                    >
+                      {(row.cashFlow >= 0 ? "+" : "") + fmtPeso(row.cashFlow)}
                     </span>
 
                     {/* Op. Profit */}
-                    <span style={{ ...colStyle(), color: row.opProfit >= 0 ? T.ok : T.bad }}>
-                      {row.sales > 0 ? (row.opProfit >= 0 ? '+' : '') + fmtPeso(row.opProfit) : '—'}
+                    <span
+                      style={{
+                        ...colStyle(),
+                        color: row.opProfit >= 0 ? T.ok : T.bad,
+                      }}
+                    >
+                      {row.sales > 0
+                        ? (row.opProfit >= 0 ? "+" : "") + fmtPeso(row.opProfit)
+                        : "—"}
                     </span>
 
                     {/* Expand toggle */}
-                    <span style={{ color: T.textMute, fontSize: 11, textAlign: 'right' }}>
-                      {hasAdj ? (isOpen ? '▲' : `▼${row.adjDetails.length}`) : ''}
+                    <span
+                      style={{
+                        color: T.textMute,
+                        fontSize: 11,
+                        textAlign: "right",
+                      }}
+                    >
+                      {hasAdj
+                        ? isOpen
+                          ? "▲"
+                          : `▼${row.adjDetails.length}`
+                        : ""}
                     </span>
                   </div>
 
                   {/* Adjustments detail */}
                   {isOpen && (
-                    <div style={{ padding: '10px 16px 12px 96px', background: T.surface2, borderTop: `1px solid ${T.line}` }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 8 }}>
+                    <div
+                      style={{
+                        padding: "10px 16px 12px 96px",
+                        background: T.surface2,
+                        borderTop: `1px solid ${T.line}`,
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          letterSpacing: "0.10em",
+                          textTransform: "uppercase",
+                          color: T.textMute,
+                          marginBottom: 8,
+                        }}
+                      >
                         Adjustments
                       </div>
-                      {row.adjDetails.map(adj => (
-                        <div key={adj.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '4px 0', borderBottom: `1px solid ${T.line}` }}>
-                          <span style={{ fontFamily: T.mono, fontSize: 13, fontWeight: 700, color: adj.amount >= 0 ? T.ok : T.bad, width: 110, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
-                            {adj.amount >= 0 ? '+' : ''}{fmtPeso(adj.amount)}
+                      {row.adjDetails.map((adj) => (
+                        <div
+                          key={adj.id}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 14,
+                            padding: "4px 0",
+                            borderBottom: `1px solid ${T.line}`,
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontFamily: T.mono,
+                              fontSize: 13,
+                              fontWeight: 700,
+                              color: adj.amount >= 0 ? T.ok : T.bad,
+                              width: 110,
+                              flexShrink: 0,
+                              fontVariantNumeric: "tabular-nums",
+                            }}
+                          >
+                            {adj.amount >= 0 ? "+" : ""}
+                            {fmtPeso(adj.amount)}
                           </span>
-                          <span style={{ fontSize: 12, color: T.text, flex: 1 }}>{adj.notes}</span>
-                          <span style={{ fontSize: 11, color: T.textMute, flexShrink: 0 }}>{adj.addedBy}</span>
-                          <span style={{ fontFamily: T.mono, fontSize: 10, color: T.textMute, flexShrink: 0 }}>
-                            {new Date(adj.createdAt).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })}
+                          <span
+                            style={{ fontSize: 12, color: T.text, flex: 1 }}
+                          >
+                            {adj.notes}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              color: T.textMute,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {adj.addedBy}
+                          </span>
+                          <span
+                            style={{
+                              fontFamily: T.mono,
+                              fontSize: 10,
+                              color: T.textMute,
+                              flexShrink: 0,
+                            }}
+                          >
+                            {new Date(adj.createdAt).toLocaleTimeString(
+                              "en-PH",
+                              { hour: "2-digit", minute: "2-digit" },
+                            )}
                           </span>
                           <button
                             onClick={() => deleteAdj(adj.id)}
-                            style={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: `1px solid ${T.bad}33`, color: T.bad, borderRadius: T.radius, cursor: 'pointer', fontSize: 12, flexShrink: 0 }}
+                            style={{
+                              width: 24,
+                              height: 24,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              background: "transparent",
+                              border: `1px solid ${T.bad}33`,
+                              color: T.bad,
+                              borderRadius: T.radius,
+                              cursor: "pointer",
+                              fontSize: 12,
+                              flexShrink: 0,
+                            }}
                           >
                             ×
                           </button>
@@ -525,11 +939,11 @@ export default function DailyTab({ staffName }: { staffName: string }) {
                     </div>
                   )}
                 </div>
-              )
+              );
             })}
           </div>
         )}
       </div>
     </div>
-  )
+  );
 }
