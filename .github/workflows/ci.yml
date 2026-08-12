@@ -1,0 +1,46 @@
+# CI — Backyard POS
+#
+# `lint` runs non-blocking (continue-on-error) because eslint.config.mjs was
+# only wired up in Aug 2026 and immediately surfaced ~109 pre-existing
+# problems (mostly `any`). It's visible in every PR check but doesn't block
+# merges yet — flip continue-on-error off once that backlog is cleared.
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+
+jobs:
+  verify:
+    name: Typecheck, lint, format, unit tests, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint (non-blocking — see header note)
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Unit tests (Vitest)
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key

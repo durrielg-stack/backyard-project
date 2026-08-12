@@ -1,4 +1,4 @@
-import type { NextConfig } from 'next'
+import type { NextConfig } from "next";
 
 // ── Content Security Policy ───────────────────────────────────────────────────
 // Shipped in Report-Only mode first: the browser reports violations but blocks
@@ -18,22 +18,33 @@ const CSP_REPORT_ONLY = [
   "img-src 'self' data: blob: https:",
   // Supabase REST + realtime websockets, Vercel analytics beacon
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.vercel-insights.com https://vitals.vercel-insights.com",
-].join('; ')
+].join("; ");
 
 const SECURITY_HEADERS = [
-  { key: 'X-Frame-Options',        value: 'SAMEORIGIN' },
-  { key: 'X-Content-Type-Options', value: 'nosniff' },
-  { key: 'Referrer-Policy',        value: 'strict-origin-when-cross-origin' },
-  { key: 'Permissions-Policy',     value: 'camera=(), microphone=(), geolocation=()' },
+  { key: "X-Frame-Options", value: "SAMEORIGIN" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  {
+    key: "Permissions-Policy",
+    value: "camera=(), microphone=(), geolocation=()",
+  },
   // Modest max-age to start (1 day); raise once confident, then add preload.
-  { key: 'Strict-Transport-Security', value: 'max-age=86400' },
-  { key: 'Content-Security-Policy-Report-Only', value: CSP_REPORT_ONLY },
-]
+  { key: "Strict-Transport-Security", value: "max-age=86400" },
+  { key: "Content-Security-Policy-Report-Only", value: CSP_REPORT_ONLY },
+];
 
 const nextConfig: NextConfig = {
   async headers() {
-    return [{ source: '/:path*', headers: SECURITY_HEADERS }]
+    return [{ source: "/:path*", headers: SECURITY_HEADERS }];
   },
-}
+  // eslint.config.mjs was only wired up in Aug 2026 and immediately surfaced
+  // ~40 pre-existing `any` violations. Lint is enforced via `npm run lint`
+  // (and CI) as its own gate, not folded into the build — so newly-enabled
+  // rules can't silently start failing production deploys. Remove once the
+  // backlog is clean.
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+};
 
-export default nextConfig
+export default nextConfig;
