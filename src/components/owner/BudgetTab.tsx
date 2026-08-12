@@ -424,29 +424,54 @@ export default function BudgetTab() {
           ? Math.ceil(computeDailyOpex(opexItems, dayCfg))
           : 0;
 
-      // Cumulative prior days (from seed date onwards)
-      const { data: priorOrders, error: pOrdErr } = await sb
-        .from("orders")
-        .select("id, opened_at")
-        .lt("opened_at", start)
-        .gte("opened_at", new Date(seedStart).toISOString());
-      if (pOrdErr) console.error("[BudgetTab] prior orders error", pOrdErr);
-      const priorIds = (priorOrders ?? []).map((o: any) => o.id as number);
+      // Cumulative prior days (from seed date onwards) — paginated. This
+      // range can exceed the server's default row cap once history grows
+      // (confirmed: 2,984 order_items since the 2026-05-27 seed vs. a
+      // ~1000-row cap, silently dropping ~69% of historical COGS from the
+      // Starting balance before this fix — same class of bug as priorExp
+      // below, just not yet applied here).
+      let priorOrders: any[] = [];
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await sb
+          .from("orders")
+          .select("id, opened_at")
+          .lt("opened_at", start)
+          .gte("opened_at", new Date(seedStart).toISOString())
+          .range(from, from + PAGE - 1);
+        if (error) {
+          console.error("[BudgetTab] prior orders error", error);
+          break;
+        }
+        if (!data || data.length === 0) break;
+        priorOrders = priorOrders.concat(data);
+        if (data.length < PAGE) break;
+      }
+      const priorIds = priorOrders.map((o: any) => o.id as number);
       const priorIncoming = seed ? { ...seed.balances } : emptyBycat();
       if (priorIds.length > 0) {
-        const { data: priorItems, error: piErr } = await sb
-          .from("order_items")
-          .select("order_id, qty, unit_cost, menu_items(category, cost)")
-          .in("order_id", priorIds)
-          .neq("status", "voided");
-        if (piErr) console.error("[BudgetTab] prior items error", piErr);
-        accumulateItems(priorItems ?? [], priorIncoming);
+        let priorItems: any[] = [];
+        for (let from = 0; ; from += PAGE) {
+          const { data, error } = await sb
+            .from("order_items")
+            .select("order_id, qty, unit_cost, menu_items(category, cost)")
+            .in("order_id", priorIds)
+            .neq("status", "voided")
+            .range(from, from + PAGE - 1);
+          if (error) {
+            console.error("[BudgetTab] prior items error", error);
+            break;
+          }
+          if (!data || data.length === 0) break;
+          priorItems = priorItems.concat(data);
+          if (data.length < PAGE) break;
+        }
+        accumulateItems(priorItems, priorIncoming);
       }
 
       // Add cumulative OPEX allocation — one allocation per unique operating day
       const priorDates: string[] = [
         ...new Set<string>(
-          (priorOrders ?? []).map((o: any) =>
+          priorOrders.map((o: any) =>
             shiftLocalDate(new Date(o.opened_at as string)),
           ),
         ),
