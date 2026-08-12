@@ -1,5 +1,5 @@
-import WaiterClientApp from './ClientApp'
+import WaiterClientApp from "./ClientApp";
 
 export default function WaiterPage() {
-  return <WaiterClientApp />
+  return <WaiterClientApp />;
 }

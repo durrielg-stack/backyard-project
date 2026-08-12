@@ -2,6 +2,18 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## The Contract, Compressed
+
+A session that reads nothing else below should still get these:
+
+- Ambiguity resolves to the most boring option consistent with existing patterns — never to novel architecture.
+- An honest deviation is recoverable; a silent one is a landmine. Declare deviations openly, don't route around them quietly.
+- Docs update in the same change that falsifies them — a stale memory-bank file is a bug, not paperwork.
+- **Golden numbers before touching any money path**: record exact figures before, verify digit-identical after.
+- Refactors move, they do not improve. Zero behavior change per refactor commit; behavior changes travel separately.
+- Never refactor a working money/inventory path for structure alone.
+- `npm run typecheck && npm run lint` clean (or no _new_ problems beyond the existing baseline — see Verification Ladder) before calling anything done.
+
 ## Memory Bank
 
 A full knowledge base lives in `memory-bank/`. **Read these first before scanning the repo:**
@@ -29,12 +41,50 @@ A full knowledge base lives in `memory-bank/`. **Read these first before scannin
 ## Commands
 
 ```bash
-npm run dev      # Start Next.js dev server (http://localhost:3000)
-npm run build    # Production build
-npm run lint     # ESLint
+npm run dev        # Start Next.js dev server (http://localhost:3000)
+npm run build      # Production build
+npm run lint       # ESLint
+npm run typecheck  # tsc --noEmit
+npm run format     # Prettier --write
+npm test           # Vitest (unit tests — pure lib functions only, see below)
 ```
 
-No test suite exists yet. TypeScript type-checking runs via `tsc --noEmit`.
+A small Vitest suite exists (Aug 2026) covering `src/lib/discounts.ts` (the RA 9994/10754 Senior/PWD and owner/employee discount math) and `src/lib/dateNav.ts` (the 6am shift-cutoff boundary — see `memory-bank/business-rules.md:13` for the bug it pins down). It covers pure functions only, not components or DB flows — for anything beyond that, see `memory-bank/skill-verification-without-a-net.md` for how to build confidence without a test. New pure money/inventory logic should get a test alongside it; retrofitting coverage onto existing untested code is separate, deliberate work.
+
+## Development Process
+
+### Verification ladder
+
+Before claiming a change is done: `npm run typecheck && npm run lint`. `npm run build` is the closest thing to an integration check and should also pass — it no longer runs lint itself (`next.config.ts` sets `eslint.ignoreDuringBuilds`, added Aug 2026) specifically so lint stays a separate, explicit gate rather than silently blocking deploys.
+
+`npm run lint` reports ~109 pre-existing problems as of Aug 2026 (mostly `any` in `src/components/owner/` and `src/hooks/useReports.ts`/`useTickets.ts`, surfaced the first time `eslint.config.mjs` was actually wired up — it didn't exist before). That's known backlog, not something to fix opportunistically inside an unrelated change. Don't introduce _new_ lint errors; cleaning up existing ones is separate, deliberate work.
+
+### Refactoring discipline
+
+- Refactors move code, they do not improve it. A refactor commit has zero behavior change — behavior changes are separate commits.
+- Never refactor a working money/inventory path for structure alone.
+- Optimization requires evidence (a profiler, a measured slow path) — no memoization or restructuring "just in case." The global 1s tick in `POSApp` stays until a profiler dethrones it.
+- Delete dead code on sight, but prove it's dead first (grep references, check dynamic imports), and delete it in its own commit.
+- Don't "upgrade" a pattern wholesale across the codebase as a side effect of another task — that's planned work, or it doesn't happen.
+
+### Git workflow
+
+- `main` = production, `dev` = staging. Short-lived branches off `dev`. Merge to `dev` first; merge to `main` only on the owner's explicit word.
+- Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`, `test:`, `ci:`, `perf:`) — one behavior per commit.
+- Never bypass a git hook with `--no-verify`. A hook you need to bypass is itself a defect — report it, don't route around it.
+
+### Code quality
+
+- `any` requires a stated reason, not convenience — the linter errors on new instances (see baseline note above).
+- Never swallow an error silently (an empty `catch {}`). Data-layer errors should surface; the UI catches at the boundary and shows the user something.
+- One home per rule: before writing a calculation, search for it first. Found twice → that's a defect to report, never write a third copy.
+- Comments state constraints, not narration. If removing a comment wouldn't confuse a future reader, don't write it.
+
+### UI rules
+
+- Every data view ships empty, error, and loading states, or the work isn't done.
+- Optimistic-always on writes the user triggers directly (matches `useOrder`'s existing pattern) — a blocking spinner on a queued write is a defect.
+- Business logic never lives in a UI component — including a "just this once" filter of voided items or date math. It belongs in a hook or `src/lib`.
 
 ## Architecture
 
@@ -43,6 +93,7 @@ No test suite exists yet. TypeScript type-checking runs via `tsc --noEmit`.
 ### App Shell (`src/app/page.tsx`)
 
 `POSApp` is the root client component. It owns:
+
 - **View routing** — a discriminant union (`'floor' | 'reports' | { kind: 'order'; tableId }`) with no URL router
 - **Global 1s tick** — `setInterval` drives all time-dependent derivations (table aging, KDS elapsed time, clock)
 - **Master cart map** — `Map<tableId, CartLine[]>` — `useOrder` owns per-table DB sync; `OrderView` propagates lines up via `onCartSync`
@@ -50,11 +101,11 @@ No test suite exists yet. TypeScript type-checking runs via `tsc --noEmit`.
 
 ### Views
 
-| View | Component | Data |
-|------|-----------|------|
-| Floor | `FloorView` | `tablesWithStatus`, `tickets`; grid or floor-plan layout |
-| Order | `OrderView` | `useOrder(tableId)`, `useMenuItems()` |
-| Reports | `ReportsView` | `tablesWithStatus` |
+| View    | Component     | Data                                                     |
+| ------- | ------------- | -------------------------------------------------------- |
+| Floor   | `FloorView`   | `tablesWithStatus`, `tickets`; grid or floor-plan layout |
+| Order   | `OrderView`   | `useOrder(tableId)`, `useMenuItems()`                    |
+| Reports | `ReportsView` | `tablesWithStatus`                                       |
 
 ### Data Layer (`src/hooks/`)
 
@@ -70,6 +121,7 @@ All hooks use the Supabase browser singleton from `src/lib/supabase.ts` (`getCli
 ### Types (`src/lib/types.ts`)
 
 Two tiers:
+
 1. **DB row types** — mirror Supabase schema (`RestaurantTable`, `MenuItem`, `Order`, `OrderItem`, `Payment`, `InventoryRow`)
 2. **App types** — `CartLine` (optimistic local cart), `KdsTicket` (derived for KDS display), `TableWithStatus` (derived with runtime status + totals)
 

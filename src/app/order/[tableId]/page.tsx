@@ -1,3 +1,5 @@
-import { redirect } from 'next/navigation'
+import { redirect } from "next/navigation";
 // This route no longer exists — routing is handled by the POSApp shell at /
-export default function OrderPage() { redirect('/') }
+export default function OrderPage() {
+  redirect("/");
+}

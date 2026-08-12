@@ -1,177 +1,257 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useRef } from 'react'
-import { statusColor, statusLabel } from '@/lib/theme'
-import { useTheme } from '@/lib/ThemeContext'
-import { useBreakpoint } from '@/hooks/useBreakpoint'
-import { getClient } from '@/lib/supabase'
-import { dayBounds, currentShiftDate } from '@/lib/dateNav'
-import type { TableWithStatus, KdsTicket } from '@/lib/types'
-import KdsPanel from './KdsPanel'
-
+import { useState, useEffect, useRef } from "react";
+import { statusColor, statusLabel } from "@/lib/theme";
+import { useTheme } from "@/lib/ThemeContext";
+import { useBreakpoint } from "@/hooks/useBreakpoint";
+import { getClient } from "@/lib/supabase";
+import { dayBounds, currentShiftDate } from "@/lib/dateNav";
+import type { TableWithStatus, KdsTicket } from "@/lib/types";
+import KdsPanel from "./KdsPanel";
 
 // ── Coordinate space the seeded pos_x/pos_y values are mapped against ────────
 // Raw DB values range 80–500. We normalise against 640 so tables land at
 // 12.5%–78% within the container, leaving natural margins on all sides.
-const COORD_MAX = 640
+const COORD_MAX = 640;
 
 // ── Kitchen Pass strip (right edge of floor plan) ─────────────────────────────
 function KitchenPass({ readyCount }: { readyCount: number }) {
-  const { T } = useTheme()
+  const { T } = useTheme();
   return (
-    <div style={{
-      width: 56, flexShrink: 0,
-      background: T.surface2, borderLeft: `1px solid ${T.line2}`,
-      display: 'flex', flexDirection: 'column', alignItems: 'center',
-      padding: '16px 0', gap: 12, userSelect: 'none',
-    }}>
+    <div
+      style={{
+        width: 56,
+        flexShrink: 0,
+        background: T.surface2,
+        borderLeft: `1px solid ${T.line2}`,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        padding: "16px 0",
+        gap: 12,
+        userSelect: "none",
+      }}
+    >
       {/* Rotated label */}
-      <div style={{
-        writingMode: 'vertical-rl',
-        transform: 'rotate(180deg)',
-        fontSize: 9, fontWeight: 700, letterSpacing: '0.14em',
-        textTransform: 'uppercase', color: T.textMute,
-        marginTop: 8,
-      }}>
+      <div
+        style={{
+          writingMode: "vertical-rl",
+          transform: "rotate(180deg)",
+          fontSize: 9,
+          fontWeight: 700,
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          color: T.textMute,
+          marginTop: 8,
+        }}
+      >
         Kitchen Pass
       </div>
 
       {/* Pass window */}
-      <div style={{
-        width: 32, height: 32, borderRadius: T.radius,
-        background: readyCount > 0 ? `${T.ok}22` : T.chip,
-        border: `1px solid ${readyCount > 0 ? T.ok : T.line2}`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        transition: 'all 0.2s ease',
-      }}>
+      <div
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: T.radius,
+          background: readyCount > 0 ? `${T.ok}22` : T.chip,
+          border: `1px solid ${readyCount > 0 ? T.ok : T.line2}`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          transition: "all 0.2s ease",
+        }}
+      >
         {readyCount > 0 && (
-          <span style={{
-            fontFamily: T.mono, fontSize: 13, fontWeight: 700,
-            color: T.ok, lineHeight: 1,
-          }}>
+          <span
+            style={{
+              fontFamily: T.mono,
+              fontSize: 13,
+              fontWeight: 700,
+              color: T.ok,
+              lineHeight: 1,
+            }}
+          >
             {readyCount}
           </span>
         )}
       </div>
 
       {readyCount > 0 && (
-        <span style={{
-          writingMode: 'vertical-rl', transform: 'rotate(180deg)',
-          fontSize: 9, fontWeight: 600, letterSpacing: '0.08em',
-          textTransform: 'uppercase', color: T.ok,
-        }}>
+        <span
+          style={{
+            writingMode: "vertical-rl",
+            transform: "rotate(180deg)",
+            fontSize: 9,
+            fontWeight: 600,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: T.ok,
+          }}
+        >
           Ready
         </span>
       )}
     </div>
-  )
+  );
 }
 
 // ── Individual table pin (positioned absolutely on the floor plan) ─────────────
 function TablePin({
-  table, hovered, onEnter, onLeave, onClick,
+  table,
+  hovered,
+  onEnter,
+  onLeave,
+  onClick,
 }: {
-  table:    TableWithStatus
-  hovered:  boolean
-  onEnter:  () => void
-  onLeave:  () => void
-  onClick:  () => void
+  table: TableWithStatus;
+  hovered: boolean;
+  onEnter: () => void;
+  onLeave: () => void;
+  onClick: () => void;
 }) {
-  const { T } = useTheme()
-  const isBar   = table.section === 'bar'
-  const color   = statusColor(table.status, T)
-  const isAttn  = table.status === 'attention'
-  const isAging = table.status === 'aging'
-  const isActive = ['occupied','aging','attention'].includes(table.status)
+  const { T } = useTheme();
+  const isBar = table.section === "bar";
+  const color = statusColor(table.status, T);
+  const isAttn = table.status === "attention";
+  const isAging = table.status === "aging";
+  const isActive = ["occupied", "aging", "attention"].includes(table.status);
 
-  const left = `${((table.pos_x ?? 0) / COORD_MAX) * 100}%`
-  const top  = `${((table.pos_y ?? 0) / COORD_MAX) * 100}%`
+  const left = `${((table.pos_x ?? 0) / COORD_MAX) * 100}%`;
+  const top = `${((table.pos_y ?? 0) / COORD_MAX) * 100}%`;
 
-  const SIZE = isBar ? 52 : 64
+  const SIZE = isBar ? 52 : 64;
 
   return (
     <button
       onClick={onClick}
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
-      className={isAttn ? 'bp-attn' : isAging ? 'bp-aging' : ''}
+      className={isAttn ? "bp-attn" : isAging ? "bp-aging" : ""}
       style={{
-        position:  'absolute',
-        left, top,
+        position: "absolute",
+        left,
+        top,
         transform: `translate(-50%, -50%) scale(${hovered ? 1.06 : 1})`,
-        width:  SIZE, height: SIZE,
-        borderRadius: isBar ? '50%' : T.radius,
+        width: SIZE,
+        height: SIZE,
+        borderRadius: isBar ? "50%" : T.radius,
         background: hovered ? T.surface2 : T.surface,
         border: `2px solid ${color}`,
         // Thinner full border for non-active states
-        boxShadow: isActive ? `inset 3px 0 0 ${color}` : 'none',
-        cursor: 'pointer', fontFamily: 'inherit', color: T.text,
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        padding: 0, gap: 1,
-        transition: 'transform 0.1s ease, background 0.12s ease, border-color 0.12s ease',
+        boxShadow: isActive ? `inset 3px 0 0 ${color}` : "none",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        color: T.text,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 0,
+        gap: 1,
+        transition:
+          "transform 0.1s ease, background 0.12s ease, border-color 0.12s ease",
         zIndex: isAttn ? 2 : hovered ? 3 : 1,
       }}
     >
-      <span style={{
-        fontFamily: T.mono, fontSize: 11, fontWeight: 700,
-        color: isActive ? color : T.textDim,
-        letterSpacing: '-0.01em', lineHeight: 1,
-      }}>
+      <span
+        style={{
+          fontFamily: T.mono,
+          fontSize: 11,
+          fontWeight: 700,
+          color: isActive ? color : T.textDim,
+          letterSpacing: "-0.01em",
+          lineHeight: 1,
+        }}
+      >
         {table.label}
       </span>
 
       {/* Status dot */}
-      <span style={{
-        width: 5, height: 5, borderRadius: '50%',
-        background: color, flexShrink: 0,
-      }} />
+      <span
+        style={{
+          width: 5,
+          height: 5,
+          borderRadius: "50%",
+          background: color,
+          flexShrink: 0,
+        }}
+      />
 
       {/* Check total (if occupied) */}
       {isActive && table.checkTotal > 0 && (
-        <span style={{
-          fontFamily: T.mono, fontSize: 9, fontWeight: 600,
-          color, lineHeight: 1, fontVariantNumeric: 'tabular-nums',
-        }}>
-          ₱{table.checkTotal >= 1000
+        <span
+          style={{
+            fontFamily: T.mono,
+            fontSize: 9,
+            fontWeight: 600,
+            color,
+            lineHeight: 1,
+            fontVariantNumeric: "tabular-nums",
+          }}
+        >
+          ₱
+          {table.checkTotal >= 1000
             ? `${(table.checkTotal / 1000).toFixed(1)}k`
             : table.checkTotal.toFixed(0)}
         </span>
       )}
     </button>
-  )
+  );
 }
 
 // ── Floor plan view ────────────────────────────────────────────────────────────
 function FloorPlan({
-  tables, tickets, onOpenTable,
+  tables,
+  tickets,
+  onOpenTable,
 }: {
-  tables:      TableWithStatus[]
-  tickets:     KdsTicket[]
-  onOpenTable: (id: string) => void
+  tables: TableWithStatus[];
+  tickets: KdsTicket[];
+  onOpenTable: (id: string) => void;
 }) {
-  const { T } = useTheme()
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const { T } = useTheme();
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   // Tables that have a valid position (all seeded tables should)
-  const pinTables = tables.filter(t => t.pos_x != null && t.pos_y != null)
+  const pinTables = tables.filter((t) => t.pos_x != null && t.pos_y != null);
 
   // Count KDS items with status 'ready' for the Kitchen Pass indicator
-  const readyCount = tickets.filter(t => t.status === 'firing' && t.elapsedSec < 60).length
+  const readyCount = tickets.filter(
+    (t) => t.status === "firing" && t.elapsedSec < 60,
+  ).length;
 
   return (
-    <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
-
+    <div
+      style={{
+        flex: 1,
+        display: "flex",
+        overflow: "hidden",
+        position: "relative",
+      }}
+    >
       {/* ── Floor area ────────────────────────────────────────────────── */}
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-
+      <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
         {/* SVG dot grid background */}
         <svg
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            pointerEvents: "none",
+          }}
           xmlns="http://www.w3.org/2000/svg"
         >
           <defs>
-            <pattern id="fp-dots" x="0" y="0" width="32" height="32" patternUnits="userSpaceOnUse">
+            <pattern
+              id="fp-dots"
+              x="0"
+              y="0"
+              width="32"
+              height="32"
+              patternUnits="userSpaceOnUse"
+            >
               <circle cx="0.5" cy="0.5" r="1" fill={T.line2} opacity={0.6} />
             </pattern>
           </defs>
@@ -179,17 +259,25 @@ function FloorPlan({
         </svg>
 
         {/* Section label watermark */}
-        <div style={{
-          position: 'absolute', top: 16, left: 20,
-          fontSize: 10, fontWeight: 700, letterSpacing: '0.14em',
-          textTransform: 'uppercase', color: T.textMute, opacity: 0.5,
-          pointerEvents: 'none',
-        }}>
+        <div
+          style={{
+            position: "absolute",
+            top: 16,
+            left: 20,
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+            color: T.textMute,
+            opacity: 0.5,
+            pointerEvents: "none",
+          }}
+        >
           Main · Section 1
         </div>
 
         {/* Table pins */}
-        {pinTables.map(table => (
+        {pinTables.map((table) => (
           <TablePin
             key={table.id}
             table={table}
@@ -202,11 +290,18 @@ function FloorPlan({
 
         {/* Empty state for unpositioned tables */}
         {pinTables.length === 0 && (
-          <div style={{
-            position: 'absolute', inset: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: T.textMute, fontFamily: T.mono, fontSize: 12,
-          }}>
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: T.textMute,
+              fontFamily: T.mono,
+              fontSize: 12,
+            }}
+          >
             No floor coordinates — set pos_x/pos_y on tables
           </div>
         )}
@@ -215,216 +310,392 @@ function FloorPlan({
       {/* ── Kitchen Pass strip ────────────────────────────────────────── */}
       <KitchenPass readyCount={readyCount} />
     </div>
-  )
+  );
 }
 
 // ── Section header reused across panels ──────────────────────────────────────
-export function PanelHd({ title, badge, badgeColor, action }: {
-  title: React.ReactNode; badge?: React.ReactNode; badgeColor?: string; action?: React.ReactNode
+export function PanelHd({
+  title,
+  badge,
+  badgeColor,
+  action,
+}: {
+  title: React.ReactNode;
+  badge?: React.ReactNode;
+  badgeColor?: string;
+  action?: React.ReactNode;
 }) {
-  const { T } = useTheme()
+  const { T } = useTheme();
   return (
-    <div style={{
-      height: 46, padding: '0 20px', borderBottom: `1px solid ${T.line}`,
-      display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0,
-    }}>
-      <span style={{
-        fontSize: 11, fontWeight: 600, letterSpacing: '0.12em',
-        textTransform: 'uppercase', color: T.text,
-      }}>{title}</span>
+    <div
+      style={{
+        height: 46,
+        padding: "0 20px",
+        borderBottom: `1px solid ${T.line}`,
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        flexShrink: 0,
+      }}
+    >
+      <span
+        style={{
+          fontSize: 11,
+          fontWeight: 600,
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          color: T.text,
+        }}
+      >
+        {title}
+      </span>
       {badge && (
-        <span style={{
-          fontFamily: T.mono, fontSize: 11,
-          color: badgeColor ?? T.textDim,
-          background: badgeColor ? `${badgeColor}18` : T.chip,
-          padding: '2px 8px', borderRadius: 2,
-        }}>{badge}</span>
+        <span
+          style={{
+            fontFamily: T.mono,
+            fontSize: 11,
+            color: badgeColor ?? T.textDim,
+            background: badgeColor ? `${badgeColor}18` : T.chip,
+            padding: "2px 8px",
+            borderRadius: 2,
+          }}
+        >
+          {badge}
+        </span>
       )}
       <div style={{ flex: 1 }} />
       {action}
     </div>
-  )
+  );
 }
 
 // ── KPI strip (100px, 6 equal columns) ───────────────────────────────────────
-function KpiStrip({ tables, tickets }: { tables: TableWithStatus[]; tickets: KdsTicket[] }) {
-  const { T } = useTheme()
-  const bp = useBreakpoint()
-  const isMobile = bp === 'mobile'
-  const [todayRev,  setTodayRev]  = useState(0)
-  const [txCount,   setTxCount]   = useState(0)
-  const [avgTurnMinBar,     setAvgTurnMinBar]     = useState<number | null>(null)
-  const [avgTurnMinKitchen, setAvgTurnMinKitchen] = useState<number | null>(null)
+function KpiStrip({
+  tables,
+  tickets,
+}: {
+  tables: TableWithStatus[];
+  tickets: KdsTicket[];
+}) {
+  const { T } = useTheme();
+  const bp = useBreakpoint();
+  const isMobile = bp === "mobile";
+  const [todayRev, setTodayRev] = useState(0);
+  const [txCount, setTxCount] = useState(0);
+  const [avgTurnMinBar, setAvgTurnMinBar] = useState<number | null>(null);
+  const [avgTurnMinKitchen, setAvgTurnMinKitchen] = useState<number | null>(
+    null,
+  );
 
   useEffect(() => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sb = getClient() as any
+    const sb = getClient() as any;
 
     async function refresh() {
-      const { start: shiftStart, end: shiftEnd } = dayBounds(currentShiftDate())
+      const { start: shiftStart, end: shiftEnd } =
+        dayBounds(currentShiftDate());
 
       // Revenue = only closed orders (paid). Unbilled covers open ones.
       const { data: closedToday } = await sb
-        .from('orders').select('id')
-        .eq('status', 'closed')
-        .gte('opened_at', shiftStart)
-        .lte('opened_at', shiftEnd)
-      const closedOIds = (closedToday ?? []).map((o: any) => o.id)
-      let gross = 0
-      let txN = closedOIds.length
+        .from("orders")
+        .select("id")
+        .eq("status", "closed")
+        .gte("opened_at", shiftStart)
+        .lte("opened_at", shiftEnd);
+      const closedOIds = (closedToday ?? []).map((o: any) => o.id);
+      let gross = 0;
+      const txN = closedOIds.length;
       if (closedOIds.length > 0) {
         const { data: lines } = await sb
-          .from('order_items').select('qty, unit_price')
-          .in('order_id', closedOIds)
-          .neq('status', 'voided')
-        for (const r of (lines ?? [])) gross += r.qty * r.unit_price
+          .from("order_items")
+          .select("qty, unit_price")
+          .in("order_id", closedOIds)
+          .neq("status", "voided");
+        for (const r of lines ?? []) gross += r.qty * r.unit_price;
       }
-      setTodayRev(gross)
-      setTxCount(txN)
+      setTodayRev(gross);
+      setTxCount(txN);
 
-      const BAR_CATS = new Set(['Beer', 'Cocktails', 'Hard Drinks', 'Palit Bote', 'Non-Alcohol'])
+      const BAR_CATS = new Set([
+        "Beer",
+        "Cocktails",
+        "Hard Drinks",
+        "Palit Bote",
+        "Non-Alcohol",
+      ]);
       const { data: servedItems } = await sb
-        .from('order_items').select('fired_at, completed_at, menu_items(category)')
-        .eq('status', 'served')
-        .gte('fired_at', shiftStart)
-        .lte('fired_at', shiftEnd)
-        .not('fired_at', 'is', null)
-        .not('completed_at', 'is', null)
-      const si: any[] = servedItems ?? []
+        .from("order_items")
+        .select("fired_at, completed_at, menu_items(category)")
+        .eq("status", "served")
+        .gte("fired_at", shiftStart)
+        .lte("fired_at", shiftEnd)
+        .not("fired_at", "is", null)
+        .not("completed_at", "is", null);
+      const si: any[] = servedItems ?? [];
       const calcAvg = (items: any[]): number | null => {
-        if (items.length === 0) return null
-        const total = items.reduce((s: number, i: any) =>
-          s + (new Date(i.completed_at).getTime() - new Date(i.fired_at).getTime()) / 60000, 0)
-        return Math.round(total / items.length)
-      }
-      setAvgTurnMinBar(calcAvg(si.filter(i => BAR_CATS.has(i.menu_items?.category))))
-      setAvgTurnMinKitchen(calcAvg(si.filter(i => !BAR_CATS.has(i.menu_items?.category))))
+        if (items.length === 0) return null;
+        const total = items.reduce(
+          (s: number, i: any) =>
+            s +
+            (new Date(i.completed_at).getTime() -
+              new Date(i.fired_at).getTime()) /
+              60000,
+          0,
+        );
+        return Math.round(total / items.length);
+      };
+      setAvgTurnMinBar(
+        calcAvg(si.filter((i) => BAR_CATS.has(i.menu_items?.category))),
+      );
+      setAvgTurnMinKitchen(
+        calcAvg(si.filter((i) => !BAR_CATS.has(i.menu_items?.category))),
+      );
     }
 
-    refresh()
+    refresh();
     // Poll every 30s — avoids a 5th redundant realtime channel on order_items
-    const interval = setInterval(refresh, 30_000)
-    return () => clearInterval(interval)
-  }, [])
+    const interval = setInterval(refresh, 30_000);
+    return () => clearInterval(interval);
+  }, []);
 
-  const open     = tables.filter(t => ['occupied','aging','attention'].includes(t.status)).length
-  const reserved = tables.filter(t => t.status === 'reserved').length
-  const attn     = tables.filter(t => t.status === 'attention').length
+  const open = tables.filter((t) =>
+    ["occupied", "aging", "attention"].includes(t.status),
+  ).length;
+  const reserved = tables.filter((t) => t.status === "reserved").length;
+  const attn = tables.filter((t) => t.status === "attention").length;
 
   // Unbilled = sum of live cart totals on all open tables
   const unbilled = tables
-    .filter(t => ['occupied','aging','attention'].includes(t.status))
-    .reduce((s, t) => s + (t.checkTotal ?? 0), 0)
+    .filter((t) => ["occupied", "aging", "attention"].includes(t.status))
+    .reduce((s, t) => s + (t.checkTotal ?? 0), 0);
 
-  const fmtPeso = (v: number) => `₱${v.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  const fmtPeso = (v: number) =>
+    `₱${v.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  const projected = todayRev + unbilled
+  const projected = todayRev + unbilled;
 
   const kpis = [
-    { label: 'Projected · Today', value: fmtPeso(projected),
-      note: unbilled > 0 ? `+${fmtPeso(unbilled)} unbilled` : 'no open tabs',
-      noteColor: unbilled > 0 ? T.accent : T.textDim },
-    { label: 'Revenue · Today',   value: todayRev > 0 ? fmtPeso(todayRev) : '₱0',
-      note: `${txCount} txn today`, noteColor: T.textDim },
-    { label: 'Occupied',          value: `${open}/${tables.length}`,
-      note: `${reserved} reserved`, noteColor: T.textDim },
-    { label: 'Avg. Order',        value: txCount > 0 ? fmtPeso(todayRev / txCount) : '—',
-      note: 'today', noteColor: T.textDim },
-    { label: 'KDS Open',          value: `${tickets.length}`,
-      note: tickets.length > 0 ? `${tickets.filter(t => t.elapsedSec > 360).length} aging` : 'all clear',
-      noteColor: tickets.filter(t => t.elapsedSec > 360).length > 0 ? T.warn : T.textDim },
-    { label: 'Bar Turn Time',     value: avgTurnMinBar != null ? `${avgTurnMinBar}m` : '—',
-      note: 'fired → served', noteColor: T.textDim },
-    { label: 'Kitchen Turn Time', value: avgTurnMinKitchen != null ? `${avgTurnMinKitchen}m` : '—',
-      note: 'fired → served', noteColor: T.textDim },
-  ]
+    {
+      label: "Projected · Today",
+      value: fmtPeso(projected),
+      note: unbilled > 0 ? `+${fmtPeso(unbilled)} unbilled` : "no open tabs",
+      noteColor: unbilled > 0 ? T.accent : T.textDim,
+    },
+    {
+      label: "Revenue · Today",
+      value: todayRev > 0 ? fmtPeso(todayRev) : "₱0",
+      note: `${txCount} txn today`,
+      noteColor: T.textDim,
+    },
+    {
+      label: "Occupied",
+      value: `${open}/${tables.length}`,
+      note: `${reserved} reserved`,
+      noteColor: T.textDim,
+    },
+    {
+      label: "Avg. Order",
+      value: txCount > 0 ? fmtPeso(todayRev / txCount) : "—",
+      note: "today",
+      noteColor: T.textDim,
+    },
+    {
+      label: "KDS Open",
+      value: `${tickets.length}`,
+      note:
+        tickets.length > 0
+          ? `${tickets.filter((t) => t.elapsedSec > 360).length} aging`
+          : "all clear",
+      noteColor:
+        tickets.filter((t) => t.elapsedSec > 360).length > 0
+          ? T.warn
+          : T.textDim,
+    },
+    {
+      label: "Bar Turn Time",
+      value: avgTurnMinBar != null ? `${avgTurnMinBar}m` : "—",
+      note: "fired → served",
+      noteColor: T.textDim,
+    },
+    {
+      label: "Kitchen Turn Time",
+      value: avgTurnMinKitchen != null ? `${avgTurnMinKitchen}m` : "—",
+      note: "fired → served",
+      noteColor: T.textDim,
+    },
+  ];
 
   const kpiStyle: React.CSSProperties = isMobile
-    ? { display: 'flex', flexDirection: 'row', overflowX: 'auto', touchAction: 'pan-x pan-y', WebkitOverflowScrolling: 'touch', height: 'auto', overscrollBehavior: 'contain' }
-    : { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', height: 'clamp(80px, 9.3vh, 120px)' }
+    ? {
+        display: "flex",
+        flexDirection: "row",
+        overflowX: "auto",
+        touchAction: "pan-x pan-y",
+        WebkitOverflowScrolling: "touch",
+        height: "auto",
+        overscrollBehavior: "contain",
+      }
+    : {
+        display: "grid",
+        gridTemplateColumns: "repeat(7, 1fr)",
+        height: "clamp(80px, 9.3vh, 120px)",
+      };
 
   return (
-    <div className="bp-no-scrollbar" style={{
-      ...kpiStyle,
-      borderBottom: `1px solid ${T.line}`, flexShrink: 0,
-    }}>
+    <div
+      className="bp-no-scrollbar"
+      style={{
+        ...kpiStyle,
+        borderBottom: `1px solid ${T.line}`,
+        flexShrink: 0,
+      }}
+    >
       {kpis.map((k, i) => (
-        <div key={k.label} style={{
-          padding: isMobile ? '12px 16px' : '16px 24px',
-          borderRight: `1px solid ${T.line}`,
-          display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-          minWidth: isMobile ? 150 : undefined,
-          flexShrink: 0,
-          gap: isMobile ? 4 : undefined,
-        }}>
-          <div style={{
-            fontSize: 10, fontWeight: 600, letterSpacing: '0.12em',
-            textTransform: 'uppercase', color: T.textMute, whiteSpace: 'nowrap',
-          }}>{k.label}</div>
-          <div style={{
-            fontSize: isMobile ? 18 : i <= 1 ? 28 : 24, fontWeight: 700,
-            fontFamily: T.mono, letterSpacing: '-0.02em',
-            color: T.text, fontVariantNumeric: 'tabular-nums', lineHeight: 1,
-          }}>{k.value}</div>
-          <div style={{ fontSize: 11, color: k.noteColor, fontWeight: 500 }}>{k.note}</div>
+        <div
+          key={k.label}
+          style={{
+            padding: isMobile ? "12px 16px" : "16px 24px",
+            borderRight: `1px solid ${T.line}`,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            minWidth: isMobile ? 150 : undefined,
+            flexShrink: 0,
+            gap: isMobile ? 4 : undefined,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 10,
+              fontWeight: 600,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: T.textMute,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {k.label}
+          </div>
+          <div
+            style={{
+              fontSize: isMobile ? 18 : i <= 1 ? 28 : 24,
+              fontWeight: 700,
+              fontFamily: T.mono,
+              letterSpacing: "-0.02em",
+              color: T.text,
+              fontVariantNumeric: "tabular-nums",
+              lineHeight: 1,
+            }}
+          >
+            {k.value}
+          </div>
+          <div style={{ fontSize: 11, color: k.noteColor, fontWeight: 500 }}>
+            {k.note}
+          </div>
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 // ── Table grid card ───────────────────────────────────────────────────────────
 function TableCard({
-  table, onClick, onRemove,
+  table,
+  onClick,
+  onRemove,
 }: {
-  table:    TableWithStatus
-  onClick:  () => void
-  onRemove?: () => void
+  table: TableWithStatus;
+  onClick: () => void;
+  onRemove?: () => void;
 }) {
-  const { T } = useTheme()
-  const color     = statusColor(table.status, T)
-  const isAttn    = table.status === 'attention'
-  const isAging   = table.status === 'aging'
-  const isActive  = ['occupied','aging','attention'].includes(table.status)
+  const { T } = useTheme();
+  const color = statusColor(table.status, T);
+  const isAttn = table.status === "attention";
+  const isAging = table.status === "aging";
+  const isActive = ["occupied", "aging", "attention"].includes(table.status);
 
   return (
     <div
       onClick={onClick}
-      className={isAttn ? 'bp-attn' : isAging ? 'bp-aging' : ''}
+      className={isAttn ? "bp-attn" : isAging ? "bp-aging" : ""}
       style={{
-        textAlign: 'left', padding: 12, cursor: 'pointer',
-        background: T.surface, fontFamily: 'inherit', color: T.text,
-        border: `1px solid ${color}26`,   // statusColor at ~15% alpha
-        borderLeft: `4px solid ${color}`,  // 4px left stripe — the status tell
+        textAlign: "left",
+        padding: 12,
+        cursor: "pointer",
+        background: T.surface,
+        fontFamily: "inherit",
+        color: T.text,
+        border: `1px solid ${color}26`, // statusColor at ~15% alpha
+        borderLeft: `4px solid ${color}`, // 4px left stripe — the status tell
         borderRadius: T.radius,
-        display: 'flex', flexDirection: 'column', gap: 4,
-        minHeight: 96, position: 'relative',
-        transition: 'background 0.12s ease, transform 0.1s ease',
+        display: "flex",
+        flexDirection: "column",
+        gap: 4,
+        minHeight: 96,
+        position: "relative",
+        transition: "background 0.12s ease, transform 0.1s ease",
       }}
-      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = T.surface2; (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)' }}
-      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = T.surface;  (e.currentTarget as HTMLElement).style.transform = 'translateY(0)' }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.background = T.surface2;
+        (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.background = T.surface;
+        (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
+      }}
     >
       {/* Top row: label + status dot + optional remove */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <span style={{
-          fontSize: 17, fontWeight: 700, fontFamily: T.mono, letterSpacing: '-0.01em',
-          color: T.text,
-        }}>{table.label}</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <span style={{
-            width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0,
-            marginTop: 3,
-          }} />
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+        }}
+      >
+        <span
+          style={{
+            fontSize: 17,
+            fontWeight: 700,
+            fontFamily: T.mono,
+            letterSpacing: "-0.01em",
+            color: T.text,
+          }}
+        >
+          {table.label}
+        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <span
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: "50%",
+              background: color,
+              flexShrink: 0,
+              marginTop: 3,
+            }}
+          />
           {onRemove && (
             <button
-              onClick={e => { e.stopPropagation(); onRemove() }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemove();
+              }}
               title="Remove temporary table"
               style={{
-                width: 18, height: 18, borderRadius: T.radius,
-                background: `${T.bad}22`, border: `1px solid ${T.bad}44`,
-                color: T.bad, cursor: 'pointer', fontSize: 12, lineHeight: 1,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: 0, flexShrink: 0,
+                width: 18,
+                height: 18,
+                borderRadius: T.radius,
+                background: `${T.bad}22`,
+                border: `1px solid ${T.bad}44`,
+                color: T.bad,
+                cursor: "pointer",
+                fontSize: 12,
+                lineHeight: 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 0,
+                flexShrink: 0,
               }}
             >
               ×
@@ -434,70 +705,106 @@ function TableCard({
       </div>
 
       {/* Status label */}
-      <div style={{
-        fontSize: 10, fontWeight: 600, letterSpacing: '0.08em',
-        textTransform: 'uppercase', color,
-      }}>
+      <div
+        style={{
+          fontSize: 10,
+          fontWeight: 600,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color,
+        }}
+      >
         {statusLabel(table.status)}
       </div>
 
       {/* Foot row: time + check total */}
       {isActive && (
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          marginTop: 'auto',
-        }}>
-          <span style={{
-            fontSize: 11, fontFamily: T.mono, color: T.textMute,
-            fontVariantNumeric: 'tabular-nums',
-          }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginTop: "auto",
+          }}
+        >
+          <span
+            style={{
+              fontSize: 11,
+              fontFamily: T.mono,
+              color: T.textMute,
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
             {table.openMin}m
           </span>
           {table.checkTotal > 0 && (
-            <span style={{
-              fontSize: 13, fontWeight: 600, fontFamily: T.mono,
-              color, fontVariantNumeric: 'tabular-nums',
-            }}>
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                fontFamily: T.mono,
+                color,
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
               ₱{table.checkTotal.toFixed(2)}
             </span>
           )}
         </div>
       )}
     </div>
-  )
+  );
 }
 
 // ── New table card + modal ────────────────────────────────────────────────────
-function NewTableCard({ tables, onOrder }: { tables: TableWithStatus[]; onOrder: (id: string) => void }) {
-  const { T } = useTheme()
-  const [open,   setOpen]   = useState(false)
-  const [label,  setLabel]  = useState('')
-  const [cap,    setCap]    = useState('2')
-  const [saving, setSaving] = useState(false)
-  const tablesRef = useRef(tables)
-  useEffect(() => { tablesRef.current = tables })
+function NewTableCard({
+  tables,
+  onOrder,
+}: {
+  tables: TableWithStatus[];
+  onOrder: (id: string) => void;
+}) {
+  const { T } = useTheme();
+  const [open, setOpen] = useState(false);
+  const [label, setLabel] = useState("");
+  const [cap, setCap] = useState("2");
+  const [saving, setSaving] = useState(false);
+  const tablesRef = useRef(tables);
+  useEffect(() => {
+    tablesRef.current = tables;
+  });
 
   useEffect(() => {
-    if (!open) return
-    setLabel('Takeout')
-    setCap('2')
-  }, [open])
+    if (!open) return;
+    setLabel("Takeout");
+    setCap("2");
+  }, [open]);
 
   async function create() {
-    const trimmed = label.trim()
-    if (!trimmed || saving) return
-    setSaving(true)
+    const trimmed = label.trim();
+    if (!trimmed || saving) return;
+    setSaving(true);
     const existing = tablesRef.current
-      .filter(t => t.id.startsWith('W'))
-      .map(t => parseInt(t.id.slice(1)) || 0)
-    const nextNum = existing.length > 0 ? Math.max(...existing) + 1 : 1
+      .filter((t) => t.id.startsWith("W"))
+      .map((t) => parseInt(t.id.slice(1)) || 0);
+    const nextNum = existing.length > 0 ? Math.max(...existing) + 1 : 1;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (getClient() as any).from('restaurant_tables').insert({
-      id: `W${nextNum}`, label: trimmed, section: 'walkup',
-      capacity: parseInt(cap) || 2, status: 'available', pos_x: null, pos_y: null,
-    })
-    setSaving(false)
-    if (!error) { setOpen(false); onOrder(`W${nextNum}`) }
+    const { error } = await (getClient() as any)
+      .from("restaurant_tables")
+      .insert({
+        id: `W${nextNum}`,
+        label: trimmed,
+        section: "walkup",
+        capacity: parseInt(cap) || 2,
+        status: "available",
+        pos_x: null,
+        pos_y: null,
+      });
+    setSaving(false);
+    if (!error) {
+      setOpen(false);
+      onOrder(`W${nextNum}`);
+    }
   }
 
   return (
@@ -506,32 +813,55 @@ function NewTableCard({ tables, onOrder }: { tables: TableWithStatus[]; onOrder:
       <button
         onClick={() => setOpen(true)}
         style={{
-          textAlign: 'left', padding: 12, cursor: 'pointer',
-          background: 'transparent', fontFamily: 'inherit', color: T.textMute,
+          textAlign: "left",
+          padding: 12,
+          cursor: "pointer",
+          background: "transparent",
+          fontFamily: "inherit",
+          color: T.textMute,
           border: `1px dashed ${T.line2}`,
           borderRadius: T.radius,
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          justifyContent: 'center', gap: 6,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
           minHeight: 96,
-          transition: 'background 0.12s ease, border-color 0.12s ease, color 0.12s ease',
+          transition:
+            "background 0.12s ease, border-color 0.12s ease, color 0.12s ease",
         }}
-        onMouseEnter={e => {
-          const el = e.currentTarget as HTMLElement
-          el.style.background = T.surface2
-          el.style.borderColor = T.accent
-          el.style.color = T.accent
+        onMouseEnter={(e) => {
+          const el = e.currentTarget as HTMLElement;
+          el.style.background = T.surface2;
+          el.style.borderColor = T.accent;
+          el.style.color = T.accent;
         }}
-        onMouseLeave={e => {
-          const el = e.currentTarget as HTMLElement
-          el.style.background = 'transparent'
-          el.style.borderColor = T.line2
-          el.style.color = T.textMute
+        onMouseLeave={(e) => {
+          const el = e.currentTarget as HTMLElement;
+          el.style.background = "transparent";
+          el.style.borderColor = T.line2;
+          el.style.color = T.textMute;
         }}
       >
-        <svg viewBox="0 0 16 16" width={20} height={20} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round">
+        <svg
+          viewBox="0 0 16 16"
+          width={20}
+          height={20}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.5}
+          strokeLinecap="round"
+        >
           <path d="M8 3v10M3 8h10" />
         </svg>
-        <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+          }}
+        >
           New Table
         </span>
       </button>
@@ -539,142 +869,298 @@ function NewTableCard({ tables, onOrder }: { tables: TableWithStatus[]; onOrder:
       {/* Modal */}
       {open && (
         <div
-          onClick={e => { if (e.target === e.currentTarget) setOpen(false) }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setOpen(false);
+          }}
           style={{
-            position: 'fixed', inset: 0, zIndex: 2000,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(0,0,0,0.72)',
-            backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-            animation: 'bp-fade-in 0.15s ease forwards',
+            position: "fixed",
+            inset: 0,
+            zIndex: 2000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(0,0,0,0.72)",
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
+            animation: "bp-fade-in 0.15s ease forwards",
           }}
         >
-          <div style={{
-            background: T.surface, border: `1px solid ${T.line2}`,
-            borderRadius: T.radiusLg, boxShadow: T.shadowModal,
-            width: 360, padding: '32px 32px 28px',
-            animation: 'bp-modal-pop 0.22s ease forwards',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: T.text }}>New Temporary Table</div>
-              <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: T.textMute, cursor: 'pointer', fontSize: 18, padding: 4 }}>×</button>
+          <div
+            style={{
+              background: T.surface,
+              border: `1px solid ${T.line2}`,
+              borderRadius: T.radiusLg,
+              boxShadow: T.shadowModal,
+              width: 360,
+              padding: "32px 32px 28px",
+              animation: "bp-modal-pop 0.22s ease forwards",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 24,
+              }}
+            >
+              <div style={{ fontSize: 16, fontWeight: 700, color: T.text }}>
+                New Temporary Table
+              </div>
+              <button
+                onClick={() => setOpen(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: T.textMute,
+                  cursor: "pointer",
+                  fontSize: 18,
+                  padding: 4,
+                }}
+              >
+                ×
+              </button>
             </div>
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 6 }}>Name / Label</div>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: "0.10em",
+                  textTransform: "uppercase",
+                  color: T.textMute,
+                  marginBottom: 6,
+                }}
+              >
+                Name / Label
+              </div>
               <input
-                autoFocus value={label} onChange={e => setLabel(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') create(); if (e.key === 'Escape') setOpen(false) }}
+                autoFocus
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") create();
+                  if (e.key === "Escape") setOpen(false);
+                }}
                 placeholder="e.g. Takeout, Bar Tab"
                 style={{
-                  width: '100%', boxSizing: 'border-box', fontFamily: 'inherit', fontSize: 14,
-                  background: T.surface2, border: `1px solid ${T.line2}`,
-                  color: T.text, borderRadius: T.radius, padding: '9px 12px', outline: 'none',
+                  width: "100%",
+                  boxSizing: "border-box",
+                  fontFamily: "inherit",
+                  fontSize: 14,
+                  background: T.surface2,
+                  border: `1px solid ${T.line2}`,
+                  color: T.text,
+                  borderRadius: T.radius,
+                  padding: "9px 12px",
+                  outline: "none",
                 }}
               />
             </div>
             <div style={{ marginBottom: 24 }}>
-              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.10em', textTransform: 'uppercase', color: T.textMute, marginBottom: 6 }}>Capacity</div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                {['1','2','4','6','8'].map(n => (
-                  <button key={n} onClick={() => setCap(n)} style={{
-                    flex: 1, padding: '8px 0', fontSize: 13, fontFamily: T.mono, fontWeight: 600,
-                    background: cap === n ? T.accent : T.chip,
-                    color:      cap === n ? T.accentInk : T.textDim,
-                    border:     `1px solid ${cap === n ? T.accent : T.line2}`,
-                    borderRadius: T.radius, cursor: 'pointer',
-                  }}>{n}</button>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: "0.10em",
+                  textTransform: "uppercase",
+                  color: T.textMute,
+                  marginBottom: 6,
+                }}
+              >
+                Capacity
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                {["1", "2", "4", "6", "8"].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => setCap(n)}
+                    style={{
+                      flex: 1,
+                      padding: "8px 0",
+                      fontSize: 13,
+                      fontFamily: T.mono,
+                      fontWeight: 600,
+                      background: cap === n ? T.accent : T.chip,
+                      color: cap === n ? T.accentInk : T.textDim,
+                      border: `1px solid ${cap === n ? T.accent : T.line2}`,
+                      borderRadius: T.radius,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {n}
+                  </button>
                 ))}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setOpen(false)} style={{
-                flex: 1, padding: '10px 0', fontSize: 13, fontFamily: 'inherit',
-                background: T.chip, color: T.textDim,
-                border: `1px solid ${T.line2}`, borderRadius: T.radius, cursor: 'pointer',
-              }}>Cancel</button>
-              <button onClick={create} disabled={saving || !label.trim()} style={{
-                flex: 2, padding: '10px 0', fontSize: 14, fontFamily: 'inherit', fontWeight: 700,
-                background: T.accent, color: T.accentInk,
-                border: 'none', borderRadius: T.radius, cursor: 'pointer',
-                opacity: (!label.trim() || saving) ? 0.5 : 1,
-              }}>{saving ? 'Creating…' : 'Add Table'}</button>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={() => setOpen(false)}
+                style={{
+                  flex: 1,
+                  padding: "10px 0",
+                  fontSize: 13,
+                  fontFamily: "inherit",
+                  background: T.chip,
+                  color: T.textDim,
+                  border: `1px solid ${T.line2}`,
+                  borderRadius: T.radius,
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={create}
+                disabled={saving || !label.trim()}
+                style={{
+                  flex: 2,
+                  padding: "10px 0",
+                  fontSize: 14,
+                  fontFamily: "inherit",
+                  fontWeight: 700,
+                  background: T.accent,
+                  color: T.accentInk,
+                  border: "none",
+                  borderRadius: T.radius,
+                  cursor: "pointer",
+                  opacity: !label.trim() || saving ? 0.5 : 1,
+                }}
+              >
+                {saving ? "Creating…" : "Add Table"}
+              </button>
             </div>
           </div>
         </div>
       )}
     </>
-  )
+  );
 }
 
 // ── Floor panel (left 1280px) ─────────────────────────────────────────────────
 function FloorPanel({
-  tables, tickets,
+  tables,
+  tickets,
   onOpenTable,
 }: {
-  tables:      TableWithStatus[]
-  tickets:     KdsTicket[]
-  onOpenTable: (id: string) => void
+  tables: TableWithStatus[];
+  tickets: KdsTicket[];
+  onOpenTable: (id: string) => void;
 }) {
-  const { T } = useTheme()
-  const bp = useBreakpoint()
-  const isMobile = bp === 'mobile'
-  const isTablet = bp === 'tablet'
-  const [removeBlockedTable, setRemoveBlockedTable] = useState<string | null>(null)
-  const [tooltipIdx, setTooltipIdx] = useState<number | null>(null)
-  const tooltipTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { T } = useTheme();
+  const bp = useBreakpoint();
+  const isMobile = bp === "mobile";
+  const isTablet = bp === "tablet";
+  const [removeBlockedTable, setRemoveBlockedTable] = useState<string | null>(
+    null,
+  );
+  const [tooltipIdx, setTooltipIdx] = useState<number | null>(null);
+  const tooltipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   async function removeWalkup(tableId: string) {
-    const t = tables.find(t => t.id === tableId)
-    if (t && ['occupied', 'aging', 'attention'].includes(t.status)) {
-      setRemoveBlockedTable(t.label)
-      return
+    const t = tables.find((t) => t.id === tableId);
+    if (t && ["occupied", "aging", "attention"].includes(t.status)) {
+      setRemoveBlockedTable(t.label);
+      return;
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (getClient() as any).from('restaurant_tables').delete().eq('id', tableId)
+    await (getClient() as any)
+      .from("restaurant_tables")
+      .delete()
+      .eq("id", tableId);
   }
 
   const counts = {
-    available: tables.filter(t => t.status === 'available').length,
-    occupied:  tables.filter(t => t.status === 'occupied').length,
-    aging:     tables.filter(t => t.status === 'aging').length,
-    attention: tables.filter(t => t.status === 'attention').length,
-    reserved:  tables.filter(t => t.status === 'reserved').length,
-  }
+    available: tables.filter((t) => t.status === "available").length,
+    occupied: tables.filter((t) => t.status === "occupied").length,
+    aging: tables.filter((t) => t.status === "aging").length,
+    attention: tables.filter((t) => t.status === "attention").length,
+    reserved: tables.filter((t) => t.status === "reserved").length,
+  };
 
   const legendItems: [string, string][] = [
-    ['Available',       T.textMute],
-    ['Occupied',        T.accent],
-    ['Aging',           T.warn],
-    ['Needs Attention', T.bad],
-    ['Reserved',        T.info],
-  ]
-  const legendCounts = [counts.available, counts.occupied, counts.aging, counts.attention, counts.reserved]
+    ["Available", T.textMute],
+    ["Occupied", T.accent],
+    ["Aging", T.warn],
+    ["Needs Attention", T.bad],
+    ["Reserved", T.info],
+  ];
+  const legendCounts = [
+    counts.available,
+    counts.occupied,
+    counts.aging,
+    counts.attention,
+    counts.reserved,
+  ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%' }}>
-
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
+        height: "100%",
+      }}
+    >
       {/* ── Remove blocked warning ── */}
       {removeBlockedTable && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 200,
-          background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }} onClick={() => setRemoveBlockedTable(null)}>
-          <div onClick={e => e.stopPropagation()} style={{
-            background: T.surface2, border: `1px solid ${T.line}`, borderRadius: 6,
-            padding: '28px 32px', width: 360, display: 'flex', flexDirection: 'column', gap: 16,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 200,
+            background: "rgba(0,0,0,0.55)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+          onClick={() => setRemoveBlockedTable(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: T.surface2,
+              border: `1px solid ${T.line}`,
+              borderRadius: 6,
+              padding: "28px 32px",
+              width: 360,
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <span style={{ fontSize: 18, color: T.bad }}>⚠</span>
-              <span style={{ fontSize: 15, fontWeight: 700, color: T.text }}>Cannot Remove Table</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: T.text }}>
+                Cannot Remove Table
+              </span>
             </div>
-            <p style={{ margin: 0, fontSize: 13, color: T.textDim, lineHeight: 1.6 }}>
-              Table <strong style={{ color: T.text }}>{removeBlockedTable}</strong> has an open order.
-              Close or settle the order before removing this table.
+            <p
+              style={{
+                margin: 0,
+                fontSize: 13,
+                color: T.textDim,
+                lineHeight: 1.6,
+              }}
+            >
+              Table{" "}
+              <strong style={{ color: T.text }}>{removeBlockedTable}</strong>{" "}
+              has an open order. Close or settle the order before removing this
+              table.
             </p>
             <button
               onClick={() => setRemoveBlockedTable(null)}
               style={{
-                alignSelf: 'flex-end', padding: '8px 20px', fontSize: 13, fontFamily: 'inherit', fontWeight: 600,
-                background: T.accent, color: T.accentInk, border: 'none', borderRadius: T.radius, cursor: 'pointer',
+                alignSelf: "flex-end",
+                padding: "8px 20px",
+                fontSize: 13,
+                fontFamily: "inherit",
+                fontWeight: 600,
+                background: T.accent,
+                color: T.accentInk,
+                border: "none",
+                borderRadius: T.radius,
+                cursor: "pointer",
               }}
             >
               Got it
@@ -683,129 +1169,251 @@ function FloorPanel({
         </div>
       )}
       {/* Panel header */}
-      <div style={{
-        padding: isMobile ? '0 16px' : '0 20px',
-        height: 46,
-        borderBottom: `1px solid ${T.line}`,
-        display: 'flex', alignItems: 'center',
-        gap: 10, flexShrink: 0,
-      }}>
+      <div
+        style={{
+          padding: isMobile ? "0 16px" : "0 20px",
+          height: 46,
+          borderBottom: `1px solid ${T.line}`,
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          flexShrink: 0,
+        }}
+      >
         {/* Section title — hidden on mobile to save space */}
         {!isMobile && (
-          <span style={{
-            fontSize: 11, fontWeight: 600, letterSpacing: '0.12em',
-            textTransform: 'uppercase', color: T.text,
-          }}>
-            <span style={{ color: T.accent, marginRight: 8 }}>▸</span>Floor · Section 1
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: T.text,
+            }}
+          >
+            <span style={{ color: T.accent, marginRight: 8 }}>▸</span>Floor ·
+            Section 1
           </span>
         )}
 
-        <span style={{
-          fontFamily: T.mono, fontSize: 11, color: T.textDim,
-          background: T.chip, padding: '2px 8px', borderRadius: 2, flexShrink: 0,
-        }}>
+        <span
+          style={{
+            fontFamily: T.mono,
+            fontSize: 11,
+            color: T.textDim,
+            background: T.chip,
+            padding: "2px 8px",
+            borderRadius: 2,
+            flexShrink: 0,
+          }}
+        >
           {tables.length} tables
         </span>
 
         {/* Legend — on mobile: dot + count only; tap shows label tooltip */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 12, marginLeft: isMobile ? 0 : 8 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: isMobile ? 10 : 12,
+            marginLeft: isMobile ? 0 : 8,
+          }}
+        >
           {legendItems.map(([label, color], i) => (
             <div
               key={label}
               title={!isMobile ? label : undefined}
-              onClick={isMobile ? () => {
-                if (tooltipTimer.current) clearTimeout(tooltipTimer.current)
-                setTooltipIdx(prev => prev === i ? null : i)
-                tooltipTimer.current = setTimeout(() => setTooltipIdx(null), 1500)
-              } : undefined}
-              style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, cursor: isMobile ? 'pointer' : 'default' }}
+              onClick={
+                isMobile
+                  ? () => {
+                      if (tooltipTimer.current)
+                        clearTimeout(tooltipTimer.current);
+                      setTooltipIdx((prev) => (prev === i ? null : i));
+                      tooltipTimer.current = setTimeout(
+                        () => setTooltipIdx(null),
+                        1500,
+                      );
+                    }
+                  : undefined
+              }
+              style={{
+                position: "relative",
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                flexShrink: 0,
+                cursor: isMobile ? "pointer" : "default",
+              }}
             >
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
+              <span
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  background: color,
+                }}
+              />
               {isMobile ? (
                 <>
-                  <span style={{ fontSize: 11, fontFamily: T.mono, color: T.textMute, fontVariantNumeric: 'tabular-nums' }}>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontFamily: T.mono,
+                      color: T.textMute,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
                     {legendCounts[i]}
                   </span>
                   {tooltipIdx === i && (
-                    <span style={{
-                      position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)',
-                      marginBottom: 6, whiteSpace: 'nowrap',
-                      background: T.surface2, border: `1px solid ${T.line}`,
-                      color: T.text, fontSize: 11, fontWeight: 600,
-                      padding: '3px 8px', borderRadius: 4,
-                      pointerEvents: 'none', zIndex: 50,
-                    }}>
+                    <span
+                      style={{
+                        position: "absolute",
+                        bottom: "100%",
+                        left: "50%",
+                        transform: "translateX(-50%)",
+                        marginBottom: 6,
+                        whiteSpace: "nowrap",
+                        background: T.surface2,
+                        border: `1px solid ${T.line}`,
+                        color: T.text,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        padding: "3px 8px",
+                        borderRadius: 4,
+                        pointerEvents: "none",
+                        zIndex: 50,
+                      }}
+                    >
                       {label}
                     </span>
                   )}
                 </>
               ) : (
-                <span style={{ fontSize: 10, color: T.textMute, fontFamily: T.mono, whiteSpace: 'nowrap' }}>
+                <span
+                  style={{
+                    fontSize: 10,
+                    color: T.textMute,
+                    fontFamily: T.mono,
+                    whiteSpace: "nowrap",
+                  }}
+                >
                   {label} {legendCounts[i]}
                 </span>
               )}
             </div>
           ))}
         </div>
-
       </div>
 
       {/* Body — grid view */}
-      <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: isMobile ? 12 : 20 }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : isTablet ? 'repeat(4, 1fr)' : 'repeat(6, 1fr)',
-          gap: isMobile ? 8 : 10,
-        }}>
-          {tables.map(t => (
+      <div
+        className="bp-no-scrollbar"
+        style={{ flex: 1, overflowY: "auto", padding: isMobile ? 12 : 20 }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: isMobile
+              ? "repeat(2, 1fr)"
+              : isTablet
+                ? "repeat(4, 1fr)"
+                : "repeat(6, 1fr)",
+            gap: isMobile ? 8 : 10,
+          }}
+        >
+          {tables.map((t) => (
             <TableCard
               key={t.id}
               table={t}
               onClick={() => onOpenTable(t.id)}
-              onRemove={t.id.startsWith('W') ? () => removeWalkup(t.id) : undefined}
+              onRemove={
+                t.id.startsWith("W") ? () => removeWalkup(t.id) : undefined
+              }
             />
           ))}
           <NewTableCard tables={tables} onOrder={onOpenTable} />
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 // ── FloorView root ────────────────────────────────────────────────────────────
 export default function FloorView({
-  tables, tickets, tick, onOpenTable, onBump,
+  tables,
+  tickets,
+  tick,
+  onOpenTable,
+  onBump,
 }: {
-  tables: TableWithStatus[]
-  tickets: KdsTicket[]
-  tick: number
-  onOpenTable: (id: string) => void
-  onBump: (itemIds: number[]) => void
+  tables: TableWithStatus[];
+  tickets: KdsTicket[];
+  tick: number;
+  onOpenTable: (id: string) => void;
+  onBump: (itemIds: number[]) => void;
 }) {
-  const { T } = useTheme()
-  const bp = useBreakpoint()
-  const isMobile = bp === 'mobile'
+  const { T } = useTheme();
+  const bp = useBreakpoint();
+  const isMobile = bp === "mobile";
 
   return (
-    <div className={isMobile ? 'bp-no-scrollbar' : undefined} style={{ height: '100%', display: 'flex', flexDirection: 'column', overflowY: isMobile ? 'auto' : undefined, touchAction: isMobile ? 'pan-y' : undefined }}>
+    <div
+      className={isMobile ? "bp-no-scrollbar" : undefined}
+      style={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        overflowY: isMobile ? "auto" : undefined,
+        touchAction: isMobile ? "pan-y" : undefined,
+      }}
+    >
       <KpiStrip tables={tables} tickets={tickets} />
 
       {isMobile ? (
         /* Mobile: stacked layout */
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-          <FloorPanel tables={tables} tickets={tickets} onOpenTable={onOpenTable} />
-          <div style={{ borderTop: `1px solid ${T.line}`, flexShrink: 0, minHeight: 220 }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+            minHeight: 0,
+          }}
+        >
+          <FloorPanel
+            tables={tables}
+            tickets={tickets}
+            onOpenTable={onOpenTable}
+          />
+          <div
+            style={{
+              borderTop: `1px solid ${T.line}`,
+              flexShrink: 0,
+              minHeight: 220,
+            }}
+          >
             <KdsPanel tickets={tickets} tick={tick} onBump={onBump} />
           </div>
         </div>
       ) : (
         /* Desktop/Tablet: side-by-side */
-        <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) 1px minmax(0, 1fr)' }}>
-          <FloorPanel tables={tables} tickets={tickets} onOpenTable={onOpenTable} />
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 2fr) 1px minmax(0, 1fr)",
+          }}
+        >
+          <FloorPanel
+            tables={tables}
+            tickets={tickets}
+            onOpenTable={onOpenTable}
+          />
           <div style={{ background: T.line }} />
           <KdsPanel tickets={tickets} tick={tick} onBump={onBump} />
         </div>
       )}
     </div>
-  )
+  );
 }

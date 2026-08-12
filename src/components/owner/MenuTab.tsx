@@ -1,147 +1,290 @@
-'use client'
+"use client";
 
-import { useTheme } from '@/lib/ThemeContext'
-import { useState, useCallback, useEffect } from 'react'
-import { getClient } from '@/lib/supabase'
-import { SectionHd, Pill, SearchBox } from './ownerShared'
-import { useSortable } from '@/lib/useSortable'
+import { useTheme } from "@/lib/ThemeContext";
+import { useState, useCallback, useEffect } from "react";
+import { getClient } from "@/lib/supabase";
+import { SectionHd, Pill, SearchBox } from "./ownerShared";
+import { useSortable } from "@/lib/useSortable";
 
 interface MenuRow {
-  id:          string
-  name:        string
-  category:    string
-  category2:   string
-  category3:   string
-  price:       number
-  cost:        number | null
-  isAvailable: boolean
-  sortOrder:   number
+  id: string;
+  name: string;
+  category: string;
+  category2: string;
+  category3: string;
+  price: number;
+  cost: number | null;
+  isAvailable: boolean;
+  sortOrder: number;
 }
 
 export default function MenuTab() {
-  const { T } = useTheme()
+  const { T } = useTheme();
 
-  const [items,     setItems]     = useState<MenuRow[]>([])
-  const [loading,   setLoading]   = useState(true)
-  const [editId,    setEditId]    = useState<string | null>(null)
-  const [editPrice, setEditPrice] = useState('')
-  const [filterCat, setFilterCat] = useState<string>('all')
-  const [saving,    setSaving]    = useState<string | null>(null)
-  const [search,    setSearch]    = useState('')
+  const [items, setItems] = useState<MenuRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editPrice, setEditPrice] = useState("");
+  const [filterCat, setFilterCat] = useState<string>("all");
+  const [saving, setSaving] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sb = getClient() as any
+  const sb = getClient() as any;
 
   const fetchItems = useCallback(async () => {
-    const { data } = await sb.from('menu_items').select('id, name, category, category2, category3, price, cost, is_available, sort_order').order('sort_order')
-    setItems((data ?? []).map((r: any) => ({
-      id: r.id, name: r.name, category: r.category, category2: r.category2, category3: r.category3,
-      price: r.price, cost: r.cost, isAvailable: r.is_available, sortOrder: r.sort_order,
-    })))
-    setLoading(false)
-  }, [])
+    const { data } = await sb
+      .from("menu_items")
+      .select(
+        "id, name, category, category2, category3, price, cost, is_available, sort_order",
+      )
+      .order("sort_order");
+    setItems(
+      (data ?? []).map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        category: r.category,
+        category2: r.category2,
+        category3: r.category3,
+        price: r.price,
+        cost: r.cost,
+        isAvailable: r.is_available,
+        sortOrder: r.sort_order,
+      })),
+    );
+    setLoading(false);
+  }, []);
 
-  useEffect(() => { fetchItems() }, [fetchItems])
+  useEffect(() => {
+    fetchItems();
+  }, [fetchItems]);
 
   async function toggleAvail(item: MenuRow) {
-    setSaving(item.id)
-    await sb.from('menu_items').update({ is_available: !item.isAvailable }).eq('id', item.id)
-    setItems(prev => prev.map(i => i.id === item.id ? { ...i, isAvailable: !i.isAvailable } : i))
-    setSaving(null)
+    setSaving(item.id);
+    await sb
+      .from("menu_items")
+      .update({ is_available: !item.isAvailable })
+      .eq("id", item.id);
+    setItems((prev) =>
+      prev.map((i) =>
+        i.id === item.id ? { ...i, isAvailable: !i.isAvailable } : i,
+      ),
+    );
+    setSaving(null);
   }
 
   async function savePrice(item: MenuRow) {
-    const p = parseFloat(editPrice)
-    if (isNaN(p) || p < 0) { setEditId(null); return }
-    setSaving(item.id)
-    await sb.from('menu_items').update({ price: p }).eq('id', item.id)
-    setItems(prev => prev.map(i => i.id === item.id ? { ...i, price: p } : i))
-    setEditId(null); setSaving(null)
+    const p = parseFloat(editPrice);
+    if (isNaN(p) || p < 0) {
+      setEditId(null);
+      return;
+    }
+    setSaving(item.id);
+    await sb.from("menu_items").update({ price: p }).eq("id", item.id);
+    setItems((prev) =>
+      prev.map((i) => (i.id === item.id ? { ...i, price: p } : i)),
+    );
+    setEditId(null);
+    setSaving(null);
   }
 
-  const cats     = ['all', ...Array.from(new Set(items.map(i => i.category)))]
-  const catList  = filterCat === 'all' ? items : items.filter(i => i.category === filterCat)
-  const baseList = search.trim() ? catList.filter(i => i.name.toLowerCase().includes(search.trim().toLowerCase())) : catList
-  const { sorted: filtered, toggle: sortToggle, icon: sortIcon } = useSortable(baseList, 'name' as keyof MenuRow)
+  const cats = ["all", ...Array.from(new Set(items.map((i) => i.category)))];
+  const catList =
+    filterCat === "all" ? items : items.filter((i) => i.category === filterCat);
+  const baseList = search.trim()
+    ? catList.filter((i) =>
+        i.name.toLowerCase().includes(search.trim().toLowerCase()),
+      )
+    : catList;
+  const {
+    sorted: filtered,
+    toggle: sortToggle,
+    icon: sortIcon,
+  } = useSortable(baseList, "name" as keyof MenuRow);
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+    <div
+      style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
+      }}
+    >
       <SectionHd
         title="Menu"
-        badge={`${items.filter(i => i.isAvailable).length}/${items.length} available`}
+        badge={`${items.filter((i) => i.isAvailable).length}/${items.length} available`}
         action={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div className="bp-no-scrollbar" style={{ display: 'flex', gap: 4, overflowX: 'auto', touchAction: 'pan-x pan-y' }}>
-              {cats.slice(0, 8).map(c => (
-                <Pill key={c} label={c === 'all' ? 'All' : c} active={filterCat === c} onClick={() => setFilterCat(c)} />
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div
+              className="bp-no-scrollbar"
+              style={{
+                display: "flex",
+                gap: 4,
+                overflowX: "auto",
+                touchAction: "pan-x pan-y",
+              }}
+            >
+              {cats.slice(0, 8).map((c) => (
+                <Pill
+                  key={c}
+                  label={c === "all" ? "All" : c}
+                  active={filterCat === c}
+                  onClick={() => setFilterCat(c)}
+                />
               ))}
             </div>
-            <SearchBox value={search} onChange={setSearch} placeholder="Search menu…" />
+            <SearchBox
+              value={search}
+              onChange={setSearch}
+              placeholder="Search menu…"
+            />
           </div>
         }
       />
       {loading ? (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.textMute, fontFamily: T.mono, fontSize: 12 }}>Loading…</div>
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: T.textMute,
+            fontFamily: T.mono,
+            fontSize: 12,
+          }}
+        >
+          Loading…
+        </div>
       ) : (
-        <div className="bp-no-scrollbar" style={{ flex: 1, overflow: 'auto', touchAction: 'pan-x pan-y', overscrollBehaviorX: 'contain', overscrollBehaviorY: 'none' }}>
+        <div
+          className="bp-no-scrollbar"
+          style={{
+            flex: 1,
+            overflow: "auto",
+            touchAction: "pan-x pan-y",
+            overscrollBehaviorX: "contain",
+            overscrollBehaviorY: "none",
+          }}
+        >
           <div style={{ minWidth: 560 }}>
-          <div style={{
-            display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px 120px',
-            padding: '0 24px', height: 36, alignItems: 'center',
-            borderBottom: `1px solid ${T.line}`, background: T.surface2,
-            position: 'sticky', top: 0, zIndex: 1,
-          }}>
-            {([
-              ['Name',      'name'],
-              ['Category',  'category'],
-              ['Price',     'price'],
-              ['Cost',      'cost'],
-              ['Available', 'isAvailable'],
-            ] as [string, keyof MenuRow][]).map(([h, k]) => (
-              <button key={h} onClick={() => sortToggle(k)} style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: T.headerText, display: 'flex', alignItems: 'center', gap: 3, textAlign: 'left' }}>
-                {h}<span style={{ fontSize: 8, opacity: 0.7 }}>{sortIcon(k)}</span>
-              </button>
-            ))}
-          </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 100px 80px 80px 120px",
+                padding: "0 24px",
+                height: 36,
+                alignItems: "center",
+                borderBottom: `1px solid ${T.line}`,
+                background: T.surface2,
+                position: "sticky",
+                top: 0,
+                zIndex: 1,
+              }}
+            >
+              {(
+                [
+                  ["Name", "name"],
+                  ["Category", "category"],
+                  ["Price", "price"],
+                  ["Cost", "cost"],
+                  ["Available", "isAvailable"],
+                ] as [string, keyof MenuRow][]
+              ).map(([h, k]) => (
+                <button
+                  key={h}
+                  onClick={() => sortToggle(k)}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    padding: 0,
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    fontSize: 10,
+                    fontWeight: 600,
+                    letterSpacing: "0.12em",
+                    textTransform: "uppercase",
+                    color: T.headerText,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 3,
+                    textAlign: "left",
+                  }}
+                >
+                  {h}
+                  <span style={{ fontSize: 8, opacity: 0.7 }}>
+                    {sortIcon(k)}
+                  </span>
+                </button>
+              ))}
+            </div>
             {filtered.map((item, i) => {
-              const isEditing = editId === item.id
-              const isSaving  = saving === item.id
+              const isEditing = editId === item.id;
+              const isSaving = saving === item.id;
               return (
-                <div key={item.id} style={{
-                  display: 'grid', gridTemplateColumns: '1fr 100px 80px 80px 120px',
-                  padding: '0 24px', height: 44, alignItems: 'center',
-                  borderBottom: `1px solid ${T.line}`,
-                  background: i % 2 === 0 ? 'transparent' : T.surface,
-                  opacity: isSaving ? 0.5 : item.isAvailable ? 1 : 0.45,
-                }}>
-                  <span style={{ fontSize: 13, fontWeight: 500, color: item.isAvailable ? T.text : T.textMute }}>
+                <div
+                  key={item.id}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 100px 80px 80px 120px",
+                    padding: "0 24px",
+                    height: 44,
+                    alignItems: "center",
+                    borderBottom: `1px solid ${T.line}`,
+                    background: i % 2 === 0 ? "transparent" : T.surface,
+                    opacity: isSaving ? 0.5 : item.isAvailable ? 1 : 0.45,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 500,
+                      color: item.isAvailable ? T.text : T.textMute,
+                    }}
+                  >
                     {item.name}
                   </span>
-                  <span style={{ fontSize: 11, color: T.textMute }}>{item.category}</span>
+                  <span style={{ fontSize: 11, color: T.textMute }}>
+                    {item.category}
+                  </span>
 
                   {isEditing ? (
                     <input
                       autoFocus
                       value={editPrice}
-                      onChange={e => setEditPrice(e.target.value)}
+                      onChange={(e) => setEditPrice(e.target.value)}
                       onBlur={() => savePrice(item)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') savePrice(item)
-                        if (e.key === 'Escape') setEditId(null)
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") savePrice(item);
+                        if (e.key === "Escape") setEditId(null);
                       }}
                       style={{
-                        width: 70, fontFamily: T.mono, fontSize: 13, fontWeight: 600,
-                        background: T.surface, border: `1px solid ${T.accent}88`,
-                        color: T.text, borderRadius: T.radius, padding: '2px 6px', outline: 'none',
+                        width: 70,
+                        fontFamily: T.mono,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        background: T.surface,
+                        border: `1px solid ${T.accent}88`,
+                        color: T.text,
+                        borderRadius: T.radius,
+                        padding: "2px 6px",
+                        outline: "none",
                       }}
                     />
                   ) : (
                     <span
-                      onClick={() => { setEditId(item.id); setEditPrice(item.price.toFixed(0)) }}
+                      onClick={() => {
+                        setEditId(item.id);
+                        setEditPrice(item.price.toFixed(0));
+                      }}
                       title="Click to edit price"
                       style={{
-                        fontFamily: T.mono, fontSize: 13, fontWeight: 600, color: T.accent,
-                        fontVariantNumeric: 'tabular-nums', cursor: 'pointer',
+                        fontFamily: T.mono,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: T.accent,
+                        fontVariantNumeric: "tabular-nums",
+                        cursor: "pointer",
                         borderBottom: `1px dashed ${T.accent}44`,
                       }}
                     >
@@ -149,8 +292,14 @@ export default function MenuTab() {
                     </span>
                   )}
 
-                  <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute }}>
-                    {item.cost != null ? `₱${item.cost.toFixed(0)}` : '—'}
+                  <span
+                    style={{
+                      fontFamily: T.mono,
+                      fontSize: 12,
+                      color: T.textMute,
+                    }}
+                  >
+                    {item.cost != null ? `₱${item.cost.toFixed(0)}` : "—"}
                   </span>
 
                   <div>
@@ -158,22 +307,28 @@ export default function MenuTab() {
                       onClick={() => toggleAvail(item)}
                       disabled={isSaving}
                       style={{
-                        padding: '8px 12px', fontSize: 11, fontFamily: 'inherit', fontWeight: 600,
-                        background: item.isAvailable ? `${T.ok}22` : `${T.bad}18`,
+                        padding: "8px 12px",
+                        fontSize: 11,
+                        fontFamily: "inherit",
+                        fontWeight: 600,
+                        background: item.isAvailable
+                          ? `${T.ok}22`
+                          : `${T.bad}18`,
                         border: `1px solid ${item.isAvailable ? T.ok : T.bad}44`,
                         color: item.isAvailable ? T.ok : T.bad,
-                        borderRadius: T.radius, cursor: 'pointer',
+                        borderRadius: T.radius,
+                        cursor: "pointer",
                       }}
                     >
-                      {item.isAvailable ? 'Available' : 'Unavailable'}
+                      {item.isAvailable ? "Available" : "Unavailable"}
                     </button>
                   </div>
                 </div>
-              )
+              );
             })}
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }

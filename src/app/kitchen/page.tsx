@@ -1,5 +1,5 @@
-import KitchenClientApp from './ClientApp'
+import KitchenClientApp from "./ClientApp";
 
 export default function KitchenPage() {
-  return <KitchenClientApp />
+  return <KitchenClientApp />;
 }
