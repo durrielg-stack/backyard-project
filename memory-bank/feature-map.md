@@ -69,10 +69,7 @@
 - Auto-restore on void: `useOrder.ts` calls `restore_inventory` RPC
 
 ### Public Availability Page
-- Full page: `src/app/public/page.tsx`
-- Styles: `src/styles/availability.css`
-- Domain routing: `src/middleware.ts` (rewrites `byp.theserverprojectph.cc` → `/public`)
-- Status/tone derivation: `deriveSummary()` in `public/page.tsx`
+Moved to the standalone `backyard-byp` repo/project on 2026-08-16 (formerly `src/app/public/page.tsx` + `src/middleware.ts` domain rewrite). Still reads `restaurant_tables`/`orders` anonymously from this project's Supabase database.
 
 ### Auth
 - Staff login picker: `src/components/StaffPicker.tsx`

@@ -10,11 +10,9 @@ AI-optimized fast lookup. Use this before scanning the repository.
 |--------------|------|
 | Main POS shell | `src/app/POSApp.tsx` |
 | POS page (SSR guard) | `src/app/page.tsx` → `src/app/ClientApp.tsx` |
-| Public availability page | `src/app/public/page.tsx` |
 | Waiter mobile interface | `src/app/waiter/page.tsx` → `src/app/waiter/ClientApp.tsx` → `src/components/waiter/WaiterApp.tsx` |
 | Kitchen display | `src/app/kitchen/page.tsx` → `src/app/kitchen/ClientApp.tsx` → `src/components/kitchen/KitchenApp.tsx` |
 | Messenger webhook | `src/app/api/messenger/webhook/route.ts` |
-| Domain routing | `src/middleware.ts` |
 
 ---
 
