@@ -4,6 +4,16 @@ Major milestones in reverse-chronological order. See `git log` for full commit h
 
 ---
 
+## 2026-08
+
+### Public availability page moved to `backyard-byp` (2026-08-16)
+- The `/public` route, `src/middleware.ts` domain rewrite, `src/styles/availability.css`, and the page-only static assets (logos, gallery, menu images) all removed from this repo
+- Now lives as its own Next.js project/repo, deployed separately, serving `byp.theserverprojectph.cc` directly (no longer a rewrite target from this project)
+- Still reads `restaurant_tables`/`orders` anonymously from this project's Supabase database — a nightly + every-push schema-contract test in the new repo guards against drift
+- CSP in `next.config.ts` dropped the Botpress-specific `script-src`/`frame-src`/`connect-src` allowances, which existed only for that page's webchat widget
+
+---
+
 ## 2026-06
 
 ### Dine-In / Takeout Per-Item Toggle (2026-06-03)

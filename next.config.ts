@@ -10,17 +10,14 @@ const CSP_REPORT_ONLY = [
   "object-src 'none'",
   "form-action 'self'",
   "frame-ancestors 'none'",
-  // Next.js injects inline bootstrap scripts; Vercel Analytics loads same-origin;
-  // Botpress webchat widget on the public page (byp.theserverprojectph.cc)
-  "script-src 'self' 'unsafe-inline' https://*.botpress.cloud https://*.bpcontent.cloud",
+  // Next.js injects inline bootstrap scripts; Vercel Analytics loads same-origin
+  "script-src 'self' 'unsafe-inline'",
   // App is 100% inline styles; Google Fonts stylesheet is remote
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: blob: https:",
-  // Botpress webchat widget renders in an iframe
-  "frame-src https://*.botpress.cloud",
-  // Supabase REST + realtime websockets, Vercel analytics beacon, Botpress webchat
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.vercel-insights.com https://vitals.vercel-insights.com https://*.botpress.cloud https://*.bpcontent.cloud wss://*.botpress.cloud",
+  // Supabase REST + realtime websockets, Vercel analytics beacon
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.vercel-insights.com https://vitals.vercel-insights.com",
 ].join("; ");
 
 const SECURITY_HEADERS = [

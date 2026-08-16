@@ -112,6 +112,8 @@ Executed as planned in two commits (`8154ae4` inline ExpensesTab −290 lines, `
 
 ## R6 — Deduplicate timezone math out of `public/page.tsx`; split the file
 
+**MOOT (2026-08-16).** The public availability page moved out of this repo entirely, to the standalone `backyard-byp` project. This repo no longer carries the file, so there's nothing here to refactor. Left below for historical context only.
+
 **Summary.** The public availability page (1,136 lines, the largest file) carries its own Manila-offset day math while `lib/dateNav.ts` is the canonical home; it also inlines all sections, fonts, and status logic in one file.
 
 **Why it matters (and why it's ranked low).** Duplicate timezone math is the same drift class as R3 — a boundary bug here shows wrong open/closed status to the public. But the page is outward-facing, visually bespoke, rarely changed, and working; churn risk exceeds carrying cost today.
@@ -134,7 +136,7 @@ Executed as planned in two commits (`8154ae4` inline ExpensesTab −290 lines, `
 - **Global 1s tick re-rendering the app shell**: theoretical performance concern, zero observed symptoms, fixed 1920×1080 target, small data. Optimizing it now is the premature-optimization trap; the profiler earns it a place on this list, not intuition.
 - **`FloorView.tsx` (811) / `PayModal` (567) size**: large but cohesive single-purpose files with no duplication evidence; splitting would be preference, not value.
 - **Realtime subscription boilerplate across hooks**: mild repetition, but each subscription has meaningful per-hook differences; a forced abstraction would be speculative generality.
-- **Tailwind removal** (installed, unused for components): build-time noise only; removing it risks the public page which does use utility classes — verify before ever touching.
+- **Tailwind removal** (installed, unused for components): build-time noise only; the public page that used to justify caution here moved to `backyard-byp` on 2026-08-16 — re-verify no other utility-class usage remains before touching.
 
 ---
 
@@ -147,7 +149,7 @@ Executed as planned in two commits (`8154ae4` inline ExpensesTab −290 lines, `
 | 3 | R5 typed Supabase client | 8 | Long-Term Architectural |
 | 4 | R3 helper/constant consolidation | 6 | Quick Win |
 | 5 | R4 OwnerView decomposition | ≈5.4 | Medium Effort |
-| 6 | R6 public page timezone/split | ≈1.1 | Deferred / opportunistic |
+| 6 | R6 public page timezone/split | ≈1.1 | Moot (2026-08-16) — page moved to `backyard-byp` |
 
 ---
 
@@ -161,6 +163,6 @@ Executed as planned in two commits (`8154ae4` inline ExpensesTab −290 lines, `
 
 **Phase 4 — Extend the safety net (R5).** Incremental typed-client adoption, interleaved with normal feature work indefinitely. Sequenced last among active phases not because it matters least but because its per-file migrations get cheaper after Phases 1–3 reduce and reorganize the files, and because its revealed-error triage benefits from the cleaner baseline.
 
-**Opportunistic — R6** rides along whenever the public page is next opened for its own reasons. Never as standalone churn.
+**R6 is moot** — the public page it targeted moved to `backyard-byp` on 2026-08-16.
 
 Standing rules for every phase: one behavior per commit; full verification ladder on anything touching money or writes; golden numbers recorded *before* the change they guard; `dev` only, owner tests, `main` on his word; and update `architecture.md`/`feature-map.md` in the same commit that falsifies them.
