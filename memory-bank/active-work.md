@@ -40,5 +40,6 @@ Categories:
 
 ## Known Deferred Items
 
-- **TablesSection on public page** — commented out (`{/* <TablesSection tables={tables} /> */}`); restore when bar gets busier
 - **`/order/[tableId]` route** — currently just redirects to `/`; exists as a shell for future deep-linking
+
+(The public page's TablesSection deferred item moved with the page itself to `backyard-byp` on 2026-08-16.)

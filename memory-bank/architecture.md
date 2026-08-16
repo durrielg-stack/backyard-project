@@ -91,7 +91,6 @@ KitchenApp (src/app/kitchen/)
 - **`src/lib/theme.ts`** — canonical token set (`THEME` for dark, `LIGHT_THEME` for light)
 - **`src/lib/ThemeContext.tsx`** — `useTheme()` returns `{ T, isDark, toggle }` where `T` is the active theme
 - **`src/styles/globals.css`** — POS globals: scrollbar hiding (`.bp-no-scrollbar`), KPI scroll (`.bp-scroll-x`, `.bp-scroll-y`), attention pulse (`@keyframes bp-attn`)
-- **`src/styles/availability.css`** — public page only; imports Oswald + Hanken Grotesk; `.byp-light` class for light mode overrides
 
 ## Shared Utilities (`src/lib/`)
 
