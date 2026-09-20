@@ -1,9 +1,15 @@
 "use client";
 
 import { useTheme } from "@/lib/ThemeContext";
-import { useState, useEffect, useCallback } from "react";
+import { Fragment, useState, useEffect, useCallback } from "react";
 import { getClient } from "@/lib/supabase";
 import { SectionHd, fmtPeso } from "./ownerShared";
+import {
+  itemsForMonth,
+  effectiveLabel,
+  monthStart,
+  previousMonthStart,
+} from "@/lib/opex";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -15,6 +21,9 @@ export interface OpexItem {
   bandDay: "friday" | "saturday" | null;
   notes: string | null;
   isActive: boolean;
+  // Month-start strings, both inclusive; effectiveTo null = open-ended.
+  effectiveFrom: string;
+  effectiveTo: string | null;
 }
 
 export interface MonthConfig {
@@ -55,7 +64,7 @@ export function computeMonthlyOpex(
 ): number {
   if (!cfg || cfg.workingDays === 0) return 0;
   let total = 0;
-  for (const item of items) {
+  for (const item of itemsForMonth(items, cfg.year, cfg.month)) {
     if (!item.isActive) continue;
     if (item.type === "monthly_fixed") total += item.amount;
     else if (item.type === "band") {
@@ -99,6 +108,13 @@ export default function OpexTab() {
   const [fAmt, setFAmt] = useState("");
   const [fBand, setFBand] = useState<"friday" | "saturday">("friday");
   const [fNotes, setFNotes] = useState("");
+  const [fFrom, setFFrom] = useState("");
+
+  // Amount-change state: a new amount from a chosen month onward.
+  const [editId, setEditId] = useState<number | null>(null);
+  const [eAmt, setEAmt] = useState("");
+  const [eFrom, setEFrom] = useState("");
+  const [err, setErr] = useState<string | null>(null);
 
   // Monthly config edit state
   const [cfgEdit, setCfgEdit] = useState(false);
@@ -126,6 +142,8 @@ export default function OpexTab() {
         bandDay: r.band_day ?? null,
         notes: r.notes ?? null,
         isActive: r.is_active,
+        effectiveFrom: r.effective_from,
+        effectiveTo: r.effective_to ?? null,
       })),
     );
     if (cfgRow) {
@@ -152,6 +170,14 @@ export default function OpexTab() {
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
+
+  const viewedMonthInput = `${year}-${String(month).padStart(2, "0")}`;
+
+  useEffect(() => {
+    setFFrom(viewedMonthInput);
+    setEditId(null);
+    setErr(null);
+  }, [viewedMonthInput]);
 
   function shiftMonth(delta: number) {
     let m = month + delta,
@@ -197,18 +223,93 @@ export default function OpexTab() {
     const amt = parseFloat(fAmt);
     if (!fName.trim() || isNaN(amt) || amt < 0) return;
     setSaving(true);
-    await sb.from("opex_items").insert({
+    const [fy, fm] = (fFrom || viewedMonthInput).split("-").map(Number);
+    const { error } = await sb.from("opex_items").insert({
       name: fName.trim(),
       type: fType,
       amount: amt,
       band_day: fType === "band" ? fBand : null,
       notes: fNotes.trim() || null,
+      effective_from: monthStart(fy, fm),
     });
+    if (error) {
+      setErr(error.message);
+      setSaving(false);
+      return;
+    }
     setFName("");
     setFAmt("");
     setFNotes("");
     setFType("monthly_fixed");
     setShowForm(false);
+    await fetchAll();
+    setSaving(false);
+  }
+
+  function startEdit(item: OpexItem) {
+    setErr(null);
+    setEditId(item.id);
+    setEAmt(String(item.amount));
+    setEFrom(viewedMonthInput);
+  }
+
+  // Changing an amount from a later month splits the item into two versions so
+  // months that already closed keep the figure they were reported at.
+  async function saveEdit(item: OpexItem) {
+    const amt = parseFloat(eAmt);
+    if (isNaN(amt) || amt < 0) return;
+    const [ey, em] = eFrom.split("-").map(Number);
+    if (!ey || !em) return;
+    const from = monthStart(ey, em);
+    if (from < item.effectiveFrom) {
+      setErr("Effective month cannot precede this version's own start month.");
+      return;
+    }
+    setSaving(true);
+    setErr(null);
+    if (from === item.effectiveFrom) {
+      // Same era — correcting this version's figure in place.
+      const { error } = await sb
+        .from("opex_items")
+        .update({ amount: amt })
+        .eq("id", item.id);
+      if (error) {
+        setErr(error.message);
+        setSaving(false);
+        return;
+      }
+    } else {
+      const { error: closeErr } = await sb
+        .from("opex_items")
+        .update({ effective_to: previousMonthStart(ey, em) })
+        .eq("id", item.id);
+      if (closeErr) {
+        setErr(closeErr.message);
+        setSaving(false);
+        return;
+      }
+      const { error: openErr } = await sb.from("opex_items").insert({
+        name: item.name,
+        type: item.type,
+        amount: amt,
+        band_day: item.bandDay,
+        notes: item.notes,
+        is_active: item.isActive,
+        effective_from: from,
+        effective_to: item.effectiveTo,
+      });
+      if (openErr) {
+        // Roll the close back so the item never disappears from later months.
+        await sb
+          .from("opex_items")
+          .update({ effective_to: item.effectiveTo })
+          .eq("id", item.id);
+        setErr(openErr.message);
+        setSaving(false);
+        return;
+      }
+    }
+    setEditId(null);
     await fetchAll();
     setSaving(false);
   }
@@ -230,6 +331,9 @@ export default function OpexTab() {
 
   const monthlyTotal = computeMonthlyOpex(items, cfg);
   const dailyAlloc = computeDailyOpex(items, cfg);
+  // Only the versions that govern the viewed month; stepping the month nav is
+  // how the owner sees an item's history.
+  const visibleItems = itemsForMonth(items, year, month);
   const monthLabel = `${MONTH_NAMES[month - 1]} ${year}`;
 
   const inputStyle = {
@@ -243,6 +347,15 @@ export default function OpexTab() {
     outline: "none",
     width: "100%",
     boxSizing: "border-box" as const,
+  };
+
+  const fieldLabelStyle = {
+    fontSize: 10,
+    fontWeight: 600,
+    letterSpacing: "0.10em",
+    textTransform: "uppercase" as const,
+    color: T.textMute,
+    marginBottom: 4,
   };
 
   return (
@@ -298,7 +411,7 @@ export default function OpexTab() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 130px 110px 130px 1fr",
+              gridTemplateColumns: "1fr 120px 100px 120px 130px 90px",
               gap: 8,
               alignItems: "end",
             }}
@@ -415,6 +528,15 @@ export default function OpexTab() {
                 />
               </div>
             )}
+            <div>
+              <div style={fieldLabelStyle}>Effective From</div>
+              <input
+                value={fFrom}
+                onChange={(e) => setFFrom(e.target.value)}
+                type="month"
+                style={{ ...inputStyle, fontFamily: T.mono }}
+              />
+            </div>
             <div style={{ display: "flex", alignItems: "flex-end" }}>
               <button
                 onClick={addItem}
@@ -437,6 +559,9 @@ export default function OpexTab() {
               </button>
             </div>
           </div>
+          {err && editId === null && (
+            <div style={{ fontSize: 11, color: T.bad }}>{err}</div>
+          )}
         </div>
       )}
 
@@ -455,7 +580,7 @@ export default function OpexTab() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 110px 120px 90px 36px",
+              gridTemplateColumns: "1fr 110px 120px 90px 68px",
               padding: "0 16px",
               height: 36,
               alignItems: "center",
@@ -494,7 +619,7 @@ export default function OpexTab() {
               >
                 Loading…
               </div>
-            ) : items.length === 0 ? (
+            ) : visibleItems.length === 0 ? (
               <div
                 style={{
                   padding: "32px 24px",
@@ -503,89 +628,200 @@ export default function OpexTab() {
                   fontSize: 12,
                 }}
               >
-                No OPEX items yet — add one above.
+                No OPEX items effective in {monthLabel} — add one above.
               </div>
             ) : (
-              items.map((item, i) => (
-                <div
-                  key={item.id}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 110px 120px 90px 36px",
-                    padding: "0 16px",
-                    height: 44,
-                    alignItems: "center",
-                    borderBottom: `1px solid ${T.line}`,
-                    background: i % 2 === 0 ? "transparent" : T.surface,
-                    opacity: item.isActive ? 1 : 0.4,
-                  }}
-                >
-                  <span
+              visibleItems.map((item, i) => (
+                <Fragment key={item.id}>
+                  <div
                     style={{
-                      fontSize: 13,
-                      color: T.text,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
+                      display: "grid",
+                      gridTemplateColumns: "1fr 110px 120px 90px 68px",
+                      padding: "0 16px",
+                      height: 44,
+                      alignItems: "center",
+                      borderBottom: `1px solid ${T.line}`,
+                      background: i % 2 === 0 ? "transparent" : T.surface,
+                      opacity: item.isActive ? 1 : 0.4,
                     }}
                   >
-                    {item.name}
-                  </span>
-                  <span style={{ fontSize: 11, color: T.textDim }}>
-                    {TYPE_LABELS[item.type]}
-                  </span>
-                  <span
-                    style={{
-                      fontFamily: T.mono,
-                      fontSize: 13,
-                      color: T.ok,
-                      fontVariantNumeric: "tabular-nums",
-                    }}
-                  >
-                    {fmtPeso(item.amount)}
-                    {item.type === "daily_flat"
-                      ? "/day"
-                      : item.type === "band"
-                        ? "/day"
-                        : ""}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      color: T.textMute,
-                      textTransform: "capitalize",
-                    }}
-                  >
-                    {item.type === "band" ? (item.bandDay ?? "—") : "—"}
-                  </span>
-                  <div style={{ display: "flex", gap: 4 }}>
-                    <button
-                      onClick={() => toggleActive(item)}
-                      title={item.isActive ? "Deactivate" : "Activate"}
+                    <div style={{ minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontSize: 13,
+                          color: T.text,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {item.name}
+                      </div>
+                      {effectiveLabel(item) && (
+                        <div
+                          style={{
+                            fontSize: 10,
+                            fontFamily: T.mono,
+                            color: T.textMute,
+                            letterSpacing: "0.04em",
+                          }}
+                        >
+                          {effectiveLabel(item)}
+                        </div>
+                      )}
+                    </div>
+                    <span style={{ fontSize: 11, color: T.textDim }}>
+                      {TYPE_LABELS[item.type]}
+                    </span>
+                    <span
                       style={{
-                        width: 28,
-                        height: 28,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        background: "transparent",
-                        border: `1px solid ${T.line2}`,
-                        color: item.isActive ? T.ok : T.textMute,
-                        borderRadius: T.radius,
-                        cursor: "pointer",
-                        fontSize: 12,
+                        fontFamily: T.mono,
+                        fontSize: 13,
+                        color: T.ok,
+                        fontVariantNumeric: "tabular-nums",
                       }}
                     >
-                      {item.isActive ? "●" : "○"}
-                    </button>
+                      {fmtPeso(item.amount)}
+                      {item.type === "daily_flat"
+                        ? "/day"
+                        : item.type === "band"
+                          ? "/day"
+                          : ""}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        color: T.textMute,
+                        textTransform: "capitalize",
+                      }}
+                    >
+                      {item.type === "band" ? (item.bandDay ?? "—") : "—"}
+                    </span>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button
+                        onClick={() => toggleActive(item)}
+                        title={item.isActive ? "Deactivate" : "Activate"}
+                        style={{
+                          width: 28,
+                          height: 28,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          background: "transparent",
+                          border: `1px solid ${T.line2}`,
+                          color: item.isActive ? T.ok : T.textMute,
+                          borderRadius: T.radius,
+                          cursor: "pointer",
+                          fontSize: 12,
+                        }}
+                      >
+                        {item.isActive ? "●" : "○"}
+                      </button>
+                      <button
+                        onClick={() => startEdit(item)}
+                        title="Change amount from a month onward"
+                        style={{
+                          width: 28,
+                          height: 28,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          background: "transparent",
+                          border: `1px solid ${T.line2}`,
+                          color: T.textDim,
+                          borderRadius: T.radius,
+                          cursor: "pointer",
+                          fontSize: 12,
+                        }}
+                      >
+                        ✎
+                      </button>
+                    </div>
                   </div>
-                </div>
+                  {editId === item.id && (
+                    <div
+                      style={{
+                        padding: "10px 16px",
+                        background: T.surface2,
+                        borderBottom: `1px solid ${T.line}`,
+                        display: "flex",
+                        gap: 10,
+                        alignItems: "flex-end",
+                      }}
+                    >
+                      <div style={{ width: 120 }}>
+                        <div style={fieldLabelStyle}>New Amount ₱</div>
+                        <input
+                          value={eAmt}
+                          onChange={(e) => setEAmt(e.target.value)}
+                          type="number"
+                          min="0"
+                          style={{ ...inputStyle, fontFamily: T.mono }}
+                        />
+                      </div>
+                      <div style={{ width: 150 }}>
+                        <div style={fieldLabelStyle}>Effective From</div>
+                        <input
+                          value={eFrom}
+                          onChange={(e) => setEFrom(e.target.value)}
+                          type="month"
+                          style={{ ...inputStyle, fontFamily: T.mono }}
+                        />
+                      </div>
+                      <button
+                        onClick={() => saveEdit(item)}
+                        disabled={saving || !eAmt}
+                        style={{
+                          padding: "7px 16px",
+                          fontSize: 12,
+                          fontFamily: "inherit",
+                          fontWeight: 700,
+                          background: T.accent,
+                          color: T.accentInk,
+                          border: "none",
+                          borderRadius: T.radius,
+                          cursor: "pointer",
+                          opacity: !eAmt ? 0.4 : 1,
+                        }}
+                      >
+                        Apply
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditId(null);
+                          setErr(null);
+                        }}
+                        style={{
+                          padding: "7px 14px",
+                          fontSize: 12,
+                          fontFamily: "inherit",
+                          background: T.chip,
+                          color: T.textDim,
+                          border: `1px solid ${T.line2}`,
+                          borderRadius: T.radius,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <span
+                        style={{
+                          fontSize: 11,
+                          color: err ? T.bad : T.textMute,
+                          paddingBottom: 6,
+                        }}
+                      >
+                        {err ?? "Earlier months keep the current amount."}
+                      </span>
+                    </div>
+                  )}
+                </Fragment>
               ))
             )}
           </div>
 
           {/* Totals footer */}
-          {items.filter((i) => i.isActive).length > 0 && (
+          {visibleItems.filter((i) => i.isActive).length > 0 && (
             <div
               style={{
                 padding: "10px 16px",
@@ -597,7 +833,7 @@ export default function OpexTab() {
               }}
             >
               <span style={{ fontSize: 11, color: T.textMute }}>
-                {items.filter((i) => i.isActive).length} active items
+                {visibleItems.filter((i) => i.isActive).length} active items
               </span>
               <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
                 <div style={{ textAlign: "right" }}>

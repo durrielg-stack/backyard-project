@@ -266,6 +266,8 @@ export default function BudgetTab() {
         bandDay: r.band_day ?? null,
         notes: r.notes ?? null,
         isActive: r.is_active,
+        effectiveFrom: r.effective_from,
+        effectiveTo: r.effective_to ?? null,
       })),
     );
 

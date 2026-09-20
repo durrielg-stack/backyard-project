@@ -47,12 +47,12 @@ Source of truth: `src/lib/types.ts` (Database interface). All types mirror the l
 |--------|------|-------|
 | `id` | string | UUID |
 | `name` | string | |
-| `category` | string | **Display category**: `category3` for Food, `category2` for Bar items |
+| `category` | string | **Display category**: `category3` for Food, `category2` for Bar items. **Generated column** — the DB computes it; inserting a value fails with `428C9 cannot insert a non-DEFAULT value`. Insert `category2`/`category3` only (confirmed 2026-09-13) |
 | `category2` | string | DB top-level: `Beer \| Cocktails/Hard \| Non-Alcohol \| Cigarettes \| Food` |
 | `category3` | string | DB sub-level: `Meals \| Pork \| Chicken \| Drinks \| Palit Bote \| Extra \| ...` |
 | `price` | number | Tax-inclusive |
 | `cost` | number \| null | COGS for margin reporting |
-| `modifiers` | string[] | Available modifier options |
+| `modifiers` | — | **Not a real column on `menu_items`** (confirmed 2026-09-13 via `select=*`). `types.ts` still declares it on the Row type; harmless only because `useMenuItems` selects `*` and the app-level `MenuItem.modifiers` is optional. `order_items.modifiers` does exist |
 | `is_available` | boolean | Soft toggle |
 | `sort_order` | number | Display order |
 
@@ -66,6 +66,7 @@ Source of truth: `src/lib/types.ts` (Database interface). All types mirror the l
 | `tendered` | number \| null | Cash given (cash only) |
 | `change_due` | number \| null | |
 | `processed_by` | string \| null | Staff ID |
+| `processed_at` | string | ISO timestamp. **Date-filtered** by `ReportsTab`/`useReports` for the payment-method, tips and discount breakdown — any correction that moves an order's date must move this too, or the day shows revenue with an empty payment mix |
 | `notes` | string \| null | Encodes tip and discount as `"Tip: ₱X · Discount: ₱Y"` |
 
 ### `users`
@@ -93,6 +94,30 @@ Maps a bundle/bucket menu item to the base item(s) it actually draws stock from,
 | `sold_menu_item_id` | string | UUID FK → `menu_items.id` — the item actually sold (e.g. "Bucket Red Horse Stallion") |
 | `component_menu_item_id` | string | UUID FK → `menu_items.id` — the base stocked item (e.g. "Red Horse Stallion") |
 | `qty_per_unit` | number | How many of the component are consumed per 1 unit of the sold item |
+
+### `opex_items`
+One row per **item version**, not per item. An amount change from a given month onward closes the current row and opens a new one, so a month that already closed keeps the figure it was reported at (see `src/lib/opex.ts`).
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | number | |
+| `name` | string | e.g. `Salary`, `Rent` — repeated across versions of the same item |
+| `type` | string | `'monthly_fixed'` \| `'band'` \| `'daily_flat'` |
+| `amount` | number | Per month (`monthly_fixed`) or per day (`band`, `daily_flat`) |
+| `band_day` | string \| null | `'friday'` \| `'saturday'`; only for `type = 'band'` |
+| `is_active` | boolean | Deactivated items are excluded from every month's total |
+| `effective_from` | date | **Month-start (day=1), inclusive.** First month this version applies to; `'2000-01-01'` = always |
+| `effective_to` | date \| null | **Month-start (day=1), inclusive**, or `null` for open-ended. Last month this version applies to |
+
+A version governs month `M` (= first day of `M`) iff `effective_from <= M AND (effective_to IS NULL OR effective_to >= M)`. CHECK constraints force both columns to day 1 and `effective_to >= effective_from`, so exactly one version of an item can ever govern a month.
+
+### `opex_monthly_config`
+Per-month denominators for the allocation. No row → OPEX for that month is 0.
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | number | |
+| `year` / `month` | number | `month` is 1-indexed |
+| `working_days` | number | Divisor for the daily allocation |
+| `fridays` / `saturdays` | number | Multipliers for `type = 'band'` items |
 
 ## DB Functions (RPCs)
 
