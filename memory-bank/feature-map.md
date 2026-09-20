@@ -62,6 +62,7 @@
 - Savings tracker: inline `SavingsTab` in `src/components/owner/OwnerView.tsx`
 - OPEX config: `src/components/owner/OpexTab.tsx`
 - OPEX allocation: activity-based — only on days where sales or expenses exist
+- OPEX effective dating: `src/lib/opex.ts` — amounts are versioned by month, so a change never restates closed months
 
 ### Inventory
 - Inventory view (Owner): `src/components/floor/InventoryPanel.tsx`, `src/components/owner/InventoryTab.tsx`
