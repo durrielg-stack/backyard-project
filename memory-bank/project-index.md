@@ -35,6 +35,7 @@ AI-optimized fast lookup. Use this before scanning the repository.
 | Savings | inline `SavingsTab` in `src/components/owner/OwnerView.tsx` |
 | Daily breakdown | `src/components/owner/DailyTab.tsx` |
 | OPEX config | `src/components/owner/OpexTab.tsx` |
+| OPEX effective dating | `src/lib/opex.ts` |
 | Inventory (owner) | `src/components/owner/InventoryTab.tsx` |
 | Menu management | `src/components/owner/MenuTab.tsx` |
 | Table management | inline `TablesTab` in `src/components/owner/OwnerView.tsx` |

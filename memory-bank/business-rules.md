@@ -6,7 +6,7 @@
 - Revenue is always calculated from `order_items` (price × qty), never from `payments` table — payments lag and differ on splits
 
 ## Time & Dates
-- Venue timezone: **Manila (UTC+8)**; use `MANILA_OFFSET_MS` constant for all timezone-aware date math
+- Venue timezone: **Manila (UTC+8)**. There is no timezone constant in the code — `shiftLocalDate`/`localDateStr` in `dateNav.ts` read the **viewer's browser local time** (`Date.getHours()`), so every business day in the reports is whatever day the *viewing device* thinks it is. Correct only while the POS/reporting device is set to Manila; the same order reads a different day on a device in another timezone (verified 2026-09-13: an 18:20 Manila order buckets to 09-13 on Manila, 09-12 on US Pacific, because 03:20 falls before the 6am cutoff). A doc-only `MANILA_OFFSET_MS` was referenced here until 2026-09-13; it never existed in `src/`
 - Work week runs **Wed–Mon** (not Mon–Sun); week navigation in date pickers reflects this
 - Operating hours: **4 PM – 12 MN Manila time** (tabs are often billed after midnight)
 - Pre-open states between 2–4 PM: `preparing` then `opening-soon`
@@ -19,6 +19,8 @@
 - Days with no sales and no expenses → **zero OPEX allocated** (closed or inactive day)
 - OPEX in Budget tab uses `Math.ceil()` for rounding (avoid fractional amounts)
 - This rule is retroactive: computed dynamically on each load from DB data, not stored
+- **OPEX amounts are effective-dated by month (2026-09-21)**: `opex_items` holds one row per item *version*, spanning `effective_from`..`effective_to` (both month-start dates, inclusive). Changing an amount from month M onward closes the current row at M-1 and inserts a new row from M — it never rewrites the months already reported at the old figure
+- Because allocation is computed on every load and never stored, editing an amount *in place* silently restates history. That is why an amount change goes through the version split, and why the OPEX tab's item list shows only the versions governing the month being viewed
 
 ## Table Status Thresholds
 - `available` → no open order
@@ -54,6 +56,7 @@
 - Manual ± inventory adjustment is disabled for **Beer and Cigarettes** (auto-managed; two-writers rule) — corrections happen via a deliberate physical recount, not the buttons
 - Baseline reset 2026-07-09 from owner's physical count: Red Stick 24, Blue Stick 0, Lights Stick 0 (pre-2026-07-04 counts carried drift from the silent `deduct_inventory` no-op bug). Re-corrected to Red 14 the same evening after the `updateQty` phantom-stock bug (see mistakes-to-avoid) inflated the counter by 9 during service
 - Beer baseline reset 2026-07-11 from owner's physical count (loose bottles + cases × 24, owner confirmed 24/case for all brands incl. Red Horse Stallion): Red Horse Stallion 125, San Mig Light 47, San Mig Flavors 41, Pale Pilsen 67; pre-reset counts carried the same pre-fix drift as cigarettes (Stallion was 155, Pilsen 116)
+- **A second menu item for the same physical stock (promo price, alternate size, staff price) gets an `inventory_compositions` row pointing at the original item and NO inventory row of its own** — same mechanism as buckets and cigarette packs, just `qty_per_unit = 1`. A new item with neither its own row nor a composition sells without deducting anything and drifts stock silently. First instance: `(PROMO) Primera Light 1L` (2026-09-13) → `Primera Light 1L`
 - Mixed buckets are **always exactly 3 + 3** of the two named brands (owner confirmed 2026-07-11) — the fixed `inventory_compositions` split matches service reality; full beer mapping audit same day found every sellable beer item resolves to exactly one deduction path (own row or composition, never neither)
 
 ## Item Lifecycle
