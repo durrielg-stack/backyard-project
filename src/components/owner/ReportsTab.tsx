@@ -24,6 +24,7 @@ import {
   shiftLocalDate,
   ViewMode,
   shiftHoursUpToNow,
+  expenseDateRange,
 } from "@/lib/dateNav";
 
 // ── Types local to ReportsTab ─────────────────────────────────────────────────
@@ -83,7 +84,7 @@ export default function ReportsTab() {
 
       // Use parseLocalDate to avoid UTC→local date shift when iterating bars
       const startDateStr = localDateStr(new Date(startISO));
-      const endDateStr = localDateStr(new Date(endISO));
+      const endDateStr = expenseDateRange(startISO, endISO).to;
       const startLocal = parseLocalDate(startDateStr); // guaranteed local midnight
 
       // ── Sales: two-step fetch to avoid unreliable orders!inner join filter ──

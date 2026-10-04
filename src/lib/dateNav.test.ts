@@ -7,6 +7,9 @@ import {
   dayBounds,
   navigateDay,
   shiftHoursUpToNow,
+  expenseDateRange,
+  weekBounds,
+  monthBounds,
 } from "./dateNav";
 
 // SHIFT_CUTOFF_HOUR pins the owner decision (2026-07-12): a sale after
@@ -80,6 +83,32 @@ describe("shiftHoursUpToNow", () => {
     vi.setSystemTime(new Date(2026, 9, 4, 19, 30));
     expect(shiftHoursUpToNow({ 11: 20995 })[0]).toBe(11);
     expect(shiftHoursUpToNow({ 11: 20995 }).at(-1)).toBe(19);
+  });
+});
+
+describe("expenseDateRange", () => {
+  it("covers only the business day itself", () => {
+    const { start, end } = dayBounds("2026-10-04");
+    expect(expenseDateRange(start, end)).toEqual({
+      from: "2026-10-04",
+      to: "2026-10-04",
+    });
+  });
+
+  it("stops at the last day of the month", () => {
+    const { start, end } = monthBounds(2026, 8); // September
+    expect(expenseDateRange(start, end)).toEqual({
+      from: "2026-09-01",
+      to: "2026-09-30",
+    });
+  });
+
+  it("covers Wed through Tue for a work week", () => {
+    const { start, end } = weekBounds(new Date(2026, 9, 4));
+    expect(expenseDateRange(start, end)).toEqual({
+      from: "2026-09-30",
+      to: "2026-10-06",
+    });
   });
 });
 

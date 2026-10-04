@@ -11,6 +11,7 @@ import {
   weekBounds,
   monthBounds,
   currentShiftDate,
+  expenseDateRange,
 } from "@/lib/dateNav";
 import { useSortable } from "@/lib/useSortable";
 
@@ -292,8 +293,8 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
         .select("*")
         .order("created_at", { ascending: false });
       query = query
-        .gte("expense_date", start.slice(0, 10))
-        .lte("expense_date", end.slice(0, 10));
+        .gte("expense_date", expenseDateRange(start, end).from)
+        .lte("expense_date", expenseDateRange(start, end).to);
       const { data } = await query;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setRows(

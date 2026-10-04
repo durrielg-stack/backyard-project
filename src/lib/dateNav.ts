@@ -75,7 +75,20 @@ export function dayBounds(dateStr: string): { start: string; end: string } {
   };
 }
 
-// Work week: Wed–Mon. Given a reference date, find the Wednesday that starts that week.
+// Inclusive expense_date range (YYYY-MM-DD, local) for ISO bounds from
+// dayBounds/weekBounds/monthBounds. Never slice the ISO string: it is UTC,
+// so the 6am Manila start reads as the previous date.
+export function expenseDateRange(
+  start: string,
+  end: string,
+): { from: string; to: string } {
+  return {
+    from: shiftLocalDate(new Date(start)),
+    to: shiftLocalDate(new Date(new Date(end).getTime() - 1)),
+  };
+}
+
+// Work week: Wed–Tue (closed Tuesday). Given a reference date, find the Wednesday that starts that week.
 function weekStart(ref: Date): Date {
   const d = new Date(ref);
   // day: 0=Sun,1=Mon,2=Tue,3=Wed,4=Thu,5=Fri,6=Sat
@@ -88,10 +101,11 @@ function weekStart(ref: Date): Date {
   return d;
 }
 
+// Ends just before the next Wednesday's 6am cutoff so the closed Tuesday
+// business day (e.g. a Tuesday supply run) still belongs to a week.
 function weekEnd(wed: Date): Date {
   const d = new Date(wed);
-  // Monday's shift runs past midnight: the week ends at Tuesday's 6am cutoff.
-  d.setDate(d.getDate() + 6); // Wed+6 = Tue
+  d.setDate(d.getDate() + 7);
   d.setHours(SHIFT_CUTOFF_HOUR - 1, 59, 59, 999);
   return d;
 }
@@ -103,7 +117,9 @@ export function weekBounds(ref: Date): {
 } {
   const ws = weekStart(ref);
   const we = weekEnd(ws);
-  const label = `${ws.toLocaleDateString("en-PH", { month: "short", day: "numeric" })} – ${we.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}`;
+  const lastDay = new Date(we);
+  lastDay.setDate(lastDay.getDate() - 1); // Tuesday, for the label
+  const label = `${ws.toLocaleDateString("en-PH", { month: "short", day: "numeric" })} – ${lastDay.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}`;
   return { start: ws.toISOString(), end: we.toISOString(), label };
 }
 
