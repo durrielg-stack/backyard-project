@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   localDateStr,
   parseLocalDate,
@@ -6,6 +6,7 @@ import {
   SHIFT_CUTOFF_HOUR,
   dayBounds,
   navigateDay,
+  shiftHoursUpToNow,
 } from "./dateNav";
 
 // SHIFT_CUTOFF_HOUR pins the owner decision (2026-07-12): a sale after
@@ -54,14 +55,31 @@ describe("localDateStr / parseLocalDate round-trip", () => {
 });
 
 describe("dayBounds", () => {
-  it("spans 2pm on the given date to 6am the next calendar day", () => {
+  it("spans 6am on the given date to 6am the next calendar day", () => {
     const { start, end } = dayBounds("2026-07-11");
     const startDate = new Date(start);
     const endDate = new Date(end);
-    expect(startDate.getHours()).toBe(14);
+    expect(startDate.getHours()).toBe(SHIFT_CUTOFF_HOUR);
     expect(startDate.getDate()).toBe(11);
     expect(endDate.getHours()).toBe(SHIFT_CUTOFF_HOUR);
     expect(endDate.getDate()).toBe(12);
+  });
+});
+
+describe("shiftHoursUpToNow", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("charts from 2pm when there were no morning sales", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 4, 19, 30));
+    expect(shiftHoursUpToNow({ 18: 20 })).toEqual([14, 15, 16, 17, 18, 19]);
+  });
+
+  it("starts at the first morning hour with sales", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 4, 19, 30));
+    expect(shiftHoursUpToNow({ 11: 20995 })[0]).toBe(11);
+    expect(shiftHoursUpToNow({ 11: 20995 }).at(-1)).toBe(19);
   });
 });
 

@@ -280,7 +280,7 @@ export function useReports({
     let bars: RevenueBar[];
     if (mode === "today") {
       bars = makePeak(
-        shiftHoursUpToNow().map((h) => ({
+        shiftHoursUpToNow(hourBuckets).map((h) => ({
           label: fmtHour(h),
           value: hourBuckets[h] ?? 0,
         })),
