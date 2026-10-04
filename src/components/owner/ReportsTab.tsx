@@ -199,7 +199,7 @@ export default function ReportsTab() {
       // ── Build bars — always generated regardless of whether orders exist ─────
       let newBars: MultiBar[];
       if (mode === "today") {
-        newBars = shiftHoursUpToNow().map((h) => ({
+        newBars = shiftHoursUpToNow(hourGross).map((h) => ({
           label: `${String(h).padStart(2, "0")}:00`,
           gross: hourGross[h] ?? 0,
           cost: hourCost[h] ?? 0,

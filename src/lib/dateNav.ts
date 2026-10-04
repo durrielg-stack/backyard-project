@@ -27,21 +27,33 @@ export function shiftLocalDate(d: Date): string {
   return localDateStr(d);
 }
 
-// Shift hours in order: 2pm open → 6am cutoff (next calendar day)
+// Business-day hours in order: 6am cutoff → 5am the next calendar day.
 export const SHIFT_HOURS = [
-  14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5,
+  6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 0, 1, 2,
+  3, 4, 5,
 ];
 
-// Returns the shift hours to display up to the current moment.
-// Outside the shift window (4am–1pm) returns all 14 hours.
-export function shiftHoursUpToNow(): number[] {
-  const h = new Date().getHours();
-  const idx = SHIFT_HOURS.indexOf(h);
-  return idx !== -1 ? SHIFT_HOURS.slice(0, idx + 1) : SHIFT_HOURS;
+// Regular opening hour. Hourly charts start here unless there were earlier sales.
+export const SHIFT_OPEN_HOUR = 14;
+
+// Returns the business-day hours to chart, up to the current moment.
+// Hours before the regular 2pm opening are only included from the first one
+// that has a value in `buckets`, so a normal night still charts from 2pm.
+export function shiftHoursUpToNow(
+  buckets: Record<number, number> = {},
+): number[] {
+  const openIdx = SHIFT_HOURS.indexOf(SHIFT_OPEN_HOUR);
+  const idx = SHIFT_HOURS.indexOf(new Date().getHours());
+  // Before the regular opening, show the whole day (as the 2pm-start chart did).
+  const upToNow = idx < openIdx ? SHIFT_HOURS : SHIFT_HOURS.slice(0, idx + 1);
+  const first = upToNow.findIndex(
+    (h, i) => i >= openIdx || (buckets[h] ?? 0) !== 0,
+  );
+  return upToNow.slice(first);
 }
 
 // Returns the calendar date the current shift started on.
-// If it's before the 6am cutoff, the shift started yesterday at 2pm.
+// If it's before the 6am cutoff, the business day started yesterday.
 export function currentShiftDate(): string {
   const now = new Date();
   if (now.getHours() < SHIFT_CUTOFF_HOUR) {
@@ -52,11 +64,13 @@ export function currentShiftDate(): string {
   return localDateStr(now);
 }
 
-// ISO boundaries for a shift-day: 2pm on dateStr → 6am the following calendar day
+// ISO boundaries for a business day: 6am on dateStr → 6am the following calendar day.
+// Owner decision 2026-10-04: anything sold after 6am belongs to that day (a
+// T1 order opened 11:40am fell between the old 2pm start and 6am end).
 export function dayBounds(dateStr: string): { start: string; end: string } {
   const [y, m, day] = dateStr.split("-").map(Number);
   return {
-    start: new Date(y, m - 1, day, 14, 0, 0, 0).toISOString(),
+    start: new Date(y, m - 1, day, SHIFT_CUTOFF_HOUR, 0, 0, 0).toISOString(),
     end: new Date(y, m - 1, day + 1, SHIFT_CUTOFF_HOUR, 0, 0, 0).toISOString(),
   };
 }
