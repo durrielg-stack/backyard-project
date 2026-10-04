@@ -8,6 +8,7 @@ import {
   parseLocalDate,
   shiftLocalDate,
   shiftHoursUpToNow,
+  expenseDateRange,
 } from "@/lib/dateNav";
 
 // ── Output shapes ────────────────────────────────────────────────────────────
@@ -298,11 +299,7 @@ export function useReports({
     }
 
     // ── Expenses ───────────────────────────────────────────────────────────
-    // expense_date is a date string, derive date range from bounds
-    const startDateObj = new Date(start);
-    const endDateObj = new Date(end);
-    const startDateStr = localDateStr(startDateObj);
-    const endDateStr = localDateStr(endDateObj);
+    const { from: startDateStr, to: endDateStr } = expenseDateRange(start, end);
 
     const { data: allExp } = await sb
       .from("daily_expenses")
@@ -325,10 +322,13 @@ export function useReports({
     if (mode === "today") {
       expenseDayBars = makePeak([{ label: "Today", value: expenses }]);
     } else if (mode === "week") {
-      expenseDayBars = makePeak(buildDailyBars(startDateObj, 6, expDayBuckets));
+      expenseDayBars = makePeak(
+        buildDailyBars(new Date(start), 6, expDayBuckets),
+      );
     } else {
-      const year = startDateObj.getFullYear();
-      const month = startDateObj.getMonth();
+      const startDate = new Date(start);
+      const year = startDate.getFullYear();
+      const month = startDate.getMonth();
       expenseDayBars = makePeak(buildMonthBars(year, month, expDayBuckets));
     }
 
