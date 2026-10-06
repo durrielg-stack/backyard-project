@@ -412,6 +412,7 @@ export default function DailyTab({ staffName }: { staffName: string }) {
     textAlign: align,
   });
 
+  const m3 = T.m3;
   const inputStyle = {
     fontFamily: "inherit",
     fontSize: 12,
@@ -422,6 +423,19 @@ export default function DailyTab({ staffName }: { staffName: string }) {
     padding: "6px 8px",
     outline: "none",
     boxSizing: "border-box" as const,
+    ...(m3 && {
+      background: m3.container,
+      border: "1px solid transparent",
+      borderRadius: 12,
+      minHeight: 40,
+      padding: "8px 12px",
+    }),
+  };
+  const m3Label: React.CSSProperties = {
+    fontSize: 12,
+    fontWeight: 500,
+    color: T.textDim,
+    marginBottom: 6,
   };
 
   const COL_WIDTHS = isMobile
@@ -436,6 +450,13 @@ export default function DailyTab({ staffName }: { staffName: string }) {
         display: "flex",
         flexDirection: "column",
         minHeight: 0,
+        ...(m3 && {
+          margin: isMobile ? 12 : "16px 20px 20px",
+          background: m3.container,
+          borderRadius: 24,
+          boxShadow: m3.elev1,
+          overflow: "hidden",
+        }),
       }}
     >
       <SectionHd
@@ -454,6 +475,15 @@ export default function DailyTab({ staffName }: { staffName: string }) {
               border: `1px solid ${showAdjForm ? T.line2 : T.accent}`,
               borderRadius: T.radius,
               cursor: "pointer",
+              ...(m3 && {
+                height: 40,
+                padding: "0 20px",
+                fontSize: 13,
+                background: showAdjForm ? m3.containerHigh : T.accent,
+                color: showAdjForm ? T.text : T.accentInk,
+                border: "none",
+                borderRadius: 20,
+              }),
             }}
           >
             {showAdjForm ? "Cancel" : "+ Adjustment"}
@@ -469,6 +499,13 @@ export default function DailyTab({ staffName }: { staffName: string }) {
             background: T.surface2,
             borderBottom: `1px solid ${T.line}`,
             flexShrink: 0,
+            ...(m3 && {
+              padding: "16px 20px",
+              margin: "0 20px 12px",
+              background: m3.containerHigh,
+              borderBottom: "none",
+              borderRadius: 20,
+            }),
           }}
         >
           <div
@@ -481,14 +518,18 @@ export default function DailyTab({ staffName }: { staffName: string }) {
           >
             <div>
               <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  letterSpacing: "0.10em",
-                  textTransform: "uppercase",
-                  color: T.textMute,
-                  marginBottom: 4,
-                }}
+                style={
+                  m3
+                    ? m3Label
+                    : {
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: "0.10em",
+                        textTransform: "uppercase",
+                        color: T.textMute,
+                        marginBottom: 4,
+                      }
+                }
               >
                 Date
               </div>
@@ -501,14 +542,18 @@ export default function DailyTab({ staffName }: { staffName: string }) {
             </div>
             <div>
               <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  letterSpacing: "0.10em",
-                  textTransform: "uppercase",
-                  color: T.textMute,
-                  marginBottom: 4,
-                }}
+                style={
+                  m3
+                    ? m3Label
+                    : {
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: "0.10em",
+                        textTransform: "uppercase",
+                        color: T.textMute,
+                        marginBottom: 4,
+                      }
+                }
               >
                 Amount ₱ *
               </div>
@@ -528,14 +573,18 @@ export default function DailyTab({ staffName }: { staffName: string }) {
             </div>
             <div>
               <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  letterSpacing: "0.10em",
-                  textTransform: "uppercase",
-                  color: T.textMute,
-                  marginBottom: 4,
-                }}
+                style={
+                  m3
+                    ? m3Label
+                    : {
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: "0.10em",
+                        textTransform: "uppercase",
+                        color: T.textMute,
+                        marginBottom: 4,
+                      }
+                }
               >
                 Notes *
               </div>
@@ -548,14 +597,18 @@ export default function DailyTab({ staffName }: { staffName: string }) {
             </div>
             <div>
               <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  letterSpacing: "0.10em",
-                  textTransform: "uppercase",
-                  color: T.textMute,
-                  marginBottom: 4,
-                }}
+                style={
+                  m3
+                    ? m3Label
+                    : {
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: "0.10em",
+                        textTransform: "uppercase",
+                        color: T.textMute,
+                        marginBottom: 4,
+                      }
+                }
               >
                 Added By
               </div>
@@ -579,12 +632,21 @@ export default function DailyTab({ staffName }: { staffName: string }) {
                 borderRadius: T.radius,
                 cursor: "pointer",
                 opacity: !adjAmt || !adjNotes.trim() ? 0.4 : 1,
+                ...(m3 && {
+                  height: 40,
+                  padding: "0 24px",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  borderRadius: 20,
+                }),
               }}
             >
               Save
             </button>
           </div>
-          <div style={{ marginTop: 6, fontSize: 11, color: T.textMute }}>
+          <div
+            style={{ marginTop: m3 ? 10 : 6, fontSize: 11, color: T.textMute }}
+          >
             Positive = cash in (e.g. loan received) · Negative = cash out (e.g.
             correction, transfer)
           </div>
@@ -596,7 +658,7 @@ export default function DailyTab({ staffName }: { staffName: string }) {
         className="bp-no-scrollbar"
         style={{ overflowX: "auto", touchAction: "pan-x", flexShrink: 0 }}
       >
-        <div style={{ minWidth: MIN_W }}>
+        <div style={{ minWidth: MIN_W, ...(m3 && { padding: "0 12px" }) }}>
           <div
             style={{
               display: "grid",
@@ -604,8 +666,8 @@ export default function DailyTab({ staffName }: { staffName: string }) {
               padding: "0 16px",
               height: 36,
               alignItems: "center",
-              borderBottom: `1px solid ${T.line}`,
-              background: T.surface2,
+              borderBottom: m3 ? "none" : `1px solid ${T.line}`,
+              background: m3 ? "transparent" : T.surface2,
             }}
           >
             {(
@@ -634,6 +696,11 @@ export default function DailyTab({ staffName }: { staffName: string }) {
                     letterSpacing: "0.10em",
                     textTransform: "uppercase",
                     color: T.headerText,
+                    ...(m3 && {
+                      fontSize: 11,
+                      letterSpacing: "0.04em",
+                      color: T.textMute,
+                    }),
                     textAlign: h === "Date" ? "left" : "right",
                     ...(tip
                       ? {
@@ -686,7 +753,12 @@ export default function DailyTab({ staffName }: { staffName: string }) {
             No data yet — set opening balance to begin.
           </div>
         ) : (
-          <div style={{ minWidth: MIN_W }}>
+          <div
+            style={{
+              minWidth: MIN_W,
+              ...(m3 && { padding: "0 12px 12px" }),
+            }}
+          >
             {rows.map((row, i) => {
               const isToday = row.date === todayStr;
               const hasAdj = row.adjDetails.length > 0;
@@ -695,7 +767,20 @@ export default function DailyTab({ staffName }: { staffName: string }) {
               return (
                 <div
                   key={row.date}
-                  style={{ borderBottom: `1px solid ${T.line}` }}
+                  style={
+                    m3
+                      ? {
+                          borderRadius: 14,
+                          overflow: "hidden",
+                          background: isToday
+                            ? m3.containerHighest
+                            : i % 2 === 0 || isOpen
+                              ? m3.containerHigh
+                              : "transparent",
+                          marginBottom: isOpen ? 8 : 0,
+                        }
+                      : { borderBottom: `1px solid ${T.line}` }
+                  }
                 >
                   {/* Main row */}
                   <div
@@ -714,6 +799,7 @@ export default function DailyTab({ staffName }: { staffName: string }) {
                           ? "transparent"
                           : T.surface,
                       cursor: hasAdj ? "pointer" : "default",
+                      ...(m3 && { background: "transparent" }),
                     }}
                   >
                     {/* Date */}
@@ -847,21 +933,32 @@ export default function DailyTab({ staffName }: { staffName: string }) {
                   {/* Adjustments detail */}
                   {isOpen && (
                     <div
-                      style={{
-                        padding: "10px 16px 12px 96px",
-                        background: T.surface2,
-                        borderTop: `1px solid ${T.line}`,
-                      }}
+                      style={
+                        m3
+                          ? {
+                              padding: "10px 16px 12px 96px",
+                              background: m3.containerHighest,
+                            }
+                          : {
+                              padding: "10px 16px 12px 96px",
+                              background: T.surface2,
+                              borderTop: `1px solid ${T.line}`,
+                            }
+                      }
                     >
                       <div
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 700,
-                          letterSpacing: "0.10em",
-                          textTransform: "uppercase",
-                          color: T.textMute,
-                          marginBottom: 8,
-                        }}
+                        style={
+                          m3
+                            ? { ...m3Label, marginBottom: 8 }
+                            : {
+                                fontSize: 10,
+                                fontWeight: 700,
+                                letterSpacing: "0.10em",
+                                textTransform: "uppercase",
+                                color: T.textMute,
+                                marginBottom: 8,
+                              }
+                        }
                       >
                         Adjustments
                       </div>
@@ -872,8 +969,8 @@ export default function DailyTab({ staffName }: { staffName: string }) {
                             display: "flex",
                             alignItems: "center",
                             gap: 14,
-                            padding: "4px 0",
-                            borderBottom: `1px solid ${T.line}`,
+                            padding: m3 ? "6px 0" : "4px 0",
+                            borderBottom: m3 ? "none" : `1px solid ${T.line}`,
                           }}
                         >
                           <span
@@ -932,6 +1029,15 @@ export default function DailyTab({ staffName }: { staffName: string }) {
                               cursor: "pointer",
                               fontSize: 12,
                               flexShrink: 0,
+                              ...(m3 && {
+                                width: 32,
+                                height: 32,
+                                fontSize: 14,
+                                background: m3.badContainer,
+                                color: m3.onBadContainer,
+                                border: "none",
+                                borderRadius: 16,
+                              }),
                             }}
                           >
                             ×

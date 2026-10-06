@@ -21,11 +21,12 @@ function Kbd({ children }: { children: string }) {
         minWidth: 18,
         height: 18,
         padding: "0 4px",
-        border: `1px solid ${T.line2}`,
-        borderRadius: T.radius,
+        border: T.m3 ? "none" : `1px solid ${T.line2}`,
+        borderRadius: T.m3 ? 8 : T.radius,
         fontSize: 10,
         fontFamily: T.mono,
         color: T.textMute,
+        ...(T.m3 && { background: "rgba(127,127,127,0.18)", color: "inherit" }),
         letterSpacing: 0,
         lineHeight: 1,
       }}
@@ -48,11 +49,17 @@ function MenuCard({ item, onAdd }: { item: MenuItem; onAdd: () => void }) {
         textAlign: "left",
         padding: 16,
         cursor: "pointer",
-        background: hover ? T.surface2 : T.surface,
-        border: `1px solid ${hover ? T.line2 : T.line}`,
+        background: T.m3
+          ? hover
+            ? T.m3.containerHighest
+            : T.m3.containerHigh
+          : hover
+            ? T.surface2
+            : T.surface,
+        border: T.m3 ? "none" : `1px solid ${hover ? T.line2 : T.line}`,
         color: T.text,
         fontFamily: "inherit",
-        borderRadius: T.radius,
+        borderRadius: T.m3 ? 16 : T.radius,
         position: "relative",
         display: "flex",
         flexDirection: "column",
@@ -106,9 +113,18 @@ function MenuCard({ item, onAdd }: { item: MenuItem; onAdd: () => void }) {
             justifyContent: "center",
             width: 24,
             height: 24,
-            background: hover ? T.accent : T.chip,
-            color: hover ? T.accentInk : T.textDim,
-            borderRadius: T.radius,
+            background: hover
+              ? T.accent
+              : T.m3
+                ? T.m3.primaryContainer
+                : T.chip,
+            color: hover
+              ? T.accentInk
+              : T.m3
+                ? T.m3.onPrimaryContainer
+                : T.textDim,
+            borderRadius: T.m3 ? 14 : T.radius,
+            ...(T.m3 && { width: 28, height: 28 }),
             fontSize: 18,
             lineHeight: 1,
             transition: "background 0.12s ease, color 0.12s ease",
@@ -214,19 +230,26 @@ export default function MenuPanel({
   return (
     <div
       style={{
-        borderRight: `1px solid ${T.line}`,
+        borderRight: T.m3 ? "none" : `1px solid ${T.line}`,
         display: "flex",
         flexDirection: "column",
         height: "100%",
+        ...(T.m3 && {
+          background: T.m3.container,
+          borderRadius: 24,
+          boxShadow: T.m3.elev1,
+          overflow: "hidden",
+          minHeight: 0,
+        }),
       }}
     >
       {/* ── Category tabs + search ─────────────────────────────────────── */}
       <div
         style={{
           minHeight: isMobile ? "auto" : 80,
-          padding: isMobile ? "10px 14px" : "0 28px",
+          padding: isMobile ? "10px 14px" : T.m3 ? "0 20px" : "0 28px",
           flexShrink: 0,
-          borderBottom: `1px solid ${T.line}`,
+          borderBottom: T.m3 ? "none" : `1px solid ${T.line}`,
           display: "flex",
           flexDirection: isMobile ? "column" : "row",
           alignItems: isMobile ? "stretch" : "center",
@@ -235,7 +258,18 @@ export default function MenuPanel({
       >
         <div
           className="bp-no-scrollbar"
-          style={{ display: "flex", gap: 4, overflowX: "auto", flexShrink: 0 }}
+          style={{
+            display: "flex",
+            gap: 4,
+            overflowX: "auto",
+            flexShrink: 0,
+            ...(T.m3 && {
+              background: T.m3.track,
+              borderRadius: 18,
+              padding: 3,
+              gap: 2,
+            }),
+          }}
         >
           {GROUPS.map((g) => {
             const active = group === g.id;
@@ -250,13 +284,14 @@ export default function MenuPanel({
                   padding: isMobile ? "8px 12px" : "10px 18px",
                   cursor: "pointer",
                   border: "none",
-                  background: active ? T.accent : T.chip,
-                  color: active ? T.accentInk : T.text,
+                  background: active ? T.accent : T.m3 ? "transparent" : T.chip,
+                  color: active ? T.accentInk : T.m3 ? T.textDim : T.text,
                   fontFamily: "inherit",
                   fontSize: isMobile ? 13 : 14,
                   fontWeight: 600,
-                  letterSpacing: "-0.01em",
-                  borderRadius: T.radius,
+                  letterSpacing: T.m3 ? 0 : "-0.01em",
+                  borderRadius: T.m3 ? 16 : T.radius,
+                  ...(T.m3 && { minHeight: 40 }),
                   transition: "background 0.12s ease",
                   whiteSpace: "nowrap",
                   flexShrink: 0,
@@ -280,10 +315,11 @@ export default function MenuPanel({
             padding: "8px 12px",
             width: isMobile ? "100%" : "clamp(220px, 14.6vw, 360px)",
             boxSizing: "border-box",
-            background: T.surface,
-            border: `1px solid ${T.line2}`,
-            borderRadius: T.radius,
+            background: T.m3 ? T.m3.containerHigh : T.surface,
+            border: T.m3 ? "none" : `1px solid ${T.line2}`,
+            borderRadius: T.m3 ? 22 : T.radius,
             color: T.textDim,
+            ...(T.m3 && { minHeight: 44, padding: "8px 16px" }),
           }}
         >
           <svg
@@ -324,6 +360,7 @@ export default function MenuPanel({
                 padding: 0,
                 fontSize: 16,
                 lineHeight: 1,
+                ...(T.m3 && { minWidth: 28, minHeight: 28 }),
               }}
             >
               ×
@@ -339,8 +376,9 @@ export default function MenuPanel({
           style={{
             display: "flex",
             gap: 6,
-            padding: isMobile ? "8px 14px" : "10px 28px",
-            borderBottom: `1px solid ${T.line}`,
+            padding: isMobile ? "8px 14px" : T.m3 ? "0 20px 8px" : "10px 28px",
+            borderBottom: T.m3 ? "none" : `1px solid ${T.line}`,
+            ...(T.m3 && { gap: 8 }),
             overflowX: "auto",
             flexShrink: 0,
           }}
@@ -352,10 +390,23 @@ export default function MenuPanel({
               fontSize: 12,
               fontFamily: "inherit",
               fontWeight: 500,
-              background: activeCat === null ? T.accent : T.chip,
-              color: activeCat === null ? T.accentInk : T.textDim,
+              background:
+                activeCat === null
+                  ? T.m3
+                    ? T.m3.primaryContainer
+                    : T.accent
+                  : T.m3
+                    ? T.m3.containerHigh
+                    : T.chip,
+              color:
+                activeCat === null
+                  ? T.m3
+                    ? T.m3.onPrimaryContainer
+                    : T.accentInk
+                  : T.textDim,
               border: "none",
-              borderRadius: T.radius,
+              borderRadius: T.m3 ? 16 : T.radius,
+              ...(T.m3 && { padding: "6px 14px", minHeight: 32 }),
               cursor: "pointer",
               whiteSpace: "nowrap",
               transition: "background 0.12s ease",
@@ -372,10 +423,23 @@ export default function MenuPanel({
                 fontSize: 12,
                 fontFamily: "inherit",
                 fontWeight: 500,
-                background: activeCat === cat ? T.accent : T.chip,
-                color: activeCat === cat ? T.accentInk : T.textDim,
+                background:
+                  activeCat === cat
+                    ? T.m3
+                      ? T.m3.primaryContainer
+                      : T.accent
+                    : T.m3
+                      ? T.m3.containerHigh
+                      : T.chip,
+                color:
+                  activeCat === cat
+                    ? T.m3
+                      ? T.m3.onPrimaryContainer
+                      : T.accentInk
+                    : T.textDim,
                 border: "none",
-                borderRadius: T.radius,
+                borderRadius: T.m3 ? 16 : T.radius,
+                ...(T.m3 && { padding: "6px 14px", minHeight: 32 }),
                 cursor: "pointer",
                 whiteSpace: "nowrap",
                 transition: "background 0.12s ease",
@@ -403,26 +467,60 @@ export default function MenuPanel({
         style={{
           flex: 1,
           overflowY: "auto",
-          padding: isMobile ? "14px 14px 80px" : "20px 28px 12px",
+          padding: isMobile
+            ? "14px 14px 80px"
+            : T.m3
+              ? "12px 20px 20px"
+              : "20px 28px 12px",
         }}
       >
         {/* Section label */}
         <div
-          style={{
-            display: "flex",
-            alignItems: "baseline",
-            gap: 12,
-            marginBottom: 14,
-            color: T.textMute,
-            fontSize: 11,
-            fontWeight: 600,
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-          }}
+          style={
+            T.m3
+              ? {
+                  display: "flex",
+                  alignItems: "baseline",
+                  gap: 12,
+                  marginBottom: 12,
+                  color: T.text,
+                  fontSize: 16,
+                  fontWeight: 600,
+                }
+              : {
+                  display: "flex",
+                  alignItems: "baseline",
+                  gap: 12,
+                  marginBottom: 14,
+                  color: T.textMute,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                }
+          }
         >
           <span>{activeCat ?? activeGroup.label}</span>
-          <span style={{ flex: 1, height: 1, background: T.line }} />
-          <span style={{ color: T.textDim, fontFamily: T.mono }}>
+          <span
+            style={{
+              flex: 1,
+              height: 1,
+              background: T.m3 ? "transparent" : T.line,
+            }}
+          />
+          <span
+            style={{
+              color: T.textDim,
+              fontFamily: T.mono,
+              ...(T.m3 && {
+                fontSize: 12,
+                fontWeight: 500,
+                background: T.m3.containerHighest,
+                padding: "4px 10px",
+                borderRadius: 12,
+              }),
+            }}
+          >
             {items.length} items
           </span>
         </div>

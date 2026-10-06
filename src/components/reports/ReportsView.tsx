@@ -33,6 +33,39 @@ function getCatColor(
   };
 }
 
+// ── M3 shared styles (only used when T.m3 is set) ─────────────────────────────
+type M3 = NonNullable<ReturnType<typeof useTheme>["T"]["m3"]>;
+
+function m3Card(m3: M3): React.CSSProperties {
+  return {
+    background: m3.container,
+    borderRadius: 24,
+    boxShadow: m3.elev1,
+    overflow: "hidden",
+    borderRight: "none",
+    borderBottom: "none",
+  };
+}
+
+function m3HeadRow(m3: M3): React.CSSProperties {
+  return {
+    borderBottom: "none",
+    background: m3.container,
+    height: 32,
+    margin: "0 8px",
+  };
+}
+
+function m3Row(m3: M3, i: number): React.CSSProperties {
+  return {
+    borderBottom: "none",
+    background: i % 2 === 0 ? m3.containerHigh : "transparent",
+    borderRadius: 14,
+    margin: "0 8px",
+    height: 40,
+  };
+}
+
 // ── Sales KPI strip ────────────────────────────────────────────────────────────
 function SalesKpiStrip({
   suffix,
@@ -54,6 +87,7 @@ function SalesKpiStrip({
   avgTurnMinKitchen: number | null;
 }) {
   const { T } = useTheme();
+  const m3 = T.m3;
   const net = revenue - cost;
   const cashflow = revenue - expenses;
 
@@ -122,55 +156,88 @@ function SalesKpiStrip({
         overscrollBehaviorY: "none",
         WebkitOverflowScrolling: "touch",
         height: isMobile ? "auto" : 88,
-        borderBottom: `1px solid ${T.line}`,
+        borderBottom: m3 ? "none" : `1px solid ${T.line}`,
         flexShrink: 0,
         background: T.bg,
+        ...(m3 && {
+          height: "auto",
+          gap: isMobile ? 10 : 14,
+          background: "transparent",
+        }),
       }}
     >
-      {kpis.map((k) => (
-        <div
-          key={k.label}
-          style={{
-            padding: "10px 18px",
-            borderRight: `1px solid ${T.line}`,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            minWidth: isMobile ? 140 : undefined,
-            flexShrink: 0,
-            gap: isMobile ? 4 : undefined,
-          }}
-        >
+      {kpis.map((k, i) => {
+        const hero = m3 && i === 0;
+        return (
           <div
+            key={k.label}
             style={{
-              fontSize: 10,
-              fontWeight: 600,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: T.headerText,
-              whiteSpace: "nowrap",
+              padding: "10px 18px",
+              borderRight: m3 ? "none" : `1px solid ${T.line}`,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              minWidth: isMobile ? 140 : undefined,
+              flexShrink: 0,
+              gap: isMobile ? 4 : undefined,
+              ...(m3 && {
+                padding: "14px 16px",
+                gap: 8,
+                minWidth: isMobile ? 150 : 0,
+                background: hero ? m3.primaryContainer : m3.container,
+                borderRadius: 20,
+                boxShadow: hero ? m3.elev2 : m3.elev1,
+              }),
             }}
           >
-            {k.label}
+            <div
+              style={
+                m3
+                  ? {
+                      fontSize: 12,
+                      fontWeight: hero ? 600 : 500,
+                      color: hero ? m3.onPrimaryContainer : T.textDim,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }
+                  : {
+                      fontSize: 10,
+                      fontWeight: 600,
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
+                      color: T.headerText,
+                      whiteSpace: "nowrap",
+                    }
+              }
+            >
+              {k.label}
+            </div>
+            <div
+              style={{
+                fontSize: 19,
+                fontWeight: 700,
+                fontFamily: T.mono,
+                letterSpacing: "-0.02em",
+                color: hero ? m3.onPrimaryContainerStrong : k.color,
+                fontVariantNumeric: "tabular-nums",
+                lineHeight: 1,
+              }}
+            >
+              {k.value}
+            </div>
+            <div
+              style={{
+                fontSize: m3 ? 11 : 10,
+                color: hero ? m3.onPrimaryContainer : T.textMute,
+                fontWeight: 500,
+              }}
+            >
+              {k.note}
+            </div>
           </div>
-          <div
-            style={{
-              fontSize: 19,
-              fontWeight: 700,
-              fontFamily: T.mono,
-              letterSpacing: "-0.02em",
-              color: k.color,
-              fontVariantNumeric: "tabular-nums",
-              lineHeight: 1,
-            }}
-          >
-            {k.value}
-          </div>
-          <div style={{ fontSize: 10, color: T.textMute, fontWeight: 500 }}>
-            {k.note}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -184,6 +251,7 @@ function ExpensesKpiStrip({
   expCatBreakdown: { category: string; amount: number }[];
 }) {
   const { T } = useTheme();
+  const m3 = T.m3;
   const catMap = Object.fromEntries(
     expCatBreakdown.map((c) => [c.category, c]),
   );
@@ -211,9 +279,14 @@ function ExpensesKpiStrip({
         overscrollBehaviorY: "none",
         WebkitOverflowScrolling: "touch",
         height: isMobile2 ? "auto" : 88,
-        borderBottom: `1px solid ${T.line}`,
+        borderBottom: m3 ? "none" : `1px solid ${T.line}`,
         flexShrink: 0,
         background: T.surface,
+        ...(m3 && {
+          height: "auto",
+          gap: isMobile2 ? 10 : 14,
+          background: "transparent",
+        }),
       }}
     >
       {CAT_ORDER.map((cat) => {
@@ -224,23 +297,39 @@ function ExpensesKpiStrip({
             key={cat}
             style={{
               padding: "10px 18px",
-              borderRight: `1px solid ${T.line}`,
+              borderRight: m3 ? "none" : `1px solid ${T.line}`,
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between",
               minWidth: isMobile2 ? 130 : undefined,
               flexShrink: 0,
               gap: isMobile2 ? 4 : undefined,
+              ...(m3 && {
+                padding: "14px 16px",
+                gap: 8,
+                minWidth: isMobile2 ? 140 : 0,
+                background: m3.container,
+                borderRadius: 20,
+                boxShadow: m3.elev1,
+              }),
             }}
           >
             <div
-              style={{
-                fontSize: 10,
-                fontWeight: 600,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: getCatColor(T)[cat] ?? T.headerText,
-              }}
+              style={
+                m3
+                  ? {
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: getCatColor(T)[cat] ?? T.textDim,
+                    }
+                  : {
+                      fontSize: 10,
+                      fontWeight: 600,
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
+                      color: getCatColor(T)[cat] ?? T.headerText,
+                    }
+              }
             >
               {cat}
             </div>
@@ -256,7 +345,7 @@ function ExpensesKpiStrip({
             >
               {fp(val)}
             </div>
-            <div style={{ fontSize: 10, color: T.textMute }}>
+            <div style={{ fontSize: m3 ? 11 : 10, color: T.textMute }}>
               {fp(expenses)} total
             </div>
           </div>
@@ -277,6 +366,7 @@ function BarChart({
   chartHeight?: number;
 }) {
   const { T } = useTheme();
+  const m3 = T.m3;
   const bp = useBreakpoint();
   const isMobile = bp === "mobile";
 
@@ -307,7 +397,7 @@ function BarChart({
   const chartContent = (
     <div
       style={{
-        padding: "10px 18px 0",
+        padding: m3 ? "8px 20px 4px" : "10px 18px 0",
         display: "flex",
         flexDirection: "column",
         width: "100%",
@@ -324,7 +414,7 @@ function BarChart({
               left: 0,
               right: 0,
               top: `${(1 - pct) * 100}%`,
-              borderTop: `1px solid ${T.line}`,
+              borderTop: m3 ? `1px dashed ${T.line}` : `1px solid ${T.line}`,
               pointerEvents: "none",
             }}
           >
@@ -390,7 +480,9 @@ function BarChart({
                     width: "70%",
                     height: h > 0 ? `${h}%` : 2,
                     background: bar.isPeak ? color : `${color}54`,
-                    borderRadius: `${T.radius} ${T.radius} 0 0`,
+                    borderRadius: m3
+                      ? "8px 8px 3px 3px"
+                      : `${T.radius} ${T.radius} 0 0`,
                     minHeight: bar.value > 0 ? 4 : 2,
                     transition: "height 0.4s ease",
                   }}
@@ -475,6 +567,7 @@ function RevenuePanel({
   mobile?: boolean;
 }) {
   const { T } = useTheme();
+  const m3 = T.m3;
   const total = bars.reduce((s, b) => s + b.value, 0);
   return (
     <div
@@ -485,6 +578,7 @@ function RevenuePanel({
         borderRight: mobile ? "none" : `1px solid ${T.line}`,
         borderBottom: mobile ? `1px solid ${T.line}` : "none",
         minHeight: 0,
+        ...(m3 && m3Card(m3)),
       }}
     >
       <PanelHd
@@ -507,6 +601,7 @@ function ExpensesChartPanel({
   mobile?: boolean;
 }) {
   const { T } = useTheme();
+  const m3 = T.m3;
   return (
     <div
       style={{
@@ -514,6 +609,7 @@ function ExpensesChartPanel({
         display: "flex",
         flexDirection: "column",
         minHeight: 0,
+        ...(m3 && m3Card(m3)),
       }}
     >
       <PanelHd
@@ -544,6 +640,7 @@ function TransactionsPanel({
   saleItems: SaleItemRow[];
 }) {
   const { T } = useTheme();
+  const m3 = T.m3;
   const [view, setView] = useState<"tx" | "items">("tx");
 
   return (
@@ -554,6 +651,7 @@ function TransactionsPanel({
         flexDirection: "column",
         minHeight: 0,
         borderRight: `1px solid ${T.line}`,
+        ...(m3 && m3Card(m3)),
       }}
     >
       {/* Header with toggle */}
@@ -566,16 +664,26 @@ function TransactionsPanel({
           height: 36,
           borderBottom: `1px solid ${T.line}`,
           flexShrink: 0,
+          ...(m3 && {
+            padding: "0 12px 0 20px",
+            height: 56,
+            borderBottom: "none",
+            gap: 10,
+          }),
         }}
       >
         <span
-          style={{
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
-            color: T.headerText,
-          }}
+          style={
+            m3
+              ? { fontSize: 16, fontWeight: 600, color: T.text }
+              : {
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  color: T.headerText,
+                }
+          }
         >
           Sales Transactions
           <span
@@ -588,12 +696,35 @@ function TransactionsPanel({
               padding: "1px 6px",
               borderRadius: 99,
               fontSize: 9,
+              ...(m3 && {
+                marginLeft: 10,
+                color: m3.onPrimaryContainer,
+                background: m3.primaryContainer,
+                border: "none",
+                padding: "4px 10px",
+                borderRadius: 12,
+                fontSize: 11,
+                fontWeight: 600,
+                verticalAlign: "middle",
+              }),
             }}
           >
             {view === "tx" ? transactions.length : saleItems.length}
           </span>
         </span>
-        <div style={{ display: "flex", gap: 2 }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 2,
+            ...(m3 && {
+              gap: 4,
+              padding: 3,
+              background: m3.track,
+              borderRadius: 18,
+              flexShrink: 0,
+            }),
+          }}
+        >
           {(["tx", "items"] as const).map((v) => (
             <button
               key={v}
@@ -610,6 +741,18 @@ function TransactionsPanel({
                 border: `1px solid ${view === v ? T.accent : T.line2}`,
                 background: view === v ? `${T.accent}18` : "transparent",
                 color: view === v ? T.accent : T.textMute,
+                ...(m3 && {
+                  padding: "0 14px",
+                  height: 32,
+                  fontSize: 12,
+                  fontWeight: view === v ? 600 : 500,
+                  letterSpacing: "normal",
+                  textTransform: "none",
+                  borderRadius: 16,
+                  border: "none",
+                  background: view === v ? T.accent : "transparent",
+                  color: view === v ? T.accentInk : T.textDim,
+                }),
               }}
             >
               {v === "tx" ? "Transactions" : "Per Item"}
@@ -631,7 +774,7 @@ function TransactionsPanel({
         }}
       >
         {view === "tx" ? (
-          <div style={{ minWidth: 420 }}>
+          <div style={{ minWidth: 420, paddingBottom: m3 ? 8 : undefined }}>
             <div
               style={{
                 display: "grid",
@@ -645,18 +788,29 @@ function TransactionsPanel({
                 top: 0,
                 background: T.surface2,
                 zIndex: 1,
+                ...(m3 && m3HeadRow(m3)),
               }}
             >
               {TX_HDRS.map((h) => (
                 <span
                   key={h}
-                  style={{
-                    fontSize: 9,
-                    fontWeight: 600,
-                    letterSpacing: "0.12em",
-                    textTransform: "uppercase",
-                    color: T.headerText,
-                  }}
+                  style={
+                    m3
+                      ? {
+                          fontSize: 11,
+                          fontWeight: 600,
+                          letterSpacing: "0.04em",
+                          textTransform: "uppercase",
+                          color: T.textMute,
+                        }
+                      : {
+                          fontSize: 9,
+                          fontWeight: 600,
+                          letterSpacing: "0.12em",
+                          textTransform: "uppercase",
+                          color: T.headerText,
+                        }
+                  }
                 >
                   {h}
                 </span>
@@ -685,6 +839,7 @@ function TransactionsPanel({
                     alignItems: "center",
                     borderBottom: `1px solid ${T.line}`,
                     background: i % 2 === 0 ? T.surface : T.bg,
+                    ...(m3 && m3Row(m3, i)),
                     opacity: tx.isRefund ? 0.55 : 1,
                   }}
                 >
@@ -764,7 +919,7 @@ function TransactionsPanel({
             )}
           </div>
         ) : (
-          <div style={{ minWidth: 420 }}>
+          <div style={{ minWidth: 420, paddingBottom: m3 ? 8 : undefined }}>
             <div
               style={{
                 display: "grid",
@@ -778,18 +933,29 @@ function TransactionsPanel({
                 top: 0,
                 background: T.surface2,
                 zIndex: 1,
+                ...(m3 && m3HeadRow(m3)),
               }}
             >
               {ITEM_HDRS.map((h) => (
                 <span
                   key={h}
-                  style={{
-                    fontSize: 9,
-                    fontWeight: 600,
-                    letterSpacing: "0.12em",
-                    textTransform: "uppercase",
-                    color: T.headerText,
-                  }}
+                  style={
+                    m3
+                      ? {
+                          fontSize: 11,
+                          fontWeight: 600,
+                          letterSpacing: "0.04em",
+                          textTransform: "uppercase",
+                          color: T.textMute,
+                        }
+                      : {
+                          fontSize: 9,
+                          fontWeight: 600,
+                          letterSpacing: "0.12em",
+                          textTransform: "uppercase",
+                          color: T.headerText,
+                        }
+                  }
                 >
                   {h}
                 </span>
@@ -818,6 +984,7 @@ function TransactionsPanel({
                     alignItems: "center",
                     borderBottom: `1px solid ${T.line}`,
                     background: i % 2 === 0 ? T.surface : T.bg,
+                    ...(m3 && m3Row(m3, i)),
                   }}
                 >
                   <span
@@ -899,6 +1066,7 @@ const EX_HDRS = ["Time", "Category", "Name", "Amount"];
 
 function ExpensesListPanel({ expenseRows }: { expenseRows: ExpenseRow[] }) {
   const { T } = useTheme();
+  const m3 = T.m3;
   return (
     <div
       style={{
@@ -906,6 +1074,7 @@ function ExpensesListPanel({ expenseRows }: { expenseRows: ExpenseRow[] }) {
         display: "flex",
         flexDirection: "column",
         minHeight: 0,
+        ...(m3 && m3Card(m3)),
       }}
     >
       <PanelHd
@@ -925,7 +1094,7 @@ function ExpensesListPanel({ expenseRows }: { expenseRows: ExpenseRow[] }) {
           WebkitOverflowScrolling: "touch",
         }}
       >
-        <div style={{ minWidth: 300 }}>
+        <div style={{ minWidth: 300, paddingBottom: m3 ? 8 : undefined }}>
           <div
             style={{
               display: "grid",
@@ -939,18 +1108,29 @@ function ExpensesListPanel({ expenseRows }: { expenseRows: ExpenseRow[] }) {
               top: 0,
               background: T.surface2,
               zIndex: 1,
+              ...(m3 && m3HeadRow(m3)),
             }}
           >
             {EX_HDRS.map((h) => (
               <span
                 key={h}
-                style={{
-                  fontSize: 9,
-                  fontWeight: 600,
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  color: T.headerText,
-                }}
+                style={
+                  m3
+                    ? {
+                        fontSize: 11,
+                        fontWeight: 600,
+                        letterSpacing: "0.04em",
+                        textTransform: "uppercase",
+                        color: T.textMute,
+                      }
+                    : {
+                        fontSize: 9,
+                        fontWeight: 600,
+                        letterSpacing: "0.12em",
+                        textTransform: "uppercase",
+                        color: T.headerText,
+                      }
+                }
               >
                 {h}
               </span>
@@ -979,6 +1159,7 @@ function ExpensesListPanel({ expenseRows }: { expenseRows: ExpenseRow[] }) {
                   alignItems: "center",
                   borderBottom: `1px solid ${T.line}`,
                   background: i % 2 === 0 ? T.surface : T.bg,
+                  ...(m3 && m3Row(m3, i)),
                 }}
               >
                 <span
@@ -1040,6 +1221,7 @@ function ResizableSplit({
   right: React.ReactNode;
 }) {
   const { T } = useTheme();
+  const m3 = T.m3;
   const bp = useBreakpoint();
   const isMobile = bp === "mobile";
   const [split, setSplit] = useState(50); // percent
@@ -1069,13 +1251,15 @@ function ResizableSplit({
   // On mobile: stack panels vertically with fixed heights so each panel has its own scroll container
   if (isMobile) {
     return (
-      <div style={{ display: "flex", flexDirection: "column" }}>
+      <div
+        style={{ display: "flex", flexDirection: "column", gap: m3 ? 14 : 0 }}
+      >
         <div style={{ height: 360, display: "flex", flexDirection: "column" }}>
           {left}
         </div>
         <div
           style={{
-            borderTop: `1px solid ${T.line}`,
+            borderTop: m3 ? "none" : `1px solid ${T.line}`,
             height: 320,
             display: "flex",
             flexDirection: "column",
@@ -1103,14 +1287,19 @@ function ResizableSplit({
       <div
         onMouseDown={onMouseDown}
         style={{
-          width: 5,
+          width: m3 ? 14 : 5,
           flexShrink: 0,
           cursor: "col-resize",
-          background: T.line,
+          background: m3 ? "transparent" : T.line,
+          borderRadius: m3 ? 7 : undefined,
           transition: "background 0.12s",
         }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = T.accent)}
-        onMouseLeave={(e) => (e.currentTarget.style.background = T.line)}
+        onMouseEnter={(e) =>
+          (e.currentTarget.style.background = m3 ? `${T.accent}33` : T.accent)
+        }
+        onMouseLeave={(e) =>
+          (e.currentTarget.style.background = m3 ? "transparent" : T.line)
+        }
       />
       <div
         style={{
@@ -1133,6 +1322,7 @@ export default function ReportsView({
   tables: TableWithStatus[];
 }) {
   const { T } = useTheme();
+  const m3 = T.m3;
   const bp = useBreakpoint();
   const isMobile = bp === "mobile";
   const nav = useDateNav();
@@ -1177,9 +1367,13 @@ export default function ReportsView({
           gap: 8,
           overflowX: "auto",
           touchAction: "pan-x pan-y",
-          borderBottom: `1px solid ${T.line}`,
+          borderBottom: m3 ? "none" : `1px solid ${T.line}`,
           flexShrink: 0,
           background: T.bg,
+          ...(m3 && {
+            minHeight: 60,
+            padding: isMobile ? "10px 12px" : "12px 20px",
+          }),
         }}
       >
         <DateRangeNav
@@ -1204,6 +1398,10 @@ export default function ReportsView({
           overflowY: "auto",
           display: "flex",
           flexDirection: "column",
+          ...(m3 && {
+            gap: isMobile ? 10 : 14,
+            padding: isMobile ? "4px 12px 16px" : "4px 20px 20px",
+          }),
         }}
       >
         {/* ── Sales KPI ─────────────────────────────────────────────────── */}
@@ -1226,7 +1424,12 @@ export default function ReportsView({
 
         {/* ── Charts ────────────────────────────────────────────────────── */}
         {isMobile ? (
-          <div style={{ flexShrink: 0 }}>
+          <div
+            style={{
+              flexShrink: 0,
+              ...(m3 && { display: "flex", flexDirection: "column", gap: 10 }),
+            }}
+          >
             <RevenuePanel bars={bars} mobile />
             <ExpensesChartPanel
               expenseDayBars={expenseDayBars}
@@ -1239,8 +1442,9 @@ export default function ReportsView({
             style={{
               height: 220,
               display: "flex",
-              borderBottom: `1px solid ${T.line}`,
+              borderBottom: m3 ? "none" : `1px solid ${T.line}`,
               flexShrink: 0,
+              ...(m3 && { height: 240, gap: 14 }),
             }}
           >
             <RevenuePanel bars={bars} />

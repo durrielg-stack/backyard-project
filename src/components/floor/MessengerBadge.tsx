@@ -62,6 +62,7 @@ export default function MessengerBadge() {
   };
 
   const hasNew = unread > 0;
+  const m3 = T.m3;
 
   return (
     <div
@@ -78,7 +79,7 @@ export default function MessengerBadge() {
           style={{
             position: "absolute",
             inset: -6,
-            borderRadius: "50%",
+            borderRadius: m3 ? 22 : "50%",
             border: `2px solid ${T.accent}`,
             animation: "bp-attn 1.4s ease-in-out infinite",
             pointerEvents: "none",
@@ -94,18 +95,20 @@ export default function MessengerBadge() {
             : "Facebook Messages"
         }
         style={{
-          width: 52,
-          height: 52,
-          borderRadius: "50%",
-          background: hasNew ? T.accent : T.surface2,
-          border: `2px solid ${hasNew ? T.accent : T.line2}`,
+          width: m3 ? 56 : 52,
+          height: m3 ? 56 : 52,
+          borderRadius: m3 ? 16 : "50%",
+          background: hasNew ? T.accent : m3 ? m3.containerHigh : T.surface2,
+          border: m3 ? "none" : `2px solid ${hasNew ? T.accent : T.line2}`,
           cursor: "pointer",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          boxShadow: hasNew
-            ? `0 0 0 4px ${T.accent}33`
-            : "0 2px 8px rgba(0,0,0,0.3)",
+          boxShadow: m3
+            ? m3.elev2
+            : hasNew
+              ? `0 0 0 4px ${T.accent}33`
+              : "0 2px 8px rgba(0,0,0,0.3)",
           transition: "background 0.2s, box-shadow 0.2s",
           position: "relative",
         }}
@@ -118,7 +121,9 @@ export default function MessengerBadge() {
           />
           <path
             d="M6.5 13.5 10 9.5l3.5 3.5 3-3.5"
-            stroke={hasNew ? `${T.accentInk}88` : T.surface}
+            stroke={
+              hasNew ? `${T.accentInk}88` : m3 ? m3.containerHigh : T.surface
+            }
             strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"

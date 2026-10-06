@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { statusColor } from "@/lib/theme";
-import { useTheme } from "@/lib/ThemeContext";
+import { useTheme, THEME_CYCLE, THEME_NAMES } from "@/lib/ThemeContext";
 import { useBreakpoint } from "@/hooks/useBreakpoint";
 import type { TableWithStatus, CartLine } from "@/lib/types";
 
@@ -134,6 +134,16 @@ function NavTab({
 }: TabProps) {
   const { T } = useTheme();
   const borderColor = dashed ? T.line2 : "transparent";
+  const m3 = T.m3;
+  const m3Bg = !m3
+    ? undefined
+    : active
+      ? T.accent
+      : dot === "bad"
+        ? m3.badContainer
+        : dot === "warn"
+          ? m3.warnContainer
+          : "transparent";
   return (
     <div
       onClick={onClick}
@@ -148,10 +158,13 @@ function NavTab({
         gap: 2,
         cursor: "pointer",
         position: "relative",
-        background: active ? T.surface2 : "transparent",
-        borderBottom: active
-          ? `2px solid ${T.accent}`
-          : "2px solid transparent",
+        background: m3 ? m3Bg : active ? T.surface2 : "transparent",
+        borderBottom: m3
+          ? "none"
+          : active
+            ? `2px solid ${T.accent}`
+            : "2px solid transparent",
+        ...(m3 && { height: 48, borderRadius: 24 }),
         borderLeft: dashed ? `1px dashed ${borderColor}` : "none",
         borderRight: dashed ? `1px dashed ${borderColor}` : "none",
         borderTop: dashed ? `1px dashed ${borderColor}` : "none",
@@ -176,9 +189,9 @@ function NavTab({
         <span
           style={{
             fontSize: 13,
-            fontWeight: active ? 700 : 400,
+            fontWeight: active ? 700 : m3 ? 500 : 400,
             lineHeight: 1,
-            color: active ? T.text : T.textDim,
+            color: active ? (m3 ? T.accentInk : T.text) : T.textDim,
             fontFamily:
               typeof label === "string" && /^[TB]\d/.test(label as string)
                 ? T.mono
@@ -196,7 +209,7 @@ function NavTab({
             }}
             style={{
               marginLeft: 4,
-              color: T.textMute,
+              color: m3 && active ? T.accentInk : T.textMute,
               cursor: "pointer",
               lineHeight: 1,
               display: "flex",
@@ -211,7 +224,7 @@ function NavTab({
         style={{
           fontSize: 10,
           fontFamily: T.mono,
-          color: T.textMute,
+          color: m3 && active ? T.accentInk : T.textMute,
           lineHeight: 1,
           fontVariantNumeric: "tabular-nums",
         }}
@@ -244,6 +257,9 @@ export default function NavBar({
   onManageUsers,
 }: NavBarProps) {
   const { T, mode, toggle } = useTheme();
+  const m3 = T.m3;
+  const nextMode =
+    THEME_CYCLE[(THEME_CYCLE.indexOf(mode) + 1) % THEME_CYCLE.length];
   const bp = useBreakpoint();
   const isMobile = bp === "mobile";
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -291,8 +307,11 @@ export default function NavBar({
       style={{
         height: 64,
         flexShrink: 0,
-        background: T.bg,
-        borderBottom: `1px solid ${T.line}`,
+        background: m3 ? m3.topBar : T.bg,
+        borderBottom: m3 ? "none" : `1px solid ${T.line}`,
+        boxShadow: m3 ? m3.elev1 : undefined,
+        position: m3 ? "relative" : undefined,
+        zIndex: m3 ? 2 : undefined,
         display: "flex",
         alignItems: "stretch",
         overflowX: "clip",
@@ -321,7 +340,7 @@ export default function NavBar({
             fontWeight: 800,
             fontSize: 13,
             letterSpacing: "-0.04em",
-            borderRadius: 2,
+            borderRadius: m3 ? 9 : 2,
             flexShrink: 0,
           }}
         >
@@ -360,28 +379,31 @@ export default function NavBar({
       </div>
 
       {/* ── 1px vertical divider ───────────────────────────────────────────── */}
-      <div
-        style={{
-          width: 1,
-          background: T.line,
-          margin: "12px 0",
-          flexShrink: 0,
-        }}
-      />
+      {!m3 && (
+        <div
+          style={{
+            width: 1,
+            background: T.line,
+            margin: "12px 0",
+            flexShrink: 0,
+          }}
+        />
+      )}
 
       {/* ── Tab strip ─────────────────────────────────────────────────────── */}
       <div
         className="bp-no-scrollbar"
         style={{
           display: "flex",
-          alignItems: "stretch",
+          alignItems: m3 ? "center" : "stretch",
           flex: 1,
           minWidth: 0,
           overflowX: "auto",
           touchAction: "pan-x pan-y",
           overscrollBehaviorX: "contain",
           overscrollBehaviorY: "none",
-          gap: 0,
+          gap: m3 ? 4 : 0,
+          padding: m3 ? "0 8px" : 0,
         }}
       >
         {/* Sales (floor) */}
@@ -492,24 +514,27 @@ export default function NavBar({
           color: T.textDim,
         }}
       >
-        {/* Theme toggle — cycles dark → light → ocean */}
+        {/* Theme toggle — cycles THEME_CYCLE, names the current theme */}
         <button
           onClick={toggle}
-          title={mode === "dark" ? "Switch to light" : "Switch to dark"}
+          title={`Theme: ${THEME_NAMES[mode]}. Click for ${THEME_NAMES[nextMode]}`}
           style={{
-            background: "none",
+            background: m3 ? m3.containerHigh : T.chip,
             border: "none",
             cursor: "pointer",
             color: T.textDim,
-            fontSize: 14,
+            fontSize: 11,
+            fontFamily: "inherit",
+            fontWeight: 600,
             lineHeight: 1,
-            padding: "4px 6px",
-            borderRadius: T.radius,
+            padding: "7px 10px",
+            borderRadius: m3 ? 16 : T.radius,
             display: "flex",
             alignItems: "center",
+            whiteSpace: "nowrap",
           }}
         >
-          {mode === "dark" ? "☀" : "🌙"}
+          {isMobile ? THEME_NAMES[mode].split(" ")[1] : THEME_NAMES[mode]}
         </button>
 
         {!isMobile && (
@@ -528,7 +553,7 @@ export default function NavBar({
                 fontWeight: 600,
                 fontFamily: T.mono,
                 padding: "1px 5px",
-                borderRadius: 2,
+                borderRadius: m3 ? 9 : 2,
                 fontVariantNumeric: "tabular-nums",
               }}
             >

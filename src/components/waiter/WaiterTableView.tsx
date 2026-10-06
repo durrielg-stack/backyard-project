@@ -29,7 +29,8 @@ export default function WaiterTableView({
   onAddItems,
   onBack,
 }: Props) {
-  const { T, mode, toggle } = useTheme();
+  const { T, isDark, toggle } = useTheme();
+  const m3 = T.m3;
   const { lines, loading } = useOrder(tableId, waiterId);
 
   useEffect(() => {
@@ -71,6 +72,12 @@ export default function WaiterTableView({
           position: "sticky",
           top: 0,
           zIndex: 10,
+          ...(m3 && {
+            background: m3.topBar,
+            borderBottom: "none",
+            padding: "12px 16px",
+            boxShadow: m3.elev1,
+          }),
         }}
       >
         <button
@@ -86,11 +93,25 @@ export default function WaiterTableView({
             minHeight: 44,
             display: "flex",
             alignItems: "center",
+            ...(m3 && {
+              background: m3.containerHigh,
+              borderRadius: 22,
+              padding: "0 16px",
+              color: T.text,
+              fontWeight: 600,
+            }),
           }}
         >
           ← Tables
         </button>
-        <div style={{ fontSize: 15, fontWeight: 700, color: T.text }}>
+        <div
+          style={{
+            fontSize: 15,
+            fontWeight: 700,
+            color: T.text,
+            ...(m3 && { fontSize: 20, fontWeight: 600 }),
+          }}
+        >
           {tableId}
         </div>
         <button
@@ -109,9 +130,14 @@ export default function WaiterTableView({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            ...(m3 && {
+              background: m3.containerHigh,
+              border: "none",
+              borderRadius: 22,
+            }),
           }}
         >
-          {mode === "dark" ? "☀️" : "🌙"}
+          {isDark ? "☀️" : "🌙"}
         </button>
       </div>
 
@@ -155,6 +181,15 @@ export default function WaiterTableView({
                 paddingBottom: 8,
                 borderBottom: `1px solid ${T.line}`,
                 marginBottom: 4,
+                ...(m3 && {
+                  fontSize: 16,
+                  fontWeight: 600,
+                  letterSpacing: "normal",
+                  textTransform: "none",
+                  color: T.text,
+                  borderBottom: "none",
+                  marginBottom: 8,
+                }),
               }}
             >
               Current Order
@@ -168,6 +203,13 @@ export default function WaiterTableView({
                   alignItems: "baseline",
                   padding: "10px 0",
                   borderBottom: `1px solid ${T.line}`,
+                  ...(m3 && {
+                    background: m3.containerHigh,
+                    borderBottom: "none",
+                    borderRadius: 12,
+                    padding: "12px 14px",
+                    marginBottom: 6,
+                  }),
                 }}
               >
                 <div style={{ flex: 1 }}>
@@ -207,10 +249,20 @@ export default function WaiterTableView({
                 fontSize: 14,
                 fontWeight: 700,
                 color: T.text,
+                ...(m3 && {
+                  background: m3.primaryContainer,
+                  color: m3.onPrimaryContainerStrong,
+                  borderRadius: 16,
+                  padding: "14px 16px",
+                  marginTop: 10,
+                  fontSize: 15,
+                }),
               }}
             >
               <span>Running Total</span>
-              <span style={{ color: T.ok }}>{fmtPeso(total)}</span>
+              <span style={{ color: m3 ? m3.onPrimaryContainer : T.ok }}>
+                {fmtPeso(total)}
+              </span>
             </div>
           </>
         )}
@@ -222,6 +274,7 @@ export default function WaiterTableView({
           padding: `12px 16px calc(12px + env(safe-area-inset-bottom, 0px))`,
           borderTop: `1px solid ${T.line}`,
           background: T.surface,
+          ...(m3 && { borderTop: "none", background: m3.topBar }),
         }}
       >
         <button
@@ -237,6 +290,7 @@ export default function WaiterTableView({
             borderRadius: T.radius,
             cursor: "pointer",
             fontFamily: "inherit",
+            ...(m3 && { borderRadius: 28, minHeight: 52 }),
           }}
         >
           + Add Items

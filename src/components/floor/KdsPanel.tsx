@@ -19,6 +19,7 @@ function KdsTicketRow({
   onBump: (itemIds: number[]) => void;
 }) {
   const { T } = useTheme();
+  const m3 = T.m3;
   const color =
     ticket.status === "late"
       ? T.bad
@@ -35,16 +36,37 @@ function KdsTicketRow({
 
   return (
     <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "64px 1fr auto",
-        padding: "10px 16px",
-        borderBottom: `1px solid ${T.line}`,
-        alignItems: "center",
-        gap: 12,
-        background: isTakeout ? `${T.info}10` : "transparent",
-        borderLeft: isTakeout ? `3px solid ${T.info}` : "3px solid transparent",
-      }}
+      style={
+        m3
+          ? {
+              display: "grid",
+              gridTemplateColumns: "64px 1fr auto",
+              padding: "12px 14px",
+              alignItems: "center",
+              gap: 12,
+              borderRadius: 16,
+              background:
+                ticket.status === "late"
+                  ? m3.badTint
+                  : ticket.status === "aging"
+                    ? m3.warnTint
+                    : isTakeout
+                      ? m3.infoContainer
+                      : m3.containerHigh,
+            }
+          : {
+              display: "grid",
+              gridTemplateColumns: "64px 1fr auto",
+              padding: "10px 16px",
+              borderBottom: `1px solid ${T.line}`,
+              alignItems: "center",
+              gap: 12,
+              background: isTakeout ? `${T.info}10` : "transparent",
+              borderLeft: isTakeout
+                ? `3px solid ${T.info}`
+                : "3px solid transparent",
+            }
+      }
     >
       {/* Elapsed time */}
       <div style={{ textAlign: "center" }}>
@@ -91,8 +113,8 @@ function KdsTicketRow({
               fontFamily: T.mono,
               background: ticket.station === "kitchen" ? T.chip : `${T.info}22`,
               color: ticket.station === "kitchen" ? T.textDim : T.info,
-              padding: "1px 6px",
-              borderRadius: 2,
+              padding: m3 ? "2px 8px" : "1px 6px",
+              borderRadius: m3 ? 8 : 2,
               letterSpacing: "0.08em",
               textTransform: "uppercase",
             }}
@@ -109,8 +131,8 @@ function KdsTicketRow({
                 color: T.info,
                 background: `${T.info}20`,
                 border: `1px solid ${T.info}44`,
-                padding: "1px 6px",
-                borderRadius: 2,
+                padding: m3 ? "2px 8px" : "1px 6px",
+                borderRadius: m3 ? 8 : 2,
               }}
             >
               TO
@@ -126,7 +148,7 @@ function KdsTicketRow({
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span
             style={{
-              fontSize: 13,
+              fontSize: m3 ? 15 : 13,
               color: T.text,
               fontWeight: 500,
               overflow: "hidden",
@@ -146,7 +168,7 @@ function KdsTicketRow({
                 color: T.accent,
                 border: `1px solid ${T.accent}44`,
                 padding: "1px 6px",
-                borderRadius: 3,
+                borderRadius: m3 ? 8 : 3,
                 flexShrink: 0,
               }}
             >
@@ -162,28 +184,45 @@ function KdsTicketRow({
           e.stopPropagation();
           onBump(ticket.itemIds);
         }}
-        style={{
-          padding: "5px 12px",
-          fontSize: 11,
-          fontFamily: "inherit",
-          fontWeight: 600,
-          background: "transparent",
-          border: `1px solid ${T.line2}`,
-          color: T.textDim,
-          borderRadius: T.radius,
-          cursor: "pointer",
-          letterSpacing: "0.06em",
-          textTransform: "uppercase",
-          transition:
-            "background 0.12s ease, border-color 0.12s ease, color 0.12s ease",
-        }}
+        style={
+          m3
+            ? {
+                height: 40,
+                padding: "0 18px",
+                fontSize: 13,
+                fontFamily: "inherit",
+                fontWeight: 700,
+                background: T.accent,
+                border: "none",
+                color: T.accentInk,
+                borderRadius: 20,
+                cursor: "pointer",
+              }
+            : {
+                padding: "5px 12px",
+                fontSize: 11,
+                fontFamily: "inherit",
+                fontWeight: 600,
+                background: "transparent",
+                border: `1px solid ${T.line2}`,
+                color: T.textDim,
+                borderRadius: T.radius,
+                cursor: "pointer",
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                transition:
+                  "background 0.12s ease, border-color 0.12s ease, color 0.12s ease",
+              }
+        }
         onMouseEnter={(e) => {
+          if (m3) return;
           const b = e.currentTarget;
           b.style.background = T.ok + "22";
           b.style.borderColor = T.ok;
           b.style.color = T.ok;
         }}
         onMouseLeave={(e) => {
+          if (m3) return;
           const b = e.currentTarget;
           b.style.background = "transparent";
           b.style.borderColor = T.line2;
@@ -209,6 +248,7 @@ export default function KdsPanel({
   onBump: (itemIds: number[]) => void;
 }) {
   const { T } = useTheme();
+  const m3 = T.m3;
   const [filter, setFilter] = useState<FilterMode>("all");
 
   const visible =
@@ -216,7 +256,14 @@ export default function KdsPanel({
   const openCount = tickets.length;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
+        flex: 1,
+      }}
+    >
       <PanelHd
         title={
           <>
@@ -234,16 +281,29 @@ export default function KdsPanel({
               auto-refresh 1s
             </span>
             {/* Station filter */}
-            <div style={{ display: "flex", gap: 2 }}>
+            <div
+              style={
+                m3
+                  ? {
+                      display: "flex",
+                      gap: 4,
+                      background: m3.track,
+                      borderRadius: 18,
+                      padding: 3,
+                    }
+                  : { display: "flex", gap: 2 }
+              }
+            >
               {(["all", "kitchen", "bar"] as FilterMode[]).map((m) => (
                 <button
                   key={m}
                   onClick={() => setFilter(m)}
                   style={{
-                    padding: "4px 10px",
-                    fontSize: 11,
+                    padding: m3 ? "6px 12px" : "4px 10px",
+                    fontSize: m3 ? 12 : 11,
                     fontFamily: "inherit",
-                    background: filter === m ? T.accent : T.chip,
+                    background:
+                      filter === m ? T.accent : m3 ? "transparent" : T.chip,
                     color: filter === m ? T.accentInk : T.textDim,
                     border: "none",
                     borderRadius: T.radius,
@@ -261,7 +321,21 @@ export default function KdsPanel({
         }
       />
 
-      <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: "auto" }}>
+      <div
+        className="bp-no-scrollbar"
+        style={
+          m3
+            ? {
+                flex: 1,
+                overflowY: "auto",
+                padding: "0 12px 12px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+              }
+            : { flex: 1, overflowY: "auto" }
+        }
+      >
         {visible.length === 0 ? (
           <div
             style={{

@@ -421,6 +421,16 @@ export default function ReportsTab() {
     comp: T.textDim,
   };
 
+  const m3 = T.m3;
+  const m3Card: React.CSSProperties | undefined = m3
+    ? {
+        background: m3.container,
+        borderRadius: 24,
+        boxShadow: m3.elev1,
+        overflow: "hidden",
+      }
+    : undefined;
+
   return (
     <div
       style={{
@@ -431,7 +441,12 @@ export default function ReportsTab() {
       }}
     >
       {isMobile ? (
-        <div style={{ borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
+        <div
+          style={{
+            borderBottom: m3 ? "none" : `1px solid ${T.line}`,
+            flexShrink: 0,
+          }}
+        >
           <div
             style={{
               height: 44,
@@ -442,13 +457,17 @@ export default function ReportsTab() {
             }}
           >
             <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: T.headerText,
-              }}
+              style={
+                m3
+                  ? { fontSize: 18, fontWeight: 600, color: T.text }
+                  : {
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
+                      color: T.headerText,
+                    }
+              }
             >
               Reports
             </span>
@@ -479,12 +498,12 @@ export default function ReportsTab() {
       ) : (
         <div
           style={{
-            height: 46,
-            padding: "0 24px",
+            height: m3 ? 60 : 46,
+            padding: m3 ? "0 20px" : "0 24px",
             display: "flex",
             alignItems: "center",
             gap: 8,
-            borderBottom: `1px solid ${T.line}`,
+            borderBottom: m3 ? "none" : `1px solid ${T.line}`,
             flexShrink: 0,
           }}
         >
@@ -569,47 +588,80 @@ export default function ReportsTab() {
                 gridTemplateColumns: "repeat(7, 1fr)",
                 borderBottom: `1px solid ${T.line}`,
                 minWidth: 840,
+                ...(m3 && {
+                  borderBottom: "none",
+                  gap: isMobile ? 10 : 14,
+                  padding: isMobile ? "4px 12px 6px" : "4px 20px 6px",
+                }),
               }}
             >
-              {kpis.map((k, i) => (
-                <div
-                  key={k.label}
-                  style={{
-                    padding: "14px 20px",
-                    borderRight: i < 6 ? `1px solid ${T.line}` : "none",
-                  }}
-                >
+              {kpis.map((k, i) => {
+                const hero = !!m3 && i === 0;
+                return (
                   <div
+                    key={k.label}
                     style={{
-                      fontSize: 10,
-                      fontWeight: 600,
-                      letterSpacing: "0.12em",
-                      textTransform: "uppercase",
-                      color: T.textMute,
-                      marginBottom: 6,
+                      padding: "14px 20px",
+                      borderRight: i < 6 ? `1px solid ${T.line}` : "none",
+                      ...(m3 && {
+                        padding: "16px 20px",
+                        borderRight: "none",
+                        background: hero ? m3.primaryContainer : m3.container,
+                        borderRadius: 20,
+                        boxShadow: hero ? m3.elev2 : m3.elev1,
+                      }),
                     }}
                   >
-                    {k.label}
+                    <div
+                      style={
+                        m3
+                          ? {
+                              fontSize: 12,
+                              fontWeight: hero ? 600 : 500,
+                              color: hero ? m3.onPrimaryContainer : T.textDim,
+                              marginBottom: 8,
+                              whiteSpace: "nowrap",
+                            }
+                          : {
+                              fontSize: 10,
+                              fontWeight: 600,
+                              letterSpacing: "0.12em",
+                              textTransform: "uppercase",
+                              color: T.textMute,
+                              marginBottom: 6,
+                            }
+                      }
+                    >
+                      {k.label}
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: T.mono,
+                        fontSize: 18,
+                        fontWeight: 700,
+                        color: k.color,
+                        fontVariantNumeric: "tabular-nums",
+                        lineHeight: 1,
+                        ...(m3 && {
+                          fontSize: hero ? 24 : 20,
+                          color: hero ? m3.onPrimaryContainerStrong : k.color,
+                        }),
+                      }}
+                    >
+                      {k.value}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: hero ? m3.onPrimaryContainer : T.textMute,
+                        marginTop: m3 ? 6 : 4,
+                      }}
+                    >
+                      {k.sub}
+                    </div>
                   </div>
-                  <div
-                    style={{
-                      fontFamily: T.mono,
-                      fontSize: 18,
-                      fontWeight: 700,
-                      color: k.color,
-                      fontVariantNumeric: "tabular-nums",
-                      lineHeight: 1,
-                    }}
-                  >
-                    {k.value}
-                  </div>
-                  <div
-                    style={{ fontSize: 11, color: T.textMute, marginTop: 4 }}
-                  >
-                    {k.sub}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         );
@@ -618,7 +670,12 @@ export default function ReportsTab() {
       {/* Single scroll body — prevents category sections from squishing P&L chart */}
       <div
         className="bp-no-scrollbar"
-        style={{ flex: 1, overflowY: "auto", touchAction: "pan-y" }}
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          touchAction: "pan-y",
+          ...(m3 && { padding: isMobile ? 12 : "10px 20px 20px" }),
+        }}
       >
         {/* P&L Overview + Top/Voided panel */}
         <div
@@ -626,6 +683,11 @@ export default function ReportsTab() {
             display: "flex",
             flexDirection: isMobile ? "column" : "row",
             borderBottom: `1px solid ${T.line}`,
+            ...(m3 && {
+              borderBottom: "none",
+              gap: isMobile ? 12 : 16,
+              marginBottom: isMobile ? 12 : 16,
+            }),
           }}
         >
           {/* P&L chart column */}
@@ -636,13 +698,29 @@ export default function ReportsTab() {
               flexDirection: "column",
               borderRight: isMobile ? "none" : `1px solid ${T.line}`,
               borderBottom: isMobile ? `1px solid ${T.line}` : "none",
+              ...(m3 && {
+                ...m3Card,
+                borderRight: "none",
+                borderBottom: "none",
+              }),
             }}
           >
             <SectionHd
               title="P&L Overview"
               badge={`Gross ${fmtPeso(gross)} · Net ${fmtPeso(net)}`}
               action={
-                <div style={{ display: "flex", gap: 2 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 2,
+                    ...(m3 && {
+                      gap: 4,
+                      padding: 3,
+                      background: m3.track,
+                      borderRadius: 18,
+                    }),
+                  }}
+                >
                   {(["bar", "line"] as const).map((m) => (
                     <button
                       key={m}
@@ -660,6 +738,14 @@ export default function ReportsTab() {
                         cursor: "pointer",
                         padding: 0,
                         transition: "background 0.12s ease",
+                        ...(m3 && {
+                          width: 40,
+                          height: 30,
+                          background:
+                            chartMode === m ? T.accent : "transparent",
+                          border: "none",
+                          borderRadius: 16,
+                        }),
                       }}
                     >
                       {m === "bar" ? (
@@ -754,20 +840,29 @@ export default function ReportsTab() {
             {/* Payment method breakdown */}
             <div
               style={{
-                padding: "12px 24px",
-                borderTop: `1px solid ${T.line}`,
+                padding: m3 ? "12px 20px 18px" : "12px 24px",
+                borderTop: m3 ? "none" : `1px solid ${T.line}`,
                 flexShrink: 0,
               }}
             >
               <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  color: T.textMute,
-                  marginBottom: 8,
-                }}
+                style={
+                  m3
+                    ? {
+                        fontSize: 12,
+                        fontWeight: 500,
+                        color: T.textDim,
+                        marginBottom: 8,
+                      }
+                    : {
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: "0.12em",
+                        textTransform: "uppercase",
+                        color: T.textMute,
+                        marginBottom: 8,
+                      }
+                }
               >
                 Payment Methods · {suffix}
               </div>
@@ -794,6 +889,13 @@ export default function ReportsTab() {
                         border: `1px solid ${T.line2}`,
                         padding: "4px 10px",
                         borderRadius: T.radius,
+                        ...(m3 && {
+                          gap: 6,
+                          padding: "6px 12px",
+                          background: m3.containerHigh,
+                          border: "none",
+                          borderRadius: 12,
+                        }),
                       }}
                     >
                       <span
@@ -841,6 +943,7 @@ export default function ReportsTab() {
               display: "flex",
               flexDirection: "column",
               borderTop: isMobile ? `1px solid ${T.line}` : "none",
+              ...(m3 && { ...m3Card, borderTop: "none" }),
             }}
           >
             <div
@@ -852,6 +955,12 @@ export default function ReportsTab() {
                 height: 36,
                 borderBottom: `1px solid ${T.line}`,
                 flexShrink: 0,
+                ...(m3 && {
+                  gap: 8,
+                  padding: "0 16px",
+                  height: 56,
+                  borderBottom: "none",
+                }),
               }}
             >
               {(
@@ -885,6 +994,27 @@ export default function ReportsTab() {
                           ? T.bad
                           : T.accent
                         : T.textMute,
+                    ...(m3 && {
+                      padding: "6px 14px",
+                      fontSize: 13,
+                      fontWeight: rightTab === t ? 600 : 500,
+                      letterSpacing: "normal",
+                      textTransform: "none",
+                      border: "none",
+                      borderRadius: 16,
+                      background:
+                        rightTab === t
+                          ? t === "voided"
+                            ? m3.badContainer
+                            : m3.primaryContainer
+                          : m3.containerHigh,
+                      color:
+                        rightTab === t
+                          ? t === "voided"
+                            ? m3.onBadContainer
+                            : m3.onPrimaryContainer
+                          : T.textDim,
+                    }),
                   }}
                 >
                   {label}
@@ -898,6 +1028,7 @@ export default function ReportsTab() {
                 style={{
                   overflowY: isMobile ? "visible" : "auto",
                   touchAction: "pan-y",
+                  ...(m3 && { padding: "0 12px 12px" }),
                 }}
               >
                 {topItems.length === 0 ? (
@@ -924,6 +1055,13 @@ export default function ReportsTab() {
                         style={{
                           padding: "10px 16px",
                           borderBottom: `1px solid ${T.line}`,
+                          ...(m3 && {
+                            padding: "10px 12px",
+                            borderBottom: "none",
+                            borderRadius: 14,
+                            background:
+                              i % 2 === 0 ? m3.containerHigh : "transparent",
+                          }),
                         }}
                       >
                         <div
@@ -979,17 +1117,17 @@ export default function ReportsTab() {
                           <div
                             style={{
                               flex: 1,
-                              height: 3,
-                              background: T.line2,
-                              borderRadius: 2,
+                              height: m3 ? 4 : 3,
+                              background: m3 ? m3.containerHighest : T.line2,
+                              borderRadius: m3 ? 8 : 2,
                             }}
                           >
                             <div
                               style={{
                                 width: `${(item.rev / maxRev) * 100}%`,
                                 height: "100%",
-                                background: `${T.accent}66`,
-                                borderRadius: 2,
+                                background: m3 ? T.accent : `${T.accent}66`,
+                                borderRadius: m3 ? 8 : 2,
                               }}
                             />
                           </div>
@@ -1046,6 +1184,7 @@ export default function ReportsTab() {
                 style={{
                   overflowY: isMobile ? "visible" : "auto",
                   touchAction: "pan-y",
+                  ...(m3 && { padding: "0 12px 12px" }),
                 }}
               >
                 {voidedItems.length === 0 ? (
@@ -1067,6 +1206,13 @@ export default function ReportsTab() {
                         padding: "10px 16px",
                         borderBottom: `1px solid ${T.line}`,
                         background: i % 2 === 0 ? "transparent" : T.surface,
+                        ...(m3 && {
+                          padding: "10px 12px",
+                          borderBottom: "none",
+                          borderRadius: 14,
+                          background:
+                            i % 2 === 0 ? m3.containerHigh : "transparent",
+                        }),
                       }}
                     >
                       <div
@@ -1166,6 +1312,11 @@ export default function ReportsTab() {
             display: "flex",
             flexDirection: isMobile ? "column" : "row",
             borderBottom: `1px solid ${T.line}`,
+            ...(m3 && {
+              borderBottom: "none",
+              gap: isMobile ? 12 : 16,
+              marginBottom: isMobile ? 12 : 16,
+            }),
           }}
         >
           <div
@@ -1173,6 +1324,12 @@ export default function ReportsTab() {
               flex: 1,
               borderRight: isMobile ? "none" : `1px solid ${T.line}`,
               borderBottom: isMobile ? `1px solid ${T.line}` : "none",
+              ...(m3 && {
+                ...m3Card,
+                borderRight: "none",
+                borderBottom: "none",
+                paddingBottom: 8,
+              }),
             }}
           >
             <SectionHd
@@ -1217,7 +1374,7 @@ export default function ReportsTab() {
               />
             )}
           </div>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, ...(m3 && { ...m3Card, paddingBottom: 8 }) }}>
             <SectionHd
               title={`Expenses by Category · ${suffix}`}
               badge={fmtPeso(expenses)}
@@ -1256,7 +1413,7 @@ export default function ReportsTab() {
 
         {/* By Category breakdown table */}
         {catBreakdown.length > 0 && (
-          <div>
+          <div style={m3Card}>
             <SectionHd title={`By Category · ${suffix}`} />
             <div
               className="bp-no-scrollbar"
@@ -1265,6 +1422,7 @@ export default function ReportsTab() {
                 touchAction: "pan-x pan-y",
                 overscrollBehaviorX: "contain",
                 overscrollBehaviorY: "none",
+                ...(m3 && { padding: "0 12px 12px" }),
               }}
             >
               <table
@@ -1272,6 +1430,7 @@ export default function ReportsTab() {
                   borderCollapse: "collapse",
                   minWidth: 580,
                   width: "100%",
+                  ...(m3 && { borderCollapse: "separate", borderSpacing: 0 }),
                 }}
               >
                 <thead>
@@ -1284,9 +1443,15 @@ export default function ReportsTab() {
                         letterSpacing: "0.1em",
                         textTransform: "uppercase",
                         color: T.headerText,
+                        ...(m3 && {
+                          fontSize: 11,
+                          fontWeight: 600,
+                          letterSpacing: "0.04em",
+                          color: T.textMute,
+                        }),
                         textAlign: "left",
-                        background: T.surface2,
-                        borderBottom: `1px solid ${T.line}`,
+                        background: m3 ? m3.container : T.surface2,
+                        borderBottom: m3 ? "none" : `1px solid ${T.line}`,
                         position: "sticky",
                         top: 0,
                         left: 0,
@@ -1305,9 +1470,15 @@ export default function ReportsTab() {
                         letterSpacing: "0.1em",
                         textTransform: "uppercase",
                         color: T.headerText,
+                        ...(m3 && {
+                          fontSize: 11,
+                          fontWeight: 600,
+                          letterSpacing: "0.04em",
+                          color: T.textMute,
+                        }),
                         textAlign: "right",
-                        background: T.surface2,
-                        borderBottom: `1px solid ${T.line}`,
+                        background: m3 ? m3.container : T.surface2,
+                        borderBottom: m3 ? "none" : `1px solid ${T.line}`,
                         position: "sticky",
                         top: 0,
                         zIndex: 2,
@@ -1325,9 +1496,15 @@ export default function ReportsTab() {
                         letterSpacing: "0.1em",
                         textTransform: "uppercase",
                         color: T.headerText,
+                        ...(m3 && {
+                          fontSize: 11,
+                          fontWeight: 600,
+                          letterSpacing: "0.04em",
+                          color: T.textMute,
+                        }),
                         textAlign: "right",
-                        background: T.surface2,
-                        borderBottom: `1px solid ${T.line}`,
+                        background: m3 ? m3.container : T.surface2,
+                        borderBottom: m3 ? "none" : `1px solid ${T.line}`,
                         position: "sticky",
                         top: 0,
                         zIndex: 2,
@@ -1345,9 +1522,15 @@ export default function ReportsTab() {
                         letterSpacing: "0.1em",
                         textTransform: "uppercase",
                         color: T.headerText,
+                        ...(m3 && {
+                          fontSize: 11,
+                          fontWeight: 600,
+                          letterSpacing: "0.04em",
+                          color: T.textMute,
+                        }),
                         textAlign: "right",
-                        background: T.surface2,
-                        borderBottom: `1px solid ${T.line}`,
+                        background: m3 ? m3.container : T.surface2,
+                        borderBottom: m3 ? "none" : `1px solid ${T.line}`,
                         position: "sticky",
                         top: 0,
                         zIndex: 2,
@@ -1365,9 +1548,15 @@ export default function ReportsTab() {
                         letterSpacing: "0.1em",
                         textTransform: "uppercase",
                         color: T.headerText,
+                        ...(m3 && {
+                          fontSize: 11,
+                          fontWeight: 600,
+                          letterSpacing: "0.04em",
+                          color: T.textMute,
+                        }),
                         textAlign: "right",
-                        background: T.surface2,
-                        borderBottom: `1px solid ${T.line}`,
+                        background: m3 ? m3.container : T.surface2,
+                        borderBottom: m3 ? "none" : `1px solid ${T.line}`,
                         position: "sticky",
                         top: 0,
                         zIndex: 2,
@@ -1383,9 +1572,21 @@ export default function ReportsTab() {
                   {catBreakdown.map((row, i) => {
                     const margin =
                       row.gross > 0 ? (row.net / row.gross) * 100 : 0;
-                    const rowBg = i % 2 === 0 ? T.bg : T.surface;
+                    const rowBg = m3
+                      ? i % 2 === 0
+                        ? m3.containerHigh
+                        : m3.container
+                      : i % 2 === 0
+                        ? T.bg
+                        : T.surface;
+                    const m3Td: React.CSSProperties = m3
+                      ? { background: rowBg, padding: "10px 16px" }
+                      : {};
                     return (
-                      <tr key={row.category} style={{ background: rowBg }}>
+                      <tr
+                        key={row.category}
+                        style={{ background: m3 ? undefined : rowBg }}
+                      >
                         <td
                           style={{
                             padding: "9px 16px",
@@ -1397,6 +1598,8 @@ export default function ReportsTab() {
                             left: 0,
                             background: rowBg,
                             zIndex: 1,
+                            ...m3Td,
+                            ...(m3 && { borderRadius: "14px 0 0 14px" }),
                           }}
                         >
                           {row.category}
@@ -1410,6 +1613,7 @@ export default function ReportsTab() {
                             textAlign: "right",
                             fontVariantNumeric: "tabular-nums",
                             whiteSpace: "nowrap",
+                            ...m3Td,
                           }}
                         >
                           {fmtPeso(row.gross)}
@@ -1423,6 +1627,7 @@ export default function ReportsTab() {
                             textAlign: "right",
                             fontVariantNumeric: "tabular-nums",
                             whiteSpace: "nowrap",
+                            ...m3Td,
                           }}
                         >
                           {fmtPeso(row.cost)}
@@ -1436,6 +1641,7 @@ export default function ReportsTab() {
                             textAlign: "right",
                             fontVariantNumeric: "tabular-nums",
                             whiteSpace: "nowrap",
+                            ...m3Td,
                           }}
                         >
                           {fmtPeso(row.net)}
@@ -1454,6 +1660,8 @@ export default function ReportsTab() {
                                 : margin >= 40
                                   ? T.warn
                                   : T.bad,
+                            ...m3Td,
+                            ...(m3 && { borderRadius: "0 14px 14px 0" }),
                           }}
                         >
                           {margin.toFixed(1)}%

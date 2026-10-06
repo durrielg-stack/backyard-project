@@ -83,26 +83,31 @@ function SectionHd({
   action?: React.ReactNode;
 }) {
   const { T } = useTheme();
+  const m3 = T.m3;
   return (
     <div
       style={{
-        height: 48,
-        padding: "0 24px",
+        height: m3 ? 56 : 48,
+        padding: m3 ? "0 20px" : "0 24px",
         flexShrink: 0,
         display: "flex",
         alignItems: "center",
         gap: 10,
-        borderBottom: `1px solid ${T.line}`,
+        borderBottom: m3 ? "none" : `1px solid ${T.line}`,
       }}
     >
       <span
-        style={{
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          color: T.textMute,
-        }}
+        style={
+          m3
+            ? { fontSize: 16, fontWeight: 600, color: T.text }
+            : {
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: T.textMute,
+              }
+        }
       >
         {title}
       </span>
@@ -112,10 +117,10 @@ function SectionHd({
             fontFamily: T.mono,
             fontSize: 12,
             fontWeight: 600,
-            color: T.accent,
-            background: `${T.accent}18`,
-            border: `1px solid ${T.accent}44`,
-            padding: "2px 8px",
+            color: m3 ? m3.onPrimaryContainer : T.accent,
+            background: m3 ? m3.primaryContainer : `${T.accent}18`,
+            border: m3 ? "none" : `1px solid ${T.accent}44`,
+            padding: m3 ? "4px 10px" : "2px 8px",
             borderRadius: T.radius,
           }}
         >
@@ -740,6 +745,16 @@ function TablesTab({
     attention: T.bad,
     reserved: T.info,
   };
+  const m3 = T.m3;
+  const m3Chip: Record<string, { bg: string; fg: string }> = m3
+    ? {
+        available: { bg: m3.okContainer, fg: m3.onOkContainer },
+        occupied: { bg: m3.primaryContainer, fg: m3.onPrimaryContainer },
+        aging: { bg: m3.warnContainer, fg: m3.onWarnContainer },
+        attention: { bg: m3.badContainer, fg: m3.onBadContainer },
+        reserved: { bg: m3.infoContainer, fg: m3.onInfoContainer },
+      }
+    : {};
 
   return (
     <div
@@ -748,6 +763,13 @@ function TablesTab({
         display: "flex",
         flexDirection: "column",
         minHeight: 0,
+        ...(m3 && {
+          margin: "16px 20px 20px",
+          background: m3.container,
+          borderRadius: 24,
+          boxShadow: m3.elev1,
+          overflow: "hidden",
+        }),
       }}
     >
       <SectionHd title="Tables" badge={`${tables.length} total`} />
@@ -776,7 +798,7 @@ function TablesTab({
             overscrollBehaviorY: "none",
           }}
         >
-          <div style={{ minWidth: 640 }}>
+          <div style={{ minWidth: 640, ...(m3 && { paddingBottom: 12 }) }}>
             {/* Header */}
             <div
               style={{
@@ -790,6 +812,12 @@ function TablesTab({
                 position: "sticky",
                 top: 0,
                 zIndex: 1,
+                ...(m3 && {
+                  margin: "0 12px",
+                  padding: "0 12px",
+                  borderBottom: "none",
+                  background: m3.container,
+                }),
               }}
             >
               {[
@@ -803,13 +831,23 @@ function TablesTab({
               ].map((h) => (
                 <span
                   key={h}
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 600,
-                    letterSpacing: "0.12em",
-                    textTransform: "uppercase",
-                    color: T.headerText,
-                  }}
+                  style={
+                    m3
+                      ? {
+                          fontSize: 11,
+                          fontWeight: 600,
+                          letterSpacing: "0.04em",
+                          textTransform: "uppercase",
+                          color: T.textMute,
+                        }
+                      : {
+                          fontSize: 10,
+                          fontWeight: 600,
+                          letterSpacing: "0.12em",
+                          textTransform: "uppercase",
+                          color: T.headerText,
+                        }
+                  }
                 >
                   {h}
                 </span>
@@ -831,6 +869,14 @@ function TablesTab({
                     borderBottom: `1px solid ${T.line}`,
                     background: i % 2 === 0 ? "transparent" : T.surface,
                     opacity: isWorking ? 0.5 : 1,
+                    ...(m3 && {
+                      margin: "0 12px",
+                      padding: "0 12px",
+                      borderBottom: "none",
+                      borderRadius: 14,
+                      background:
+                        i % 2 === 0 ? m3.containerHigh : "transparent",
+                    }),
                   }}
                 >
                   <span
@@ -862,6 +908,14 @@ function TablesTab({
                       letterSpacing: "0.08em",
                       textTransform: "uppercase",
                       color: sc,
+                      ...(m3 && {
+                        justifySelf: "start",
+                        letterSpacing: "0.02em",
+                        padding: "4px 10px",
+                        borderRadius: 10,
+                        background: m3Chip[t.status]?.bg ?? m3.containerHighest,
+                        color: m3Chip[t.status]?.fg ?? T.textDim,
+                      }),
                     }}
                   >
                     {t.status}
@@ -902,6 +956,14 @@ function TablesTab({
                           color: T.info,
                           borderRadius: T.radius,
                           cursor: "pointer",
+                          ...(m3 && {
+                            padding: "6px 14px",
+                            fontWeight: 600,
+                            background: m3.infoContainer,
+                            color: m3.onInfoContainer,
+                            border: "none",
+                            borderRadius: 16,
+                          }),
                         }}
                       >
                         Clear Reserve
@@ -919,6 +981,14 @@ function TablesTab({
                           color: T.textDim,
                           borderRadius: T.radius,
                           cursor: "pointer",
+                          ...(m3 && {
+                            padding: "6px 14px",
+                            fontWeight: 600,
+                            background: m3.containerHighest,
+                            color: T.text,
+                            border: "none",
+                            borderRadius: 16,
+                          }),
                         }}
                       >
                         Reserve
@@ -938,6 +1008,14 @@ function TablesTab({
                           color: T.bad,
                           borderRadius: T.radius,
                           cursor: "pointer",
+                          ...(m3 && {
+                            padding: "6px 14px",
+                            fontWeight: 600,
+                            background: m3.badContainer,
+                            color: m3.onBadContainer,
+                            border: "none",
+                            borderRadius: 16,
+                          }),
                         }}
                       >
                         Force Close
@@ -1106,6 +1184,19 @@ function SavingsTab() {
 
   const previewTotal = parseFloat(fTotal) || 0;
   const previewPer = previewTotal > 0 ? previewTotal / PARTNERS.length : 0;
+  const m3 = T.m3;
+  const m3Label: React.CSSProperties | undefined = m3
+    ? { fontSize: 12, fontWeight: 500, color: T.textDim, marginBottom: 6 }
+    : undefined;
+  const m3Input: React.CSSProperties | undefined = m3
+    ? {
+        background: m3.containerHigh,
+        border: "1px solid transparent",
+        borderRadius: 12,
+        minHeight: 40,
+        padding: "8px 12px",
+      }
+    : undefined;
 
   return (
     <div
@@ -1114,6 +1205,13 @@ function SavingsTab() {
         display: "flex",
         flexDirection: "column",
         minHeight: 0,
+        ...(m3 && {
+          margin: "16px 20px 20px",
+          background: m3.container,
+          borderRadius: 24,
+          boxShadow: m3.elev1,
+          overflow: "hidden",
+        }),
       }}
     >
       <SectionHd
@@ -1132,6 +1230,15 @@ function SavingsTab() {
               border: `1px solid ${showForm ? T.line2 : T.accent}`,
               borderRadius: T.radius,
               cursor: "pointer",
+              ...(m3 && {
+                height: 40,
+                padding: "0 20px",
+                fontSize: 13,
+                background: showForm ? m3.containerHigh : T.accent,
+                color: showForm ? T.text : T.accentInk,
+                border: "none",
+                borderRadius: 20,
+              }),
             }}
           >
             {showForm ? "Cancel" : "+ New Remittance"}
@@ -1148,7 +1255,7 @@ function SavingsTab() {
           overscrollBehaviorX: "contain",
           overscrollBehaviorY: "none",
           flexShrink: 0,
-          borderBottom: `1px solid ${T.line}`,
+          borderBottom: m3 ? "none" : `1px solid ${T.line}`,
         }}
       >
         <div
@@ -1156,6 +1263,7 @@ function SavingsTab() {
             display: "grid",
             gridTemplateColumns: "repeat(6, 1fr)",
             minWidth: 600,
+            ...(m3 && { gap: 12, padding: "0 20px 12px" }),
           }}
         >
           {PARTNERS.map((p, i) => (
@@ -1164,17 +1272,27 @@ function SavingsTab() {
               style={{
                 padding: "14px 20px",
                 borderRight: i < 5 ? `1px solid ${T.line}` : "none",
+                ...(m3 && {
+                  padding: "14px 16px",
+                  borderRight: "none",
+                  background: m3.containerHigh,
+                  borderRadius: 20,
+                }),
               }}
             >
               <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  color: T.textMute,
-                  marginBottom: 4,
-                }}
+                style={
+                  m3
+                    ? { ...m3Label, marginBottom: 4 }
+                    : {
+                        fontSize: 10,
+                        fontWeight: 700,
+                        letterSpacing: "0.12em",
+                        textTransform: "uppercase",
+                        color: T.textMute,
+                        marginBottom: 4,
+                      }
+                }
               >
                 {p}
               </div>
@@ -1204,6 +1322,13 @@ function SavingsTab() {
             background: T.surface2,
             borderBottom: `1px solid ${T.line}`,
             flexShrink: 0,
+            ...(m3 && {
+              background: m3.containerHigh,
+              borderBottom: "none",
+              borderRadius: 20,
+              margin: "0 20px 12px",
+              overflow: "hidden",
+            }),
           }}
         >
           <div
@@ -1226,14 +1351,16 @@ function SavingsTab() {
               >
                 <div>
                   <div
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 600,
-                      letterSpacing: "0.10em",
-                      textTransform: "uppercase",
-                      color: T.textMute,
-                      marginBottom: 4,
-                    }}
+                    style={
+                      m3Label ?? {
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: "0.10em",
+                        textTransform: "uppercase",
+                        color: T.textMute,
+                        marginBottom: 4,
+                      }
+                    }
                   >
                     Date
                   </div>
@@ -1252,19 +1379,22 @@ function SavingsTab() {
                       padding: "6px 8px",
                       outline: "none",
                       boxSizing: "border-box",
+                      ...m3Input,
                     }}
                   />
                 </div>
                 <div>
                   <div
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 600,
-                      letterSpacing: "0.10em",
-                      textTransform: "uppercase",
-                      color: T.textMute,
-                      marginBottom: 4,
-                    }}
+                    style={
+                      m3Label ?? {
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: "0.10em",
+                        textTransform: "uppercase",
+                        color: T.textMute,
+                        marginBottom: 4,
+                      }
+                    }
                   >
                     Total Amount ₱ *
                   </div>
@@ -1285,19 +1415,22 @@ function SavingsTab() {
                       padding: "6px 8px",
                       outline: "none",
                       boxSizing: "border-box",
+                      ...m3Input,
                     }}
                   />
                 </div>
                 <div>
                   <div
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 600,
-                      letterSpacing: "0.10em",
-                      textTransform: "uppercase",
-                      color: T.textMute,
-                      marginBottom: 4,
-                    }}
+                    style={
+                      m3Label ?? {
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: "0.10em",
+                        textTransform: "uppercase",
+                        color: T.textMute,
+                        marginBottom: 4,
+                      }
+                    }
                   >
                     Notes
                   </div>
@@ -1316,6 +1449,7 @@ function SavingsTab() {
                       padding: "6px 8px",
                       outline: "none",
                       boxSizing: "border-box",
+                      ...m3Input,
                     }}
                   />
                 </div>
@@ -1334,6 +1468,11 @@ function SavingsTab() {
                       borderRadius: T.radius,
                       cursor: "pointer",
                       opacity: !fTotal ? 0.4 : 1,
+                      ...(m3 && {
+                        height: 40,
+                        padding: "0 24px",
+                        borderRadius: 20,
+                      }),
                     }}
                   >
                     {saving ? "Saving…" : "Save"}
@@ -1345,14 +1484,18 @@ function SavingsTab() {
               {previewTotal > 0 && (
                 <div>
                   <div
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 600,
-                      letterSpacing: "0.10em",
-                      textTransform: "uppercase",
-                      color: T.textMute,
-                      marginBottom: 8,
-                    }}
+                    style={
+                      m3
+                        ? { ...m3Label, marginBottom: 8 }
+                        : {
+                            fontSize: 10,
+                            fontWeight: 600,
+                            letterSpacing: "0.10em",
+                            textTransform: "uppercase",
+                            color: T.textMute,
+                            marginBottom: 8,
+                          }
+                    }
                   >
                     Paid Out per Partner — each earns {fmtPeso(previewPer)}{" "}
                     (auto-split equally)
@@ -1408,6 +1551,7 @@ function SavingsTab() {
                               padding: "5px 8px",
                               outline: "none",
                               boxSizing: "border-box",
+                              ...m3Input,
                             }}
                           />
                         </div>
@@ -1422,7 +1566,14 @@ function SavingsTab() {
       )}
 
       {/* Remittance list */}
-      <div className="bp-no-scrollbar" style={{ flex: 1, overflowY: "auto" }}>
+      <div
+        className="bp-no-scrollbar"
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          ...(m3 && { padding: "0 12px 12px" }),
+        }}
+      >
         {loading ? (
           <div
             style={{
@@ -1449,7 +1600,22 @@ function SavingsTab() {
           rows.map((r, i) => {
             const isOpen = expanded === r.id;
             return (
-              <div key={r.id} style={{ borderBottom: `1px solid ${T.line}` }}>
+              <div
+                key={r.id}
+                style={
+                  m3
+                    ? {
+                        borderRadius: 14,
+                        overflow: "hidden",
+                        background:
+                          i % 2 === 0 || isOpen
+                            ? m3.containerHigh
+                            : "transparent",
+                        marginBottom: isOpen ? 8 : 0,
+                      }
+                    : { borderBottom: `1px solid ${T.line}` }
+                }
+              >
                 {/* Row header */}
                 <div
                   className="bp-no-scrollbar"
@@ -1471,6 +1637,10 @@ function SavingsTab() {
                       background: i % 2 === 0 ? "transparent" : T.surface,
                       cursor: "pointer",
                       minWidth: 480,
+                      ...(m3 && {
+                        padding: "0 12px",
+                        background: "transparent",
+                      }),
                     }}
                   >
                     <span
@@ -1516,10 +1686,14 @@ function SavingsTab() {
                 {/* Expanded detail */}
                 {isOpen && (
                   <div
-                    style={{
-                      background: T.surface2,
-                      borderTop: `1px solid ${T.line}`,
-                    }}
+                    style={
+                      m3
+                        ? { background: m3.containerHighest }
+                        : {
+                            background: T.surface2,
+                            borderTop: `1px solid ${T.line}`,
+                          }
+                    }
                   >
                     <div
                       className="bp-no-scrollbar"
@@ -1603,7 +1777,7 @@ function SavingsTab() {
                         ))}
                         <div
                           style={{
-                            borderTop: `1px solid ${T.line}`,
+                            borderTop: m3 ? "none" : `1px solid ${T.line}`,
                             paddingTop: 6,
                             marginTop: 6,
                             display: "grid",
@@ -1656,6 +1830,14 @@ function SavingsTab() {
                               color: T.bad,
                               borderRadius: T.radius,
                               cursor: "pointer",
+                              ...(m3 && {
+                                padding: "8px 16px",
+                                fontWeight: 600,
+                                background: m3.badContainer,
+                                color: m3.onBadContainer,
+                                border: "none",
+                                borderRadius: 16,
+                              }),
                             }}
                           >
                             Delete remittance
@@ -1698,6 +1880,7 @@ export default function OwnerView({ tables, staffName }: OwnerViewProps) {
   const isMobile = bp === "mobile";
   const [tab, setTab] = useState<OwnerTab>("reports");
   const today = new Date();
+  const m3 = T.m3;
 
   const tabStrip = (
     <div
@@ -1709,27 +1892,47 @@ export default function OwnerView({ tables, staffName }: OwnerViewProps) {
         touchAction: "pan-x pan-y",
         overscrollBehaviorX: "contain",
         overscrollBehaviorY: "none",
+        ...(m3 && { gap: 4, alignSelf: "flex-end" }),
       }}
     >
       {TABS.map((t) => (
         <button
           key={t.id}
           onClick={() => setTab(t.id)}
-          style={{
-            padding: "10px 16px",
-            fontSize: 12,
-            fontFamily: "inherit",
-            fontWeight: tab === t.id ? 700 : 400,
-            flexShrink: 0,
-            background: tab === t.id ? T.surface2 : "transparent",
-            color: tab === t.id ? T.text : T.textDim,
-            border: `1px solid ${tab === t.id ? T.line2 : "transparent"}`,
-            borderRadius: T.radius,
-            cursor: "pointer",
-            borderBottom:
-              tab === t.id ? `2px solid ${T.accent}` : `2px solid transparent`,
-            transition: "background 0.12s ease",
-          }}
+          style={
+            m3
+              ? {
+                  padding: "12px 20px",
+                  fontSize: 14,
+                  fontFamily: "inherit",
+                  fontWeight: tab === t.id ? 600 : 500,
+                  flexShrink: 0,
+                  background:
+                    tab === t.id ? m3.primaryContainer : "transparent",
+                  color: tab === t.id ? m3.onPrimaryContainer : T.textDim,
+                  border: "none",
+                  borderRadius: "16px 16px 0 0",
+                  cursor: "pointer",
+                  transition: "background 0.12s ease",
+                }
+              : {
+                  padding: "10px 16px",
+                  fontSize: 12,
+                  fontFamily: "inherit",
+                  fontWeight: tab === t.id ? 700 : 400,
+                  flexShrink: 0,
+                  background: tab === t.id ? T.surface2 : "transparent",
+                  color: tab === t.id ? T.text : T.textDim,
+                  border: `1px solid ${tab === t.id ? T.line2 : "transparent"}`,
+                  borderRadius: T.radius,
+                  cursor: "pointer",
+                  borderBottom:
+                    tab === t.id
+                      ? `2px solid ${T.accent}`
+                      : `2px solid transparent`,
+                  transition: "background 0.12s ease",
+                }
+          }
         >
           {t.label}
         </button>
@@ -1751,8 +1954,8 @@ export default function OwnerView({ tables, staffName }: OwnerViewProps) {
         <div
           style={{
             flexShrink: 0,
-            background: T.bg,
-            borderBottom: `1px solid ${T.line}`,
+            background: m3 ? m3.topBar : T.bg,
+            borderBottom: m3 ? "none" : `1px solid ${T.line}`,
           }}
         >
           {/* Row 1: lock + Owner + divider + date */}
@@ -1775,6 +1978,12 @@ export default function OwnerView({ tables, staffName }: OwnerViewProps) {
                 letterSpacing: "0.12em",
                 textTransform: "uppercase",
                 color: T.accent,
+                ...(m3 && {
+                  fontSize: 14,
+                  fontWeight: 600,
+                  letterSpacing: "normal",
+                  textTransform: "none",
+                }),
               }}
             >
               <svg
@@ -1791,7 +2000,9 @@ export default function OwnerView({ tables, staffName }: OwnerViewProps) {
               </svg>
               Owner
             </div>
-            <div style={{ width: 1, height: 16, background: T.line2 }} />
+            {!m3 && (
+              <div style={{ width: 1, height: 16, background: T.line2 }} />
+            )}
             <span
               style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute }}
             >
@@ -1803,7 +2014,7 @@ export default function OwnerView({ tables, staffName }: OwnerViewProps) {
             style={{
               height: 44,
               display: "flex",
-              alignItems: "center",
+              alignItems: m3 ? "flex-end" : "center",
               padding: "0 8px",
             }}
           >
@@ -1821,6 +2032,12 @@ export default function OwnerView({ tables, staffName }: OwnerViewProps) {
             display: "flex",
             alignItems: "center",
             gap: 16,
+            ...(m3 && {
+              height: 56,
+              padding: "0 20px",
+              background: m3.topBar,
+              borderBottom: "none",
+            }),
           }}
         >
           {/* Lock icon */}
@@ -1834,6 +2051,12 @@ export default function OwnerView({ tables, staffName }: OwnerViewProps) {
               letterSpacing: "0.12em",
               textTransform: "uppercase",
               color: T.accent,
+              ...(m3 && {
+                fontSize: 14,
+                fontWeight: 600,
+                letterSpacing: "normal",
+                textTransform: "none",
+              }),
             }}
           >
             <svg
@@ -1851,7 +2074,7 @@ export default function OwnerView({ tables, staffName }: OwnerViewProps) {
             Owner
           </div>
 
-          <div style={{ width: 1, height: 20, background: T.line2 }} />
+          {!m3 && <div style={{ width: 1, height: 20, background: T.line2 }} />}
 
           <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute }}>
             {fmtDate(today)}

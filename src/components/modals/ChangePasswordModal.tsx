@@ -69,7 +69,16 @@ export default function ChangePasswordModal({ staffName, onClose }: Props) {
     color: T.textMute,
     marginBottom: 6,
     display: "block",
+    ...(T.m3 && {
+      fontSize: 12,
+      fontWeight: 500,
+      letterSpacing: 0,
+      textTransform: "none",
+      color: T.textDim,
+    }),
   };
+  const m3 = T.m3;
+  const submitDisabled = loading || !currentPw || !newPw || !confirmPw;
 
   function inputStyle(highlight: boolean): React.CSSProperties {
     return {
@@ -83,16 +92,23 @@ export default function ChangePasswordModal({ staffName, onClose }: Props) {
       fontFamily: "inherit",
       borderRadius: T.radius,
       outline: "none",
+      ...(T.m3 && {
+        minHeight: 48,
+        padding: "0 14px",
+        background: T.m3.containerHigh,
+        border: `1px solid ${highlight ? T.bad : "transparent"}`,
+        borderRadius: 12,
+      }),
     };
   }
 
   return (
     <ModalBase width={400} onBackdropClick={onClose}>
-      <div style={{ padding: "24px 28px 28px" }}>
+      <div style={{ padding: m3 ? "24px" : "24px 28px 28px" }}>
         <div
           style={{
-            fontSize: 16,
-            fontWeight: 700,
+            fontSize: m3 ? 20 : 16,
+            fontWeight: m3 ? 600 : 700,
             color: T.text,
             marginBottom: 20,
           }}
@@ -117,6 +133,11 @@ export default function ChangePasswordModal({ staffName, onClose }: Props) {
                 fontWeight: 700,
                 cursor: "pointer",
                 fontFamily: "inherit",
+                ...(m3 && {
+                  minHeight: 48,
+                  padding: "0 32px",
+                  borderRadius: 24,
+                }),
               }}
             >
               Done
@@ -190,6 +211,13 @@ export default function ChangePasswordModal({ staffName, onClose }: Props) {
                   borderRadius: T.radius,
                   cursor: "pointer",
                   fontFamily: "inherit",
+                  ...(m3 && {
+                    minHeight: 48,
+                    background: m3.containerHigh,
+                    color: T.text,
+                    border: "none",
+                    borderRadius: 24,
+                  }),
                 }}
               >
                 Cancel
@@ -218,6 +246,11 @@ export default function ChangePasswordModal({ staffName, onClose }: Props) {
                       : "pointer",
                   fontFamily: "inherit",
                   transition: "background 0.12s",
+                  ...(m3 && {
+                    minHeight: 48,
+                    borderRadius: 24,
+                    background: submitDisabled ? m3.containerHigh : T.accent,
+                  }),
                 }}
               >
                 {loading ? "Updating..." : "Update Password"}

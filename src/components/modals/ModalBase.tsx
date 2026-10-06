@@ -82,9 +82,9 @@ export default function ModalBase({
         style={{
           width,
           maxWidth: "calc(100vw - 24px)",
-          background: T.surface,
-          border: `1px solid ${T.line2}`,
-          borderRadius: T.radiusLg,
+          background: T.m3 ? T.m3.container : T.surface,
+          border: T.m3 ? "none" : `1px solid ${T.line2}`,
+          borderRadius: T.m3 ? 28 : T.radiusLg,
           boxShadow: T.shadowModal,
           animation: "bp-modal-pop 0.22s ease forwards",
           overflow: "hidden",

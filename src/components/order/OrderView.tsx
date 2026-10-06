@@ -262,6 +262,11 @@ export default function OrderView({
           display: "flex",
           flexDirection: "row",
           overflow: "hidden",
+          ...(T.m3 && {
+            gap: isMobile ? 0 : 16,
+            padding: isMobile ? 12 : 16,
+            boxSizing: "border-box",
+          }),
         }}
       >
         {/* ── Menu panel ─────────────────────────────────────────────────── */}
@@ -272,6 +277,7 @@ export default function OrderView({
             height: "100%",
             display: isMobile && mobileTab !== "menu" ? "none" : "flex",
             flexDirection: "column",
+            ...(T.m3 && { minHeight: 0 }),
           }}
         >
           <MenuPanel
@@ -292,6 +298,7 @@ export default function OrderView({
             width: isMobile ? "100%" : undefined,
             height: "100%",
             flex: isMobile ? "1" : undefined,
+            ...(T.m3 && { minHeight: 0 }),
           }}
         >
           <OrderPanel
@@ -345,8 +352,9 @@ export default function OrderView({
             right: 0,
             display: "flex",
             zIndex: 50,
-            background: T.surface2,
-            borderTop: `1px solid ${T.line}`,
+            background: T.m3 ? T.m3.topBar : T.surface2,
+            borderTop: T.m3 ? "none" : `1px solid ${T.line}`,
+            boxShadow: T.m3 ? T.m3.elev2 : undefined,
             paddingBottom: "env(safe-area-inset-bottom, 0px)",
           }}
         >
@@ -370,16 +378,39 @@ export default function OrderView({
                 padding: "8px 0",
               }}
             >
-              <span style={{ fontSize: 18 }}>
+              <span
+                style={{
+                  fontSize: 18,
+                  ...(T.m3 && {
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 56,
+                    height: 30,
+                    borderRadius: 16,
+                    background:
+                      mobileTab === tab ? T.m3.primaryContainer : "transparent",
+                    color:
+                      mobileTab === tab ? T.m3.onPrimaryContainer : T.textDim,
+                  }),
+                }}
+              >
                 {tab === "menu" ? "☰" : "🧾"}
               </span>
               <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                }}
+                style={
+                  T.m3
+                    ? {
+                        fontSize: 12,
+                        fontWeight: mobileTab === tab ? 600 : 500,
+                      }
+                    : {
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: "0.08em",
+                        textTransform: "uppercase",
+                      }
+                }
               >
                 {tab === "cart" && lines.length > 0
                   ? `Cart (${lines.length})`
@@ -401,9 +432,18 @@ export default function OrderView({
             left: 0,
             right: 0,
             zIndex: 200,
-            background: T.bad,
-            color: "#fff",
+            background: T.m3 ? T.m3.badContainer : T.bad,
+            color: T.m3 ? T.m3.onBadContainer : "#fff",
             padding: "10px 24px",
+            ...(T.m3 && {
+              top: 12,
+              left: 12,
+              right: 12,
+              borderRadius: 16,
+              boxShadow: T.m3.elev2,
+              fontFamily: T.sansBody,
+              fontWeight: 500,
+            }),
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -417,11 +457,12 @@ export default function OrderView({
             style={{
               background: "none",
               border: "none",
-              color: "#fff",
+              color: T.m3 ? T.m3.onBadContainer : "#fff",
               cursor: "pointer",
               fontSize: 18,
               lineHeight: 1,
               padding: "0 4px",
+              ...(T.m3 && { minWidth: 44, minHeight: 44 }),
             }}
           >
             ×

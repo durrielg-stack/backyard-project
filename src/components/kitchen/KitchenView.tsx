@@ -35,6 +35,7 @@ function ConfirmScreen({
   confirming: boolean;
 }) {
   const { T } = useTheme();
+  const m3 = T.m3;
   const color =
     card.status === "late" ? T.bad : card.status === "aging" ? T.warn : T.ok;
   const isUrgent = card.status === "late" || card.status === "aging";
@@ -63,6 +64,7 @@ function ConfirmScreen({
           justifyContent: "center",
           borderBottom: `1px solid ${T.line}`,
           flexShrink: 0,
+          ...(m3 && { height: 64, borderBottom: "none" }),
         }}
       >
         <span
@@ -72,6 +74,12 @@ function ConfirmScreen({
             letterSpacing: "0.08em",
             textTransform: "uppercase",
             color: T.text,
+            ...(m3 && {
+              fontSize: 20,
+              fontWeight: 600,
+              letterSpacing: "normal",
+              textTransform: "none",
+            }),
           }}
         >
           Mark as Served?
@@ -99,6 +107,19 @@ function ConfirmScreen({
             ...(isUrgent
               ? { animation: "bp-attn 1.4s ease-in-out infinite" }
               : {}),
+            ...(m3 && {
+              background:
+                card.status === "late"
+                  ? m3.badTint
+                  : card.status === "aging"
+                    ? m3.warnTint
+                    : m3.container,
+              border: "none",
+              outline:
+                card.status === "late" ? `2px solid ${T.bad}` : undefined,
+              borderRadius: 28,
+              boxShadow: m3.elev2,
+            }),
           }}
         >
           {/* Table + elapsed */}
@@ -121,6 +142,10 @@ function ConfirmScreen({
                   padding: "5px 14px",
                   borderRadius: T.radius,
                   letterSpacing: "0.04em",
+                  ...(m3 && {
+                    background: m3.containerHighest,
+                    borderRadius: 12,
+                  }),
                 }}
               >
                 {card.tableId}
@@ -137,6 +162,16 @@ function ConfirmScreen({
                     border: `1px solid ${T.info}55`,
                     padding: "2px 7px",
                     borderRadius: 3,
+                    ...(m3 && {
+                      background: m3.infoContainer,
+                      color: m3.onInfoContainer,
+                      border: "none",
+                      padding: "4px 10px",
+                      borderRadius: 8,
+                      letterSpacing: "normal",
+                      textTransform: "none",
+                      fontSize: 12,
+                    }),
                   }}
                 >
                   Takeout
@@ -201,6 +236,13 @@ function ConfirmScreen({
                   padding: "2px 8px",
                   borderRadius: 4,
                   flexShrink: 0,
+                  ...(m3 && {
+                    background: m3.primaryContainer,
+                    color: m3.onPrimaryContainer,
+                    border: "none",
+                    padding: "2px 10px",
+                    borderRadius: 10,
+                  }),
                 }}
               >
                 ×{card.qty}
@@ -234,6 +276,12 @@ function ConfirmScreen({
             border: `1px solid ${T.line2}`,
             borderRadius: T.radius,
             cursor: "pointer",
+            ...(m3 && {
+              background: m3.containerHigh,
+              color: T.text,
+              border: "none",
+              borderRadius: 30,
+            }),
           }}
         >
           ← Back
@@ -254,6 +302,11 @@ function ConfirmScreen({
             cursor: "pointer",
             opacity: confirming ? 0.6 : 1,
             transition: "opacity 0.1s",
+            ...(m3 && {
+              background: T.accent,
+              color: T.accentInk,
+              borderRadius: 30,
+            }),
           }}
         >
           {confirming ? "Saving…" : "✓ Confirm Served"}
@@ -275,6 +328,7 @@ export default function KitchenView({
   onSignOut: () => void;
 }) {
   const { T } = useTheme();
+  const m3 = T.m3;
   const [tick, setTick] = useState(0);
   const [screen, setScreen] = useState<Screen>({ kind: "list" });
   const [confirming, setConfirming] = useState(false);
@@ -333,6 +387,12 @@ export default function KitchenView({
           gap: 10,
           background: T.bg,
           borderBottom: `1px solid ${T.line}`,
+          ...(m3 && {
+            height: 64,
+            background: m3.topBar,
+            borderBottom: "none",
+            boxShadow: m3.elev1,
+          }),
         }}
       >
         <span
@@ -342,6 +402,13 @@ export default function KitchenView({
             letterSpacing: "0.12em",
             textTransform: "uppercase",
             color: T.headerText,
+            ...(m3 && {
+              fontSize: 20,
+              fontWeight: 600,
+              letterSpacing: "normal",
+              textTransform: "none",
+              color: T.text,
+            }),
           }}
         >
           Kitchen
@@ -357,6 +424,13 @@ export default function KitchenView({
               border: `1px solid ${T.accent}44`,
               padding: "2px 8px",
               borderRadius: T.radius,
+              ...(m3 && {
+                background: m3.primaryContainer,
+                color: m3.onPrimaryContainer,
+                border: "none",
+                padding: "4px 10px",
+                borderRadius: 12,
+              }),
             }}
           >
             {cards.length}
@@ -364,7 +438,15 @@ export default function KitchenView({
         )}
         <div style={{ flex: 1 }} />
         {/* Staff name */}
-        <span style={{ fontSize: 11, color: T.textMute }}>{session.name}</span>
+        <span
+          style={{
+            fontSize: 11,
+            color: T.textMute,
+            ...(m3 && { fontSize: 13, color: T.textDim }),
+          }}
+        >
+          {session.name}
+        </span>
         {/* Live pulse dot */}
         <span style={{ fontSize: 10, color: T.textMute, fontFamily: T.mono }}>
           live
@@ -392,6 +474,16 @@ export default function KitchenView({
             color: T.textMute,
             borderRadius: T.radius,
             cursor: "pointer",
+            ...(m3 && {
+              padding: "0 16px",
+              minHeight: 44,
+              fontSize: 13,
+              fontWeight: 600,
+              background: m3.containerHigh,
+              border: "none",
+              color: T.text,
+              borderRadius: 22,
+            }),
           }}
         >
           Sign out
@@ -451,6 +543,15 @@ export default function KitchenView({
             const isTakeout = card.orderType === "takeout";
             const cardBg = isTakeout ? `${T.info}12` : T.surface;
             const cardBorder = isUrgent ? color : isTakeout ? T.info : T.line;
+            const m3CardBg = m3
+              ? card.status === "late"
+                ? m3.badTint
+                : card.status === "aging"
+                  ? m3.warnTint
+                  : isTakeout
+                    ? m3.infoContainer
+                    : m3.container
+              : undefined;
 
             return (
               <div
@@ -463,6 +564,15 @@ export default function KitchenView({
                   ...(isUrgent
                     ? { animation: "bp-attn 1.4s ease-in-out infinite" }
                     : {}),
+                  ...(m3 && {
+                    background: m3CardBg,
+                    border: "none",
+                    outline:
+                      card.status === "late" ? `2px solid ${T.bad}` : undefined,
+                    borderRadius: 20,
+                    padding: "16px 16px 16px",
+                    boxShadow: m3.elev1,
+                  }),
                 }}
               >
                 {/* Table + elapsed */}
@@ -486,6 +596,10 @@ export default function KitchenView({
                         background: T.chip,
                         padding: "4px 12px",
                         borderRadius: T.radius,
+                        ...(m3 && {
+                          background: m3.containerHighest,
+                          borderRadius: 12,
+                        }),
                       }}
                     >
                       {card.tableId}
@@ -502,6 +616,16 @@ export default function KitchenView({
                           border: `1px solid ${T.info}55`,
                           padding: "2px 7px",
                           borderRadius: 3,
+                          ...(m3 && {
+                            background: m3.infoContainer,
+                            color: m3.onInfoContainer,
+                            border: "none",
+                            padding: "4px 10px",
+                            borderRadius: 8,
+                            letterSpacing: "normal",
+                            textTransform: "none",
+                            fontSize: 12,
+                          }),
                         }}
                       >
                         Takeout
@@ -518,6 +642,7 @@ export default function KitchenView({
                         letterSpacing: "0.1em",
                         textTransform: "uppercase",
                         color,
+                        ...(m3 && { fontSize: 11 }),
                       }}
                     >
                       {badge}
@@ -567,6 +692,13 @@ export default function KitchenView({
                         padding: "2px 8px",
                         borderRadius: 4,
                         flexShrink: 0,
+                        ...(m3 && {
+                          background: m3.primaryContainer,
+                          color: m3.onPrimaryContainer,
+                          border: "none",
+                          padding: "2px 10px",
+                          borderRadius: 10,
+                        }),
                       }}
                     >
                       ×{card.qty}
@@ -590,6 +722,16 @@ export default function KitchenView({
                     border: `1px solid ${T.line2}`,
                     borderRadius: T.radius,
                     cursor: "pointer",
+                    ...(m3 && {
+                      height: 52,
+                      fontSize: 15,
+                      letterSpacing: "normal",
+                      textTransform: "none",
+                      background: T.accent,
+                      color: T.accentInk,
+                      border: "none",
+                      borderRadius: 26,
+                    }),
                   }}
                 >
                   Served

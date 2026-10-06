@@ -23,7 +23,8 @@ export default function WaiterFloorView({
   onTableSelect,
   onSignOut,
 }: Props) {
-  const { T, mode, toggle } = useTheme();
+  const { T, isDark, toggle } = useTheme();
+  const m3 = T.m3;
   const { tables } = useTables();
   const { orders, totals } = useOpenOrders();
   const [tick, setTick] = useState(0);
@@ -83,13 +84,32 @@ export default function WaiterFloorView({
           position: "sticky",
           top: 0,
           zIndex: 10,
+          ...(m3 && {
+            background: m3.topBar,
+            borderBottom: "none",
+            padding: "12px 16px",
+            boxShadow: m3.elev1,
+          }),
         }}
       >
         <div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: T.text }}>
+          <div
+            style={{
+              fontSize: 15,
+              fontWeight: 700,
+              color: T.text,
+              ...(m3 && { fontSize: 20, fontWeight: 600 }),
+            }}
+          >
             Tables
           </div>
-          <div style={{ fontSize: 11, color: T.textMute }}>
+          <div
+            style={{
+              fontSize: 11,
+              color: T.textMute,
+              ...(m3 && { fontSize: 13, color: T.textDim }),
+            }}
+          >
             Hi, {waiterName}
           </div>
         </div>
@@ -111,9 +131,14 @@ export default function WaiterFloorView({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              ...(m3 && {
+                background: m3.containerHigh,
+                border: "none",
+                borderRadius: 22,
+              }),
             }}
           >
-            {mode === "dark" ? "☀️" : "🌙"}
+            {isDark ? "☀️" : "🌙"}
           </button>
           <button
             onClick={onSignOut}
@@ -130,6 +155,12 @@ export default function WaiterFloorView({
               minHeight: 44,
               display: "flex",
               alignItems: "center",
+              ...(m3 && {
+                background: m3.containerHigh,
+                border: "none",
+                borderRadius: 22,
+                color: T.text,
+              }),
             }}
           >
             Sign Out
@@ -144,6 +175,7 @@ export default function WaiterFloorView({
           display: "grid",
           gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
           gap: 10,
+          ...(m3 && { padding: 16, gap: 12 }),
         }}
       >
         {tables.map((table) => {
@@ -177,6 +209,32 @@ export default function WaiterFloorView({
               : isOccupied
                 ? "Occupied"
                 : "Available";
+          // M3: tonal tile + status chip (mirrors FloorView TableCard).
+          const m3Look = m3
+            ? isAttention
+              ? {
+                  bg: m3.badTint,
+                  chipBg: m3.badContainer,
+                  chipFg: m3.onBadContainer,
+                }
+              : isAging
+                ? {
+                    bg: m3.warnTint,
+                    chipBg: m3.warnContainer,
+                    chipFg: m3.onWarnContainer,
+                  }
+                : isOccupied
+                  ? {
+                      bg: m3.containerHigh,
+                      chipBg: m3.okContainer,
+                      chipFg: m3.onOkContainer,
+                    }
+                  : {
+                      bg: m3.containerHigh,
+                      chipBg: m3.containerHighest,
+                      chipFg: T.textDim,
+                    }
+            : null;
 
           return (
             <button
@@ -194,53 +252,147 @@ export default function WaiterFloorView({
                 flexDirection: "column",
                 gap: 4,
                 transition: "background 0.1s",
+                ...(m3Look && {
+                  background: m3Look.bg,
+                  border: "none",
+                  borderRadius: 16,
+                  padding: 14,
+                  gap: 6,
+                  minHeight: 108,
+                  boxShadow: isAttention ? `0 0 0 2px ${T.bad}` : "none",
+                }),
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: "50%",
-                    background: dotColor,
-                    display: "inline-block",
-                    flexShrink: 0,
-                  }}
-                />
-                <span
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: T.text,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {table.label}
-                </span>
-              </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  color: isOccupied ? dotColor : T.headerText,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                }}
-              >
-                {statusLabel}
-              </div>
-              {order && (
+              {m3Look ? (
                 <>
-                  <div style={{ fontSize: 11, color: T.textDim }}>
-                    {elapsed(order.opened_at)}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                      gap: 6,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 20,
+                        fontWeight: 700,
+                        fontFamily: T.sansHead,
+                        letterSpacing: "-0.01em",
+                        color: T.text,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        minWidth: 0,
+                      }}
+                    >
+                      {table.label}
+                    </span>
+                    <span
+                      style={{
+                        padding: "4px 10px",
+                        borderRadius: 10,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        background: m3Look.chipBg,
+                        color: m3Look.chipFg,
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {statusLabel}
+                    </span>
                   </div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: T.ok }}>
-                    ₱
-                    {total.toLocaleString("en-PH", {
-                      minimumFractionDigits: 0,
-                    })}
+                  {order && (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginTop: "auto",
+                        gap: 6,
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 12,
+                          fontFamily: T.mono,
+                          color: T.textDim,
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {elapsed(order.opened_at)}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 15,
+                          fontWeight: 700,
+                          fontFamily: T.mono,
+                          color: T.text,
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        ₱
+                        {total.toLocaleString("en-PH", {
+                          minimumFractionDigits: 0,
+                        })}
+                      </span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                  >
+                    <span
+                      style={{
+                        width: 7,
+                        height: 7,
+                        borderRadius: "50%",
+                        background: dotColor,
+                        display: "inline-block",
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: T.text,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {table.label}
+                    </span>
                   </div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: isOccupied ? dotColor : T.headerText,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    {statusLabel}
+                  </div>
+                  {order && (
+                    <>
+                      <div style={{ fontSize: 11, color: T.textDim }}>
+                        {elapsed(order.opened_at)}
+                      </div>
+                      <div
+                        style={{ fontSize: 14, fontWeight: 700, color: T.ok }}
+                      >
+                        ₱
+                        {total.toLocaleString("en-PH", {
+                          minimumFractionDigits: 0,
+                        })}
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </button>

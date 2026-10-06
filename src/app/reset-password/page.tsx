@@ -3,8 +3,11 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { getClient } from "@/lib/supabase";
+import { useTheme } from "@/lib/ThemeContext";
 
 export default function ResetPasswordPage() {
+  const { T } = useTheme();
+  const m3 = T.m3;
   const [tokenHash, setTokenHash] = useState<string | null>(null);
   const [sessionReady, setSessionReady] = useState(false);
   const [verifyError, setVerifyError] = useState<string | null>(null);
@@ -58,17 +61,30 @@ export default function ResetPasswordPage() {
     }, 2000);
   }
 
-  const bg = "#0f1117";
-  const surface = "#1a1d27";
-  const accent = "#c87941";
-  const accentInk = "#fff";
-  const text = "#e8e6e1";
-  const textMute = "#6b6f7a";
-  const bad = "#e05454";
-  const line2 = "#2a2d3a";
-  const radius = "2px";
-  const mono = 'ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace';
-  const sans = "Inter, system-ui, sans-serif";
+  // Classic look is a hardcoded palette; M3 themes take the live tokens.
+  const bg = m3 ? T.bg : "#0f1117";
+  const surface = m3 ? m3.containerHigh : "#1a1d27";
+  const accent = m3 ? T.accent : "#c87941";
+  const accentInk = m3 ? T.accentInk : "#fff";
+  const text = m3 ? T.text : "#e8e6e1";
+  const textMute = m3 ? T.textDim : "#6b6f7a";
+  const bad = m3 ? T.bad : "#e05454";
+  const line2 = m3 ? "transparent" : "#2a2d3a";
+  const radius = m3 ? "12px" : "2px";
+  const mono = m3
+    ? T.mono
+    : 'ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace';
+  const sans = m3 ? T.sansBody : "Inter, system-ui, sans-serif";
+  const labelStyle: React.CSSProperties = m3
+    ? { fontSize: 14, fontWeight: 600, color: textMute, marginBottom: 8 }
+    : {
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: "0.14em",
+        textTransform: "uppercase",
+        color: textMute,
+        marginBottom: 8,
+      };
 
   return (
     <div
@@ -90,7 +106,7 @@ export default function ResetPasswordPage() {
               height: 44,
               background: accent,
               color: accentInk,
-              borderRadius: "6px",
+              borderRadius: m3 ? 14 : "6px",
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
@@ -101,7 +117,14 @@ export default function ResetPasswordPage() {
           >
             B
           </div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: text }}>
+          <div
+            style={{
+              fontSize: 18,
+              fontWeight: 700,
+              color: text,
+              ...(m3 && { fontWeight: 600 }),
+            }}
+          >
             The Backyard Project
           </div>
           <div
@@ -112,6 +135,12 @@ export default function ResetPasswordPage() {
               letterSpacing: "0.1em",
               textTransform: "uppercase",
               marginTop: 4,
+              ...(m3 && {
+                fontSize: 14,
+                fontFamily: sans,
+                letterSpacing: "normal",
+                textTransform: "none",
+              }),
             }}
           >
             Reset Password
@@ -150,21 +179,20 @@ export default function ResetPasswordPage() {
         ) : sessionReady ? (
           <form
             onSubmit={handleSubmit}
-            style={{ display: "flex", flexDirection: "column", gap: 16 }}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+              ...(m3 && {
+                background: m3.container,
+                borderRadius: 28,
+                padding: 24,
+                boxShadow: m3.elev1,
+              }),
+            }}
           >
             <div>
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  color: textMute,
-                  marginBottom: 8,
-                }}
-              >
-                New Password
-              </div>
+              <div style={labelStyle}>New Password</div>
               <input
                 type="password"
                 value={newPw}
@@ -186,22 +214,12 @@ export default function ResetPasswordPage() {
                   borderRadius: radius,
                   fontFamily: "inherit",
                   outline: "none",
+                  ...(m3 && { minHeight: 48 }),
                 }}
               />
             </div>
             <div>
-              <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: "0.14em",
-                  textTransform: "uppercase",
-                  color: textMute,
-                  marginBottom: 8,
-                }}
-              >
-                Confirm New Password
-              </div>
+              <div style={labelStyle}>Confirm New Password</div>
               <input
                 type="password"
                 value={confirmPw}
@@ -222,6 +240,7 @@ export default function ResetPasswordPage() {
                   borderRadius: radius,
                   fontFamily: "inherit",
                   outline: "none",
+                  ...(m3 && { minHeight: 48 }),
                 }}
               />
             </div>
@@ -239,13 +258,18 @@ export default function ResetPasswordPage() {
                 fontSize: 15,
                 fontWeight: 700,
                 background:
-                  loading || !newPw || !confirmPw ? "#2a2d3a" : accent,
+                  loading || !newPw || !confirmPw
+                    ? m3
+                      ? m3.containerHighest
+                      : "#2a2d3a"
+                    : accent,
                 color: loading || !newPw || !confirmPw ? textMute : accentInk,
                 border: "none",
                 borderRadius: radius,
                 cursor: loading || !newPw || !confirmPw ? "default" : "pointer",
                 fontFamily: "inherit",
                 transition: "background 0.12s",
+                ...(m3 && { borderRadius: 24, minHeight: 48 }),
               }}
             >
               {loading ? "Updating..." : "Set New Password"}

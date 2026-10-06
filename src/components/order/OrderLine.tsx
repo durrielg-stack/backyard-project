@@ -75,6 +75,17 @@ export default function OrderLine({
   const [confirmVoid, setConfirmVoid] = useState(false);
 
   const lineTotal = line.unitPrice * line.qty;
+  const m3 = T.m3;
+  // Square icon button under M3: tonal, borderless, 36px (classic stays 32px).
+  const m3Icon: React.CSSProperties | undefined = m3
+    ? {
+        width: 36,
+        height: 36,
+        border: "none",
+        borderRadius: 18,
+        background: m3.containerHighest,
+      }
+    : undefined;
 
   return (
     <div
@@ -94,6 +105,22 @@ export default function OrderLine({
             : "transparent",
         cursor: selected && !bulkMode ? "default" : "pointer",
         transition: "background 0.12s ease, border-color 0.12s ease",
+        ...(m3 && {
+          borderBottom: "none",
+          borderLeft: "none",
+          borderRadius: 14,
+          flexShrink: 0,
+          background: bulkChecked
+            ? m3.warnTint
+            : selected
+              ? m3.containerHighest
+              : m3.containerHigh,
+          boxShadow: bulkChecked
+            ? `inset 0 0 0 2px ${T.warn}`
+            : selected
+              ? `inset 0 0 0 2px ${T.accent}`
+              : "none",
+        }),
       }}
     >
       <div
@@ -135,7 +162,7 @@ export default function OrderLine({
               height: 18,
               marginTop: 2,
               border: `1.5px solid ${bulkChecked ? T.warn : T.line2}`,
-              borderRadius: 2,
+              borderRadius: m3 ? 6 : 2,
               background: bulkChecked ? T.warn : "transparent",
               display: "flex",
               alignItems: "center",
@@ -213,6 +240,22 @@ export default function OrderLine({
                 cursor: "pointer",
                 flexShrink: 0,
                 transition: "all 0.12s ease",
+                ...(m3 && {
+                  border: "none",
+                  borderRadius: 8,
+                  letterSpacing: 0,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  minHeight: 32,
+                  background:
+                    line.orderType === "takeout"
+                      ? m3.infoContainer
+                      : m3.containerHighest,
+                  color:
+                    line.orderType === "takeout"
+                      ? m3.onInfoContainer
+                      : T.textDim,
+                }),
               }}
             >
               {line.orderType === "takeout" ? "Takeout" : "Dine-In"}
@@ -233,6 +276,14 @@ export default function OrderLine({
                 padding: "2px 8px",
                 borderRadius: T.radius,
                 marginBottom: 4,
+                ...(m3 && {
+                  color: m3.onWarnContainer,
+                  background: m3.warnContainer,
+                  border: "none",
+                  padding: "4px 10px",
+                  borderRadius: 8,
+                  fontSize: 12,
+                }),
               }}
             >
               <span>ⓘ</span>
@@ -274,6 +325,14 @@ export default function OrderLine({
                 padding: "4px 8px",
                 borderRadius: T.radius,
                 outline: "none",
+                ...(m3 && {
+                  background: m3.containerHigh,
+                  border: `1px solid ${T.warn}`,
+                  minHeight: 40,
+                  padding: "6px 12px",
+                  fontSize: 13,
+                  boxSizing: "border-box",
+                }),
               }}
             />
           )}
@@ -323,6 +382,7 @@ export default function OrderLine({
                 borderRadius: T.radius,
                 cursor: line.qty <= 1 ? "default" : "pointer",
                 opacity: line.qty <= 1 ? 0.4 : 1,
+                ...m3Icon,
               }}
             >
               −
@@ -358,6 +418,7 @@ export default function OrderLine({
                 lineHeight: 1,
                 borderRadius: T.radius,
                 cursor: "pointer",
+                ...m3Icon,
               }}
             >
               +
@@ -366,7 +427,7 @@ export default function OrderLine({
 
           {/* Expanded: bill + note + void */}
           {selected && !confirmVoid && (
-            <div style={{ display: "flex", gap: 4 }}>
+            <div style={{ display: "flex", gap: m3 ? 6 : 4 }}>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -389,6 +450,17 @@ export default function OrderLine({
                   cursor: "pointer",
                   letterSpacing: "0.06em",
                   textTransform: "uppercase",
+                  ...(m3 && {
+                    height: 36,
+                    padding: "0 16px",
+                    fontSize: 13,
+                    background: m3.okContainer,
+                    color: m3.onOkContainer,
+                    border: "none",
+                    borderRadius: 18,
+                    letterSpacing: 0,
+                    textTransform: "none",
+                  }),
                 }}
               >
                 Bill
@@ -410,6 +482,7 @@ export default function OrderLine({
                   color: line.note ? T.warn : T.textDim,
                   borderRadius: T.radius,
                   cursor: "pointer",
+                  ...m3Icon,
                 }}
               >
                 <NoteIcon />
@@ -431,6 +504,11 @@ export default function OrderLine({
                   color: T.bad,
                   borderRadius: T.radius,
                   cursor: "pointer",
+                  ...(m3 && {
+                    ...m3Icon,
+                    background: m3.badContainer,
+                    color: m3.onBadContainer,
+                  }),
                 }}
               >
                 <TrashIcon />
@@ -448,17 +526,32 @@ export default function OrderLine({
                 background: `${T.bad}0E`,
                 border: `1px solid ${T.bad}44`,
                 borderRadius: T.radius,
+                ...(m3 && {
+                  padding: "10px 12px",
+                  background: m3.badTint,
+                  border: "none",
+                  borderRadius: 14,
+                }),
               }}
             >
               <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  letterSpacing: "0.10em",
-                  textTransform: "uppercase",
-                  color: T.bad,
-                  marginBottom: 6,
-                }}
+                style={
+                  m3
+                    ? {
+                        fontSize: 12,
+                        fontWeight: 500,
+                        color: m3.onBadContainer,
+                        marginBottom: 8,
+                      }
+                    : {
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: "0.10em",
+                        textTransform: "uppercase",
+                        color: T.bad,
+                        marginBottom: 6,
+                      }
+                }
               >
                 Void reason
               </div>
@@ -483,6 +576,16 @@ export default function OrderLine({
                       color: T.bad,
                       borderRadius: T.radius,
                       cursor: "pointer",
+                      ...(m3 && {
+                        padding: "0 14px",
+                        minHeight: 36,
+                        fontSize: 12,
+                        fontWeight: 500,
+                        background: m3.badContainer,
+                        color: m3.onBadContainer,
+                        border: "none",
+                        borderRadius: 18,
+                      }),
                     }}
                   >
                     {r}
@@ -498,6 +601,13 @@ export default function OrderLine({
                   color: T.textMute,
                   cursor: "pointer",
                   padding: 0,
+                  ...(m3 && {
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: T.textDim,
+                    minHeight: 32,
+                    padding: "0 4px",
+                  }),
                 }}
               >
                 Cancel

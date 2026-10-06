@@ -34,6 +34,8 @@ function TotalsRow({
   mute?: boolean;
 }) {
   const { T } = useTheme();
+  // Under M3 the large row sits on the primary-container hero.
+  const hero = T.m3 && large ? T.m3 : null;
   return (
     <div
       style={{
@@ -50,6 +52,13 @@ function TotalsRow({
           letterSpacing: large ? "0.06em" : 0,
           textTransform: large ? "uppercase" : "none",
           color: mute ? T.textMute : T.textDim,
+          ...(T.m3 && { fontSize: large ? 14 : 13 }),
+          ...(hero && {
+            letterSpacing: 0,
+            textTransform: "none",
+            fontWeight: 500,
+            color: hero.onPrimaryContainer,
+          }),
         }}
       >
         {label}
@@ -62,6 +71,7 @@ function TotalsRow({
           fontWeight: large ? 700 : 400,
           color: accent ? T.accent : mute ? T.textMute : T.textDim,
           letterSpacing: large ? "-0.02em" : 0,
+          ...(hero && { color: hero.onPrimaryContainerStrong }),
         }}
       >
         {value}
@@ -100,15 +110,41 @@ export default function OrderFooter({
     setDiscountType(discountType === type ? "none" : type);
   }
 
+  const m3 = T.m3;
+  const m3Chip: React.CSSProperties | undefined = m3
+    ? {
+        border: "none",
+        borderRadius: 18,
+        minHeight: 36,
+        padding: "0 14px",
+        fontSize: 12,
+        fontWeight: 500,
+        background: m3.containerHigh,
+        color: T.textDim,
+      }
+    : undefined;
+  const m3Step: React.CSSProperties | undefined = m3
+    ? {
+        width: 36,
+        height: 36,
+        border: "none",
+        borderRadius: 18,
+        background: m3.containerHighest,
+        fontSize: 16,
+      }
+    : undefined;
+
   return (
     <div
       style={{
-        borderTop: `1px solid ${T.line}`,
+        borderTop: m3 ? "none" : `1px solid ${T.line}`,
         padding: isMobile
           ? "calc(18px) 16px calc(56px + env(safe-area-inset-bottom, 0px))"
-          : "18px 24px",
+          : m3
+            ? "12px 16px 16px"
+            : "18px 24px",
         flexShrink: 0,
-        background: T.surface,
+        background: m3 ? m3.container : T.surface,
       }}
     >
       {/* ── Totals ──────────────────────────────────────────────────── */}
@@ -156,6 +192,14 @@ export default function OrderFooter({
               borderRadius: T.radius,
               cursor: "pointer",
               transition: "background 0.12s ease",
+              ...(m3 && {
+                ...m3Chip,
+                ...(discountType === "owner_employee" && {
+                  background: m3.infoContainer,
+                  color: m3.onInfoContainer,
+                  fontWeight: 700,
+                }),
+              }),
             }}
           >
             Owner/Employee
@@ -174,6 +218,14 @@ export default function OrderFooter({
               borderRadius: T.radius,
               cursor: "pointer",
               transition: "background 0.12s ease",
+              ...(m3 && {
+                ...m3Chip,
+                ...(discountType === "senior_pwd" && {
+                  background: m3.okContainer,
+                  color: m3.onOkContainer,
+                  fontWeight: 700,
+                }),
+              }),
             }}
           >
             Senior/PWD
@@ -210,6 +262,7 @@ export default function OrderFooter({
                 cursor: "pointer",
                 fontSize: 14,
                 fontFamily: "inherit",
+                ...m3Step,
               }}
             >
               −
@@ -241,6 +294,7 @@ export default function OrderFooter({
                 cursor: "pointer",
                 fontSize: 14,
                 fontFamily: "inherit",
+                ...m3Step,
               }}
             >
               +
@@ -303,6 +357,15 @@ export default function OrderFooter({
               fontFamily: T.mono,
               borderRadius: T.radius,
               outline: "none",
+              ...(m3 && {
+                width: 110,
+                minHeight: 36,
+                padding: "0 12px",
+                fontSize: 13,
+                background: m3.containerHigh,
+                borderRadius: 12,
+                boxSizing: "border-box",
+              }),
             }}
           />
         ) : (
@@ -321,6 +384,13 @@ export default function OrderFooter({
               borderRadius: T.radius,
               cursor: "pointer",
               transition: "background 0.12s ease",
+              ...(m3 && {
+                ...m3Chip,
+                ...(tip > 0 && {
+                  background: m3.primaryContainer,
+                  color: m3.onPrimaryContainer,
+                }),
+              }),
             }}
           >
             {tip > 0 ? "Edit" : "Add tip"}
@@ -330,11 +400,20 @@ export default function OrderFooter({
 
       {/* ── Total row ───────────────────────────────────────────────── */}
       <div
-        style={{
-          borderTop: `1px solid ${T.line}`,
-          paddingTop: 10,
-          marginBottom: 16,
-        }}
+        style={
+          m3
+            ? {
+                background: m3.primaryContainer,
+                borderRadius: 20,
+                padding: "10px 18px",
+                marginBottom: 12,
+              }
+            : {
+                borderTop: `1px solid ${T.line}`,
+                paddingTop: 10,
+                marginBottom: 16,
+              }
+        }
       >
         <TotalsRow label="Total" value={`₱${total.toFixed(2)}`} large accent />
       </div>
@@ -359,6 +438,15 @@ export default function OrderFooter({
             justifyContent: "center",
             gap: 6,
             transition: "border-color 0.12s ease, color 0.12s ease",
+            ...(m3 && {
+              minHeight: 56,
+              padding: "0 16px",
+              fontSize: 14,
+              background: m3.containerHigh,
+              border: "none",
+              borderRadius: 28,
+              color: disabled ? T.textMute : T.text,
+            }),
           }}
         >
           Split
@@ -370,6 +458,12 @@ export default function OrderFooter({
               border: `1px solid ${T.line2}`,
               padding: "1px 4px",
               borderRadius: 2,
+              ...(m3 && {
+                border: "none",
+                background: m3.containerHighest,
+                padding: "2px 6px",
+                borderRadius: 8,
+              }),
             }}
           >
             S
@@ -397,6 +491,14 @@ export default function OrderFooter({
             justifyContent: "center",
             gap: 2,
             transition: "background 0.12s ease",
+            ...(m3 && {
+              minHeight: 56,
+              padding: "6px 16px",
+              textTransform: "none",
+              letterSpacing: 0,
+              borderRadius: 28,
+              background: disabled ? m3.containerHigh : T.accent,
+            }),
           }}
         >
           <span>Bill Out · ₱{total.toFixed(2)}</span>

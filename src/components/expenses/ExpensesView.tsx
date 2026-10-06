@@ -161,6 +161,14 @@ function SuggestionsPortal({
         maxHeight: 260,
         overflowY: "auto",
         overscrollBehavior: "contain",
+        ...(T.m3 && {
+          top: rect.bottom + 4,
+          background: T.m3.containerHigh,
+          border: "none",
+          borderRadius: 16,
+          boxShadow: T.m3.elev2,
+          padding: 6,
+        }),
       }}
     >
       {suggestions.map((s, i) => (
@@ -176,6 +184,13 @@ function SuggestionsPortal({
             alignItems: "center",
             borderBottom:
               i < suggestions.length - 1 ? `1px solid ${T.line}` : "none",
+            ...(T.m3 && {
+              borderBottom: "none",
+              borderRadius: 10,
+              padding: "10px 12px",
+              background:
+                i === activeIdx ? T.m3.containerHighest : "transparent",
+            }),
           }}
         >
           <div>
@@ -206,6 +221,31 @@ function SuggestionsPortal({
 
 export default function ExpensesView({ role = "manager" }: { role?: string }) {
   const { T } = useTheme();
+  const m3 = T.m3;
+  // M3-only style fragments (spread behind `m3 &&`, so classic is untouched).
+  const m3Label: React.CSSProperties = {
+    fontSize: 12,
+    fontWeight: 500,
+    color: T.textDim,
+    marginBottom: 6,
+  };
+  const m3Field: React.CSSProperties = m3
+    ? {
+        background: m3.containerHigh,
+        border: "none",
+        borderRadius: 12,
+        minHeight: 40,
+        padding: "0 12px",
+        boxSizing: "border-box",
+      }
+    : {};
+  const m3ColHd: React.CSSProperties = {
+    fontSize: 11,
+    fontWeight: 600,
+    letterSpacing: "0.04em",
+    textTransform: "uppercase",
+    color: T.textMute,
+  };
   const bp = useBreakpoint();
   const isMobile = bp === "mobile";
   const isOwner = role === "owner";
@@ -467,6 +507,12 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
         display: "flex",
         flexDirection: "column",
         background: T.surface,
+        ...(m3 && {
+          background: T.bg,
+          gap: isMobile ? 10 : 14,
+          padding: isMobile ? "0 12px 12px" : "0 20px 20px",
+          boxSizing: "border-box",
+        }),
       }}
     >
       {/* Header */}
@@ -475,26 +521,30 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
           style={{
             flexShrink: 0,
             background: T.bg,
-            borderBottom: `1px solid ${T.line}`,
+            borderBottom: m3 ? "none" : `1px solid ${T.line}`,
           }}
         >
           <div
             style={{
-              height: 44,
-              padding: "0 16px",
+              height: m3 ? 56 : 44,
+              padding: m3 ? "0 4px" : "0 16px",
               display: "flex",
               alignItems: "center",
               gap: 10,
             }}
           >
             <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: T.headerText,
-              }}
+              style={
+                m3
+                  ? { fontSize: 18, fontWeight: 600, color: T.text }
+                  : {
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
+                      color: T.headerText,
+                    }
+              }
             >
               Expenses
             </span>
@@ -508,6 +558,13 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                 border: `1px solid ${T.bad}44`,
                 padding: "2px 8px",
                 borderRadius: T.radius,
+                ...(m3 && {
+                  background: m3.badContainer,
+                  color: m3.onBadContainer,
+                  border: "none",
+                  padding: "4px 10px",
+                  borderRadius: 12,
+                }),
               }}
             >
               {fmtPeso(totalShown)}
@@ -525,12 +582,28 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                 border: `1px solid ${showForm ? T.line2 : T.accent}`,
                 borderRadius: T.radius,
                 cursor: "pointer",
+                ...(m3 && {
+                  padding: "0 20px",
+                  height: 40,
+                  fontSize: 13,
+                  border: "none",
+                  borderRadius: 20,
+                  background: showForm ? m3.containerHigh : T.accent,
+                  color: showForm ? T.text : T.accentInk,
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                }),
               }}
             >
               {showForm ? "Cancel" : "+ Add"}
             </button>
           </div>
-          <div style={{ padding: "0 16px 8px", position: "relative" }}>
+          <div
+            style={{
+              padding: m3 ? "0 4px 10px" : "0 16px 8px",
+              position: "relative",
+            }}
+          >
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -545,6 +618,15 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                 borderRadius: T.radius,
                 padding: "6px 28px 6px 8px",
                 outline: "none",
+                ...(m3 && {
+                  background: m3.containerHigh,
+                  border: `1px solid ${search ? T.accent : "transparent"}`,
+                  borderRadius: 12,
+                  height: 40,
+                  padding: "0 32px 0 14px",
+                  fontSize: 13,
+                  boxSizing: "border-box",
+                }),
                 boxSizing: "border-box",
               }}
             />
@@ -553,8 +635,8 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                 onClick={() => setSearch("")}
                 style={{
                   position: "absolute",
-                  right: 22,
-                  top: "50%",
+                  right: m3 ? 16 : 22,
+                  top: m3 ? 20 : "50%",
                   transform: "translateY(-50%)",
                   background: "transparent",
                   border: "none",
@@ -572,7 +654,7 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
           <div
             className="bp-no-scrollbar"
             style={{
-              padding: "0 16px 10px",
+              padding: m3 ? "0 4px 6px" : "0 16px 10px",
               overflowX: "auto",
               touchAction: "pan-x pan-y",
               overscrollBehaviorX: "contain",
@@ -603,16 +685,25 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
             display: "flex",
             alignItems: "center",
             gap: 12,
+            ...(m3 && {
+              height: 68,
+              padding: "0 4px",
+              borderBottom: "none",
+            }),
           }}
         >
           <span
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: T.headerText,
-            }}
+            style={
+              m3
+                ? { fontSize: 18, fontWeight: 600, color: T.text }
+                : {
+                    fontSize: 11,
+                    fontWeight: 700,
+                    letterSpacing: "0.12em",
+                    textTransform: "uppercase",
+                    color: T.headerText,
+                  }
+            }
           >
             Expenses
           </span>
@@ -626,6 +717,13 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
               border: `1px solid ${T.bad}44`,
               padding: "2px 8px",
               borderRadius: T.radius,
+              ...(m3 && {
+                background: m3.badContainer,
+                color: m3.onBadContainer,
+                border: "none",
+                padding: "4px 10px",
+                borderRadius: 12,
+              }),
             }}
           >
             {fmtPeso(totalShown)}
@@ -645,6 +743,15 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                 borderRadius: T.radius,
                 padding: "5px 28px 5px 8px",
                 outline: "none",
+                ...(m3 && {
+                  background: m3.containerHigh,
+                  border: `1px solid ${search ? T.accent : "transparent"}`,
+                  borderRadius: 12,
+                  height: 40,
+                  padding: "0 32px 0 14px",
+                  fontSize: 13,
+                  boxSizing: "border-box",
+                }),
                 width: 180,
               }}
             />
@@ -653,7 +760,7 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                 onClick={() => setSearch("")}
                 style={{
                   position: "absolute",
-                  right: 6,
+                  right: m3 ? 10 : 6,
                   top: "50%",
                   transform: "translateY(-50%)",
                   background: "transparent",
@@ -692,6 +799,17 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
               border: `1px solid ${showForm ? T.line2 : T.accent}`,
               borderRadius: T.radius,
               cursor: "pointer",
+              ...(m3 && {
+                padding: "0 20px",
+                height: 40,
+                fontSize: 13,
+                border: "none",
+                borderRadius: 20,
+                background: showForm ? m3.containerHigh : T.accent,
+                color: showForm ? T.text : T.accentInk,
+                whiteSpace: "nowrap",
+                flexShrink: 0,
+              }),
             }}
           >
             {showForm ? "Cancel" : "+ Add Expense"}
@@ -716,14 +834,20 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                 background: T.surface2,
                 borderBottom: `1px solid ${T.line}`,
                 flexShrink: 0,
+                ...(m3 && {
+                  background: m3.container,
+                  borderBottom: "none",
+                  borderRadius: 24,
+                  boxShadow: m3.elev1,
+                }),
               }}
             >
               <div
                 style={{
-                  padding: "16px 24px",
+                  padding: m3 ? "20px" : "16px 24px",
                   display: "grid",
                   gridTemplateColumns: `${isOwner ? "120px " : ""}140px 1fr 70px 90px 110px 120px auto`,
-                  gap: 8,
+                  gap: m3 ? 12 : 8,
                   alignItems: "end",
                   minWidth: isOwner ? 800 : 680,
                 }}
@@ -732,14 +856,18 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                 {isOwner && (
                   <div>
                     <div
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 600,
-                        letterSpacing: "0.10em",
-                        textTransform: "uppercase",
-                        color: T.textMute,
-                        marginBottom: 4,
-                      }}
+                      style={
+                        m3
+                          ? m3Label
+                          : {
+                              fontSize: 10,
+                              fontWeight: 600,
+                              letterSpacing: "0.10em",
+                              textTransform: "uppercase",
+                              color: T.textMute,
+                              marginBottom: 4,
+                            }
+                      }
                     >
                       Date
                     </div>
@@ -760,7 +888,13 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                         borderRadius: T.radius,
                         padding: "6px 8px",
                         outline: "none",
+                        ...m3Field,
                         boxSizing: "border-box" as const,
+                        ...(m3 &&
+                          fDate !== today && {
+                            background: m3.warnContainer,
+                            color: m3.onWarnContainer,
+                          }),
                       }}
                     />
                   </div>
@@ -768,14 +902,18 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                 {/* Category */}
                 <div>
                   <div
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 600,
-                      letterSpacing: "0.10em",
-                      textTransform: "uppercase",
-                      color: T.textMute,
-                      marginBottom: 4,
-                    }}
+                    style={
+                      m3
+                        ? m3Label
+                        : {
+                            fontSize: 10,
+                            fontWeight: 600,
+                            letterSpacing: "0.10em",
+                            textTransform: "uppercase",
+                            color: T.textMute,
+                            marginBottom: 4,
+                          }
+                    }
                   >
                     Category
                   </div>
@@ -796,6 +934,7 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                       borderRadius: T.radius,
                       padding: "6px 8px",
                       outline: "none",
+                      ...m3Field,
                     }}
                   >
                     {EXPENSE_CATS.map((c) => (
@@ -809,14 +948,18 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                 {/* Name with autocomplete */}
                 <div style={{ position: "relative" }}>
                   <div
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 600,
-                      letterSpacing: "0.10em",
-                      textTransform: "uppercase",
-                      color: T.textMute,
-                      marginBottom: 4,
-                    }}
+                    style={
+                      m3
+                        ? m3Label
+                        : {
+                            fontSize: 10,
+                            fontWeight: 600,
+                            letterSpacing: "0.10em",
+                            textTransform: "uppercase",
+                            color: T.textMute,
+                            marginBottom: 4,
+                          }
+                    }
                   >
                     Name *
                   </div>
@@ -849,6 +992,7 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                       borderRadius: T.radius,
                       padding: "6px 8px",
                       outline: "none",
+                      ...m3Field,
                       boxSizing: "border-box",
                     }}
                   />
@@ -864,14 +1008,18 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                 {/* Qty */}
                 <div>
                   <div
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 600,
-                      letterSpacing: "0.10em",
-                      textTransform: "uppercase",
-                      color: T.textMute,
-                      marginBottom: 4,
-                    }}
+                    style={
+                      m3
+                        ? m3Label
+                        : {
+                            fontSize: 10,
+                            fontWeight: 600,
+                            letterSpacing: "0.10em",
+                            textTransform: "uppercase",
+                            color: T.textMute,
+                            marginBottom: 4,
+                          }
+                    }
                   >
                     Qty
                   </div>
@@ -892,6 +1040,7 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                       borderRadius: T.radius,
                       padding: "6px 8px",
                       outline: "none",
+                      ...m3Field,
                       boxSizing: "border-box",
                     }}
                   />
@@ -900,14 +1049,18 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                 {/* Unit */}
                 <div>
                   <div
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 600,
-                      letterSpacing: "0.10em",
-                      textTransform: "uppercase",
-                      color: T.textMute,
-                      marginBottom: 4,
-                    }}
+                    style={
+                      m3
+                        ? m3Label
+                        : {
+                            fontSize: 10,
+                            fontWeight: 600,
+                            letterSpacing: "0.10em",
+                            textTransform: "uppercase",
+                            color: T.textMute,
+                            marginBottom: 4,
+                          }
+                    }
                   >
                     Unit
                   </div>
@@ -924,6 +1077,7 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                       borderRadius: T.radius,
                       padding: "6px 8px",
                       outline: "none",
+                      ...m3Field,
                     }}
                   >
                     <option value="">—</option>
@@ -938,14 +1092,18 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                 {/* Unit Price */}
                 <div>
                   <div
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 600,
-                      letterSpacing: "0.10em",
-                      textTransform: "uppercase",
-                      color: T.textMute,
-                      marginBottom: 4,
-                    }}
+                    style={
+                      m3
+                        ? m3Label
+                        : {
+                            fontSize: 10,
+                            fontWeight: 600,
+                            letterSpacing: "0.10em",
+                            textTransform: "uppercase",
+                            color: T.textMute,
+                            marginBottom: 4,
+                          }
+                    }
                   >
                     Unit Price
                   </div>
@@ -968,6 +1126,7 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                       borderRadius: T.radius,
                       padding: "6px 8px",
                       outline: "none",
+                      ...m3Field,
                       boxSizing: "border-box",
                     }}
                   />
@@ -976,14 +1135,18 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                 {/* Total Price */}
                 <div>
                   <div
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 600,
-                      letterSpacing: "0.10em",
-                      textTransform: "uppercase",
-                      color: T.textMute,
-                      marginBottom: 4,
-                    }}
+                    style={
+                      m3
+                        ? m3Label
+                        : {
+                            fontSize: 10,
+                            fontWeight: 600,
+                            letterSpacing: "0.10em",
+                            textTransform: "uppercase",
+                            color: T.textMute,
+                            marginBottom: 4,
+                          }
+                    }
                   >
                     Total Price{" "}
                     {up != null ? (
@@ -1011,7 +1174,10 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                       borderRadius: T.radius,
                       padding: "6px 8px",
                       outline: "none",
+                      ...m3Field,
                       boxSizing: "border-box",
+                      ...(m3 &&
+                        up != null && { background: m3.containerHighest }),
                     }}
                   />
                 </div>
@@ -1030,6 +1196,13 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                     borderRadius: T.radius,
                     cursor: "pointer",
                     opacity: !canSave ? 0.4 : 1,
+                    ...(m3 && {
+                      padding: "0 24px",
+                      height: 40,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      borderRadius: 20,
+                    }),
                   }}
                 >
                   Save
@@ -1053,7 +1226,7 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                 return (
                   <div
                     style={{
-                      padding: "0 24px 16px",
+                      padding: m3 ? "0 20px 20px" : "0 24px 16px",
                       minWidth: isOwner ? 800 : 680,
                     }}
                   >
@@ -1061,20 +1234,24 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                       style={{
                         display: "grid",
                         gridTemplateColumns: isContainer ? "1fr 130px" : "1fr",
-                        gap: 8,
+                        gap: m3 ? 12 : 8,
                         alignItems: "end",
                       }}
                     >
                       <div>
                         <div
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 600,
-                            letterSpacing: "0.10em",
-                            textTransform: "uppercase",
-                            color: T.textMute,
-                            marginBottom: 4,
-                          }}
+                          style={
+                            m3
+                              ? m3Label
+                              : {
+                                  fontSize: 10,
+                                  fontWeight: 600,
+                                  letterSpacing: "0.10em",
+                                  textTransform: "uppercase",
+                                  color: T.textMute,
+                                  marginBottom: 4,
+                                }
+                          }
                         >
                           {cfg.itemLabel}
                         </div>
@@ -1091,6 +1268,7 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                             borderRadius: T.radius,
                             padding: "6px 8px",
                             outline: "none",
+                            ...m3Field,
                           }}
                         >
                           <option value="">Select item…</option>
@@ -1104,14 +1282,18 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                       {isContainer && (
                         <div>
                           <div
-                            style={{
-                              fontSize: 10,
-                              fontWeight: 600,
-                              letterSpacing: "0.10em",
-                              textTransform: "uppercase",
-                              color: T.textMute,
-                              marginBottom: 4,
-                            }}
+                            style={
+                              m3
+                                ? m3Label
+                                : {
+                                    fontSize: 10,
+                                    fontWeight: 600,
+                                    letterSpacing: "0.10em",
+                                    textTransform: "uppercase",
+                                    color: T.textMute,
+                                    marginBottom: 4,
+                                  }
+                            }
                           >
                             Qty/{fUnit.charAt(0).toUpperCase() + fUnit.slice(1)}
                           </div>
@@ -1132,8 +1314,13 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                               borderRadius: T.radius,
                               padding: "6px 8px",
                               outline: "none",
+                              ...m3Field,
                               boxSizing: "border-box",
                               opacity: fMenuItemId ? 1 : 0.5,
+                              ...(m3 &&
+                                !fMenuItemId && {
+                                  background: m3.containerHighest,
+                                }),
                             }}
                           />
                         </div>
@@ -1172,10 +1359,21 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
           touchAction: "pan-x pan-y",
           overscrollBehaviorX: "contain",
           overscrollBehaviorY: "none",
+          ...(m3 && {
+            minHeight: 0,
+            background: m3.container,
+            borderRadius: 24,
+            boxShadow: m3.elev1,
+          }),
         }}
       >
         <div
-          style={{ minWidth: 820, display: "flex", flexDirection: "column" }}
+          style={{
+            minWidth: 820,
+            display: "flex",
+            flexDirection: "column",
+            ...(m3 && { paddingBottom: 8 }),
+          }}
         >
           <div
             style={{
@@ -1189,6 +1387,12 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
               position: "sticky",
               top: 0,
               zIndex: 1,
+              ...(m3 && {
+                padding: "0 24px",
+                height: 44,
+                borderBottom: "none",
+                background: m3.container,
+              }),
             }}
           >
             {(
@@ -1221,6 +1425,7 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                     alignItems: "center",
                     gap: 3,
                     textAlign: "left",
+                    ...(m3 && m3ColHd),
                   }}
                 >
                   {h}
@@ -1231,13 +1436,17 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
               ) : (
                 <span
                   key={h}
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 600,
-                    letterSpacing: "0.12em",
-                    textTransform: "uppercase",
-                    color: T.headerText,
-                  }}
+                  style={
+                    m3
+                      ? m3ColHd
+                      : {
+                          fontSize: 10,
+                          fontWeight: 600,
+                          letterSpacing: "0.12em",
+                          textTransform: "uppercase",
+                          color: T.headerText,
+                        }
+                  }
                 >
                   {h}
                 </span>
@@ -1301,6 +1510,15 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                     alignItems: "center",
                     borderBottom: `1px solid ${T.line}`,
                     background: i % 2 === 0 ? T.surface : T.bg,
+                    ...(m3 && {
+                      padding: "0 16px",
+                      margin: "0 8px",
+                      height: 48,
+                      borderBottom: "none",
+                      borderRadius: 14,
+                      background:
+                        i % 2 === 0 ? m3.containerHigh : "transparent",
+                    }),
                   }}
                 >
                   <span
@@ -1369,6 +1587,15 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
                         borderRadius: T.radius,
                         cursor: "pointer",
                         fontSize: 14,
+                        ...(m3 && {
+                          width: 32,
+                          height: 32,
+                          border: "none",
+                          borderRadius: 10,
+                          background: m3.badTint,
+                          color: m3.onBadContainer,
+                          fontSize: 16,
+                        }),
                       }}
                     >
                       ×
@@ -1392,6 +1619,13 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
             alignItems: "center",
             gap: 10,
             flexShrink: 0,
+            ...(m3 && {
+              padding: "14px 20px",
+              borderTop: "none",
+              background: m3.container,
+              borderRadius: 20,
+              boxShadow: m3.elev1,
+            }),
           }}
         >
           {search && (
@@ -1402,13 +1636,17 @@ export default function ExpensesView({ role = "manager" }: { role?: string }) {
             </span>
           )}
           <span
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              letterSpacing: "0.10em",
-              textTransform: "uppercase",
-              color: T.headerText,
-            }}
+            style={
+              m3
+                ? { fontSize: 13, fontWeight: 500, color: T.textDim }
+                : {
+                    fontSize: 11,
+                    fontWeight: 600,
+                    letterSpacing: "0.10em",
+                    textTransform: "uppercase",
+                    color: T.headerText,
+                  }
+            }
           >
             {search
               ? `Total for "${search}"`

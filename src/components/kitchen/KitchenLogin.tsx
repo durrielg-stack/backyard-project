@@ -26,6 +26,7 @@ interface Props {
 
 export default function KitchenLogin({ onLogin }: Props) {
   const { T } = useTheme();
+  const m3 = T.m3;
   const [users, setUsers] = useState<StaffUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<StaffUser | null>(null);
@@ -129,6 +130,13 @@ export default function KitchenLogin({ onLogin }: Props) {
               letterSpacing: "0.1em",
               textTransform: "uppercase",
               marginTop: 4,
+              ...(m3 && {
+                fontSize: 14,
+                fontFamily: T.sansBody,
+                letterSpacing: "normal",
+                textTransform: "none",
+                color: T.textDim,
+              }),
             }}
           >
             Kitchen Access
@@ -140,7 +148,19 @@ export default function KitchenLogin({ onLogin }: Props) {
             Loading...
           </div>
         ) : !selected ? (
-          <div style={{ width: "100%", maxWidth: 360 }}>
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 360,
+              ...(m3 && {
+                background: m3.container,
+                borderRadius: 28,
+                padding: 20,
+                boxShadow: m3.elev1,
+                boxSizing: "border-box",
+              }),
+            }}
+          >
             <div
               style={{
                 fontSize: 10,
@@ -149,6 +169,13 @@ export default function KitchenLogin({ onLogin }: Props) {
                 textTransform: "uppercase",
                 color: T.textMute,
                 marginBottom: 12,
+                ...(m3 && {
+                  fontSize: 16,
+                  fontWeight: 600,
+                  letterSpacing: "normal",
+                  textTransform: "none",
+                  color: T.text,
+                }),
               }}
             >
               Select your name
@@ -170,6 +197,12 @@ export default function KitchenLogin({ onLogin }: Props) {
                     fontFamily: "inherit",
                     textAlign: "left",
                     transition: "background 0.12s ease",
+                    ...(m3 && {
+                      background: m3.containerHigh,
+                      border: "none",
+                      borderRadius: 20,
+                      minHeight: 68,
+                    }),
                   }}
                 >
                   <div
@@ -186,6 +219,11 @@ export default function KitchenLogin({ onLogin }: Props) {
                       fontSize: 13,
                       fontWeight: 700,
                       color: T.text,
+                      ...(m3 && {
+                        background: m3.primaryContainer,
+                        border: "none",
+                        color: m3.onPrimaryContainer,
+                      }),
                     }}
                   >
                     {initials(u.name)}
@@ -198,7 +236,19 @@ export default function KitchenLogin({ onLogin }: Props) {
             </div>
           </div>
         ) : (
-          <div style={{ width: "100%", maxWidth: 360 }}>
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 360,
+              ...(m3 && {
+                background: m3.container,
+                borderRadius: 28,
+                padding: 20,
+                boxShadow: m3.elev1,
+                boxSizing: "border-box",
+              }),
+            }}
+          >
             <div
               style={{
                 display: "flex",
@@ -220,11 +270,21 @@ export default function KitchenLogin({ onLogin }: Props) {
                   fontSize: 13,
                   padding: "4px 0",
                   fontFamily: "inherit",
+                  ...(m3 && {
+                    background: m3.containerHigh,
+                    borderRadius: 22,
+                    minHeight: 44,
+                    padding: "0 16px",
+                    color: T.text,
+                    fontWeight: 600,
+                  }),
                 }}
               >
                 ← Back
               </button>
-              <div style={{ width: 1, height: 16, background: T.line }} />
+              {!m3 && (
+                <div style={{ width: 1, height: 16, background: T.line }} />
+              )}
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div
                   style={{
@@ -239,6 +299,13 @@ export default function KitchenLogin({ onLogin }: Props) {
                     fontSize: 11,
                     fontWeight: 700,
                     color: T.text,
+                    ...(m3 && {
+                      width: 36,
+                      height: 36,
+                      background: m3.primaryContainer,
+                      border: "none",
+                      color: m3.onPrimaryContainer,
+                    }),
                   }}
                 >
                   {initials(selected.name)}
@@ -256,6 +323,13 @@ export default function KitchenLogin({ onLogin }: Props) {
                 textTransform: "uppercase",
                 color: T.textMute,
                 marginBottom: 8,
+                ...(m3 && {
+                  fontSize: 14,
+                  fontWeight: 600,
+                  letterSpacing: "normal",
+                  textTransform: "none",
+                  color: T.textDim,
+                }),
               }}
             >
               Password
@@ -281,6 +355,14 @@ export default function KitchenLogin({ onLogin }: Props) {
                 fontFamily: "inherit",
                 borderRadius: T.radius,
                 outline: "none",
+                ...(m3 && {
+                  background: m3.containerHigh,
+                  border: error
+                    ? `1px solid ${T.bad}`
+                    : "1px solid transparent",
+                  borderRadius: 12,
+                  minHeight: 48,
+                }),
               }}
             />
             {error && (
@@ -311,6 +393,12 @@ export default function KitchenLogin({ onLogin }: Props) {
                 cursor: password && !submitting ? "pointer" : "default",
                 fontFamily: "inherit",
                 transition: "background 0.12s ease",
+                ...(m3 && {
+                  background:
+                    password && !submitting ? T.accent : m3.containerHighest,
+                  borderRadius: 24,
+                  minHeight: 48,
+                }),
               }}
             >
               {submitting ? "Signing in..." : "Sign In"}
