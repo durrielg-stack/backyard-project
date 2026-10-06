@@ -1,5 +1,6 @@
 "use client";
 
+import { useId, useState } from "react";
 import { useTheme } from "@/lib/ThemeContext";
 
 // ── Shared types ──────────────────────────────────────────────────────────────
@@ -713,6 +714,366 @@ export function GroupedBarChart({
               color: T.textMute,
               visibility:
                 bars.length > 14 && i % 2 !== 0 ? "hidden" : "visible",
+            }}
+          >
+            {bar.label}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── TrendLineChart ────────────────────────────────────────────────────────────
+// Overlapping area chart: one solid line per tracked figure (Gross, Cost, Net,
+// Expenses) with a translucent gradient of the line's colour fading down to
+// zero. Points sit at column centres so they line up with the x labels.
+// Net = gross − cost (shown as is, so a loss dips below zero).
+export function TrendLineChart({
+  bars,
+  height = 260,
+}: {
+  bars: MultiBar[];
+  height?: number;
+}) {
+  const { T } = useTheme();
+  const m3 = T.m3;
+  const [hidden, setHidden] = useState<Record<string, boolean>>({});
+  const [hover, setHover] = useState<number | null>(null);
+  const gid = useId().replace(/:/g, "");
+
+  const SERIES = [
+    { key: "gross", label: "Gross", color: T.info },
+    { key: "cost", label: "Cost", color: T.warn },
+    { key: "net", label: "Net", color: T.ok },
+    { key: "expenses", label: "Expenses", color: T.bad },
+  ] as const;
+  type Key = (typeof SERIES)[number]["key"];
+  const valueOf = (b: MultiBar, k: Key) =>
+    k === "net" ? b.gross - b.cost : b[k];
+
+  if (bars.length === 0) {
+    return (
+      <div
+        style={{
+          height,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: T.textMute,
+          fontFamily: T.mono,
+          fontSize: 12,
+        }}
+      >
+        No data
+      </div>
+    );
+  }
+
+  const shown = SERIES.filter((s) => !hidden[s.key]);
+  const vals = bars.flatMap((b) => shown.map((s) => valueOf(b, s.key)));
+  const maxVal = Math.max(...vals, 1);
+  const minVal = Math.min(...vals, 0);
+  const span = maxVal - minVal || 1;
+  const n = bars.length;
+  const xPct = (i: number) => ((i + 0.5) / n) * 100;
+  const yPct = (v: number) => 4 + (1 - (v - minVal) / span) * 92;
+  const fmtAxis = (v: number) =>
+    Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(1)}k` : v.toFixed(0);
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((p) => minVal + span * p);
+  const hb = hover != null ? bars[hover] : null;
+
+  return (
+    <div
+      style={{
+        height,
+        padding: m3 ? "8px 20px 0" : "10px 24px 0",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      {/* Legend — click a series to hide/show it */}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 8,
+          paddingBottom: 10,
+          flexShrink: 0,
+        }}
+      >
+        {SERIES.map((s) => {
+          const off = !!hidden[s.key];
+          return (
+            <button
+              key={s.key}
+              onClick={() => setHidden((h) => ({ ...h, [s.key]: !h[s.key] }))}
+              aria-pressed={!off}
+              title={off ? `Show ${s.label}` : `Hide ${s.label}`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                height: 30,
+                padding: "0 12px",
+                border: "none",
+                borderRadius: 15,
+                background: m3 ? m3.containerHigh : T.chip,
+                color: off ? T.textMute : T.text,
+                fontFamily: "inherit",
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: "pointer",
+                opacity: off ? 0.55 : 1,
+              }}
+            >
+              <svg width={18} height={8} aria-hidden="true">
+                <line
+                  x1={1}
+                  y1={4}
+                  x2={17}
+                  y2={4}
+                  stroke={s.color}
+                  strokeWidth={2.5}
+                  strokeLinecap="round"
+                />
+              </svg>
+              {s.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={{ flex: 1, position: "relative", minHeight: 0 }}>
+        {/* Gridlines + axis labels */}
+        {ticks.map((v, i) => (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              top: `${yPct(v)}%`,
+              borderTop: `1px ${v === 0 && minVal < 0 ? "solid" : "dashed"} ${T.line}`,
+              pointerEvents: "none",
+            }}
+          >
+            <span
+              style={{
+                position: "absolute",
+                right: 0,
+                transform: "translateY(-100%)",
+                fontSize: 10,
+                fontFamily: T.mono,
+                color: T.textMute,
+                paddingBottom: 1,
+              }}
+            >
+              {fmtAxis(v)}
+            </span>
+          </div>
+        ))}
+
+        {/* Hover column highlight */}
+        {hover != null && (
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              bottom: 0,
+              left: `${(hover / n) * 100}%`,
+              width: `${100 / n}%`,
+              background: m3 ? m3.containerHigh : T.chip,
+              opacity: 0.6,
+              borderRadius: 8,
+              pointerEvents: "none",
+            }}
+          />
+        )}
+
+        <svg
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+          }}
+        >
+          <defs>
+            {SERIES.map((s) => (
+              <linearGradient
+                key={s.key}
+                id={`${gid}-${s.key}`}
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="1"
+              >
+                <stop offset="0%" stopColor={s.color} stopOpacity={0.35} />
+                <stop offset="100%" stopColor={s.color} stopOpacity={0} />
+              </linearGradient>
+            ))}
+          </defs>
+          {shown.map((s) => {
+            const line = bars.map(
+              (b, i) =>
+                `${xPct(i).toFixed(2)},${yPct(valueOf(b, s.key)).toFixed(2)}`,
+            );
+            const base = yPct(0).toFixed(2);
+            const area = [
+              `${xPct(0).toFixed(2)},${base}`,
+              ...line,
+              `${xPct(n - 1).toFixed(2)},${base}`,
+            ].join(" ");
+            return (
+              <g key={s.key}>
+                <polygon
+                  points={area}
+                  fill={`url(#${gid}-${s.key})`}
+                  stroke="none"
+                />
+                <polyline
+                  points={line.join(" ")}
+                  fill="none"
+                  stroke={s.color}
+                  strokeWidth={2.5}
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* Point markers (HTML so they stay round) */}
+        {shown.map((s) =>
+          bars.map((b, i) => (
+            <span
+              key={`${s.key}-${i}`}
+              style={{
+                position: "absolute",
+                left: `${xPct(i)}%`,
+                top: `${yPct(valueOf(b, s.key))}%`,
+                width: hover === i ? 9 : 6,
+                height: hover === i ? 9 : 6,
+                marginLeft: hover === i ? -4.5 : -3,
+                marginTop: hover === i ? -4.5 : -3,
+                borderRadius: "50%",
+                background: s.color,
+                boxShadow: `0 0 0 2px ${m3 ? m3.container : T.surface}`,
+                pointerEvents: "none",
+              }}
+            />
+          )),
+        )}
+
+        {/* Hover targets, one per bucket */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "grid",
+            gridTemplateColumns: `repeat(${n}, 1fr)`,
+          }}
+          onMouseLeave={() => setHover(null)}
+        >
+          {bars.map((b, i) => (
+            <div
+              key={b.label}
+              onMouseEnter={() => setHover(i)}
+              onClick={() => setHover(hover === i ? null : i)}
+            />
+          ))}
+        </div>
+
+        {/* Readout */}
+        {hb && (
+          <div
+            style={{
+              position: "absolute",
+              top: 6,
+              left:
+                hover! < n / 2 ? `calc(${xPct(hover!)}% + 14px)` : undefined,
+              right:
+                hover! >= n / 2
+                  ? `calc(${100 - xPct(hover!)}% + 14px)`
+                  : undefined,
+              background: m3 ? m3.containerHighest : T.surface2,
+              border: m3 ? "none" : `1px solid ${T.line2}`,
+              borderRadius: m3 ? 12 : T.radius,
+              boxShadow: m3 ? m3.elev2 : T.shadow,
+              padding: "8px 12px",
+              pointerEvents: "none",
+              zIndex: 2,
+              minWidth: 150,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: T.textDim,
+                marginBottom: 4,
+              }}
+            >
+              {hb.label}
+            </div>
+            {shown.map((s) => (
+              <div
+                key={s.key}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  fontSize: 12,
+                  lineHeight: "18px",
+                }}
+              >
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background: s.color,
+                  }}
+                />
+                <span style={{ color: T.textDim, flex: 1 }}>{s.label}</span>
+                <span
+                  style={{
+                    fontFamily: T.mono,
+                    fontWeight: 600,
+                    color: T.text,
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  {fmtPeso(valueOf(hb, s.key))}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${n}, 1fr)`,
+          marginTop: 6,
+          paddingBottom: 10,
+        }}
+      >
+        {bars.map((bar, i) => (
+          <div
+            key={bar.label}
+            style={{
+              textAlign: "center",
+              fontFamily: T.mono,
+              fontSize: 10,
+              color: hover === i ? T.text : T.textMute,
+              visibility: n > 14 && i % 2 !== 0 ? "hidden" : "visible",
             }}
           >
             {bar.label}

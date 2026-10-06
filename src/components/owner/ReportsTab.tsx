@@ -7,7 +7,7 @@ import { useBreakpoint } from "@/hooks/useBreakpoint";
 import {
   SectionHd,
   Pill,
-  GroupedBarChart,
+  TrendLineChart,
   HBarChart,
   fmtPeso,
   DAY_ABBR,
@@ -53,7 +53,6 @@ export default function ReportsTab() {
   const isMobile = bp === "mobile";
   const nav = useDateNav();
 
-  const [chartMode, setChartMode] = useState<"bar" | "line">("bar");
   const [rightTab, setRightTab] = useState<"top" | "voided">("top");
 
   const [gross, setGross] = useState(0);
@@ -708,107 +707,11 @@ export default function ReportsTab() {
             <SectionHd
               title="P&L Overview"
               badge={`Gross ${fmtPeso(gross)} · Net ${fmtPeso(net)}`}
-              action={
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 2,
-                    ...(m3 && {
-                      gap: 4,
-                      padding: 3,
-                      background: m3.track,
-                      borderRadius: 18,
-                    }),
-                  }}
-                >
-                  {(["bar", "line"] as const).map((m) => (
-                    <button
-                      key={m}
-                      onClick={() => setChartMode(m)}
-                      title={m === "bar" ? "Bar chart" : "Line chart"}
-                      style={{
-                        width: 28,
-                        height: 22,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        background: chartMode === m ? T.accent : T.chip,
-                        border: `1px solid ${chartMode === m ? T.accent : T.line2}`,
-                        borderRadius: T.radius,
-                        cursor: "pointer",
-                        padding: 0,
-                        transition: "background 0.12s ease",
-                        ...(m3 && {
-                          width: 40,
-                          height: 30,
-                          background:
-                            chartMode === m ? T.accent : "transparent",
-                          border: "none",
-                          borderRadius: 16,
-                        }),
-                      }}
-                    >
-                      {m === "bar" ? (
-                        <svg
-                          viewBox="0 0 12 10"
-                          width={12}
-                          height={10}
-                          fill="none"
-                        >
-                          <rect
-                            x="0"
-                            y="4"
-                            width="2.5"
-                            height="6"
-                            fill={chartMode === "bar" ? T.accentInk : T.textDim}
-                          />
-                          <rect
-                            x="3.5"
-                            y="1"
-                            width="2.5"
-                            height="9"
-                            fill={chartMode === "bar" ? T.accentInk : T.textDim}
-                          />
-                          <rect
-                            x="7"
-                            y="2.5"
-                            width="2.5"
-                            height="7.5"
-                            fill={chartMode === "bar" ? T.accentInk : T.textDim}
-                          />
-                          <rect
-                            x="10"
-                            y="5.5"
-                            width="2"
-                            height="4.5"
-                            fill={chartMode === "bar" ? T.accentInk : T.textDim}
-                          />
-                        </svg>
-                      ) : (
-                        <svg
-                          viewBox="0 0 12 10"
-                          width={12}
-                          height={10}
-                          fill="none"
-                          stroke={
-                            chartMode === "line" ? T.accentInk : T.textDim
-                          }
-                          strokeWidth={1.5}
-                          strokeLinejoin="round"
-                          strokeLinecap="round"
-                        >
-                          <polyline points="0,8 3,4 6,5.5 9,1.5 12,3" />
-                        </svg>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              }
             />
             {loading ? (
               <div
                 style={{
-                  height: 220,
+                  height: 260,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -830,11 +733,11 @@ export default function ReportsTab() {
                 }}
               >
                 <div style={{ minWidth: 480 }}>
-                  <GroupedBarChart bars={bars} height={220} mode={chartMode} />
+                  <TrendLineChart bars={bars} height={260} />
                 </div>
               </div>
             ) : (
-              <GroupedBarChart bars={bars} height={220} mode={chartMode} />
+              <TrendLineChart bars={bars} height={260} />
             )}
 
             {/* Payment method breakdown */}
