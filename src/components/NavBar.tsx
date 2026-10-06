@@ -164,7 +164,7 @@ function NavTab({
           : active
             ? `2px solid ${T.accent}`
             : "2px solid transparent",
-        ...(m3 && { height: 48, borderRadius: 24 }),
+        ...(m3 && { height: 46, borderRadius: 23 }),
         borderLeft: dashed ? `1px dashed ${borderColor}` : "none",
         borderRight: dashed ? `1px dashed ${borderColor}` : "none",
         borderTop: dashed ? `1px dashed ${borderColor}` : "none",
@@ -406,74 +406,93 @@ export default function NavBar({
           padding: m3 ? "0 8px" : 0,
         }}
       >
-        {/* Sales (floor) */}
-        <NavTab
-          active={view === "floor"}
-          onClick={onFloor}
-          label="On-Going"
-          sub={`${openCount} open · ${attnTabs} attn`}
-          isMobile={isMobile}
-        />
-
-        {/* Sales — Owner + Manager */}
-        {(isOwner || isManager) && (
+        {/* Main tabs — M3 groups them in a tonal track; classic lays them out
+            directly in the strip (display: contents keeps that unchanged). */}
+        <div
+          style={
+            m3
+              ? {
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: 4,
+                  background: m3.navTrack,
+                  borderRadius: 28,
+                  flexShrink: 0,
+                  marginRight: 8,
+                }
+              : { display: "contents" }
+          }
+        >
+          {/* Sales (floor) */}
           <NavTab
-            active={view === "sales"}
-            onClick={onSales}
-            label="Sales"
-            sub="Items sold"
+            active={view === "floor"}
+            onClick={onFloor}
+            label="On-Going"
+            sub={`${openCount} open · ${attnTabs} attn`}
             isMobile={isMobile}
           />
-        )}
 
-        {/* Expenses — Owner + Manager */}
-        {(isOwner || isManager) && (
-          <NavTab
-            active={view === "expenses"}
-            onClick={onExpenses}
-            label="Expenses"
-            sub="Daily log"
-            isMobile={isMobile}
-          />
-        )}
+          {/* Sales — Owner + Manager */}
+          {(isOwner || isManager) && (
+            <NavTab
+              active={view === "sales"}
+              onClick={onSales}
+              label="Sales"
+              sub="Items sold"
+              isMobile={isMobile}
+            />
+          )}
 
-        {/* Reports — Owner + Manager */}
-        {(isOwner || isManager) && (
-          <NavTab
-            active={view === "reports"}
-            onClick={onReports}
-            label="Dashboard"
-            sub="Sales · Expenses"
-            isMobile={isMobile}
-          />
-        )}
+          {/* Expenses — Owner + Manager */}
+          {(isOwner || isManager) && (
+            <NavTab
+              active={view === "expenses"}
+              onClick={onExpenses}
+              label="Expenses"
+              sub="Daily log"
+              isMobile={isMobile}
+            />
+          )}
 
-        {/* Operations — Owner + Manager */}
-        {(isOwner || isManager) && (
-          <NavTab
-            active={view === "operations"}
-            onClick={onOperations}
-            label="Operations"
-            sub="Recipe · Menu · Inventory"
-            isMobile={isMobile}
-          />
-        )}
+          {/* Reports — Owner + Manager */}
+          {(isOwner || isManager) && (
+            <NavTab
+              active={view === "reports"}
+              onClick={onReports}
+              label="Dashboard"
+              sub="Sales · Expenses"
+              isMobile={isMobile}
+            />
+          )}
 
-        {/* Owner — Owner only */}
-        {isOwner && (
-          <NavTab
-            active={view === "owner"}
-            onClick={onOwner}
-            label={
-              <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <Icon name="lock" size={11} />
-                Owner
-              </span>
-            }
-            sub="Full access"
-            isMobile={isMobile}
-          />
-        )}
+          {/* Operations — Owner + Manager */}
+          {(isOwner || isManager) && (
+            <NavTab
+              active={view === "operations"}
+              onClick={onOperations}
+              label="Operations"
+              sub="Recipe · Menu · Inventory"
+              isMobile={isMobile}
+            />
+          )}
+
+          {/* Owner — Owner only */}
+          {isOwner && (
+            <NavTab
+              active={view === "owner"}
+              onClick={onOwner}
+              label={
+                <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <Icon name="lock" size={11} />
+                  Owner
+                </span>
+              }
+              sub="Full access"
+              isMobile={isMobile}
+            />
+          )}
+        </div>
 
         {/* Per-table open tabs */}
         {openTabs.map((tableId) => {

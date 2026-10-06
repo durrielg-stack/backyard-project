@@ -73,20 +73,18 @@ export default function BudgetLedgerM3({
   cats,
   seedDate,
   loading,
-  viewSwitch,
 }: {
   rows: LedgerRow[]; // oldest first, as built by BudgetTab
   cats: { id: string; label: string }[];
   seedDate: string | null;
   loading: boolean;
-  viewSwitch: React.ReactNode; // BudgetTab's Day / Ledger control
 }) {
   const { T } = useTheme();
   const m3 = T.m3!;
   const bp = useBreakpoint();
   const isMobile = bp === "mobile";
   const [mode, setMode] = useState<ColMode>("ending");
-  const [range, setRange] = useState<LedgerRange>("2weeks");
+  const [range, setRange] = useState<LedgerRange>("week");
 
   const ids = cats.map((c) => c.id);
   const latest = rows.length > 0 ? rows[rows.length - 1] : null;
@@ -245,7 +243,6 @@ export default function BudgetLedgerM3({
         <span style={{ fontSize: 22, fontWeight: 600, color: T.text }}>
           Budget
         </span>
-        {viewSwitch}
         {seedDate && (
           <span
             style={{
