@@ -27,7 +27,7 @@ interface MenuRow {
   name: string;
   category: string;
   price: number;
-  cost: number | null;
+  cost: number | null; // what the POS charges to COGS; shown as "Recipe Cost"
   manualCost: number | null; // permanent snapshot of the original hand-entered cost — never touched by Confirm/Revert
   costMode: "manual" | "recipe";
 }
@@ -491,7 +491,7 @@ export default function RecipeTab() {
                   ["Category", "category"],
                   ["Price", "price"],
                   ["Flat Cost", "manualCost"],
-                  ["Recipe Cost", "recipeCost"],
+                  ["Recipe Cost", "cost"],
                   ["Diff ₱", null],
                   ["Diff %", null],
                   ["Margin % Flat", null],
@@ -546,8 +546,8 @@ export default function RecipeTab() {
               const isOpen = expandedId === item.id;
               const isBusy = busy === item.id;
               const diff =
-                item.recipeCost != null && item.manualCost != null
-                  ? item.recipeCost - item.manualCost
+                item.cost != null && item.manualCost != null
+                  ? item.cost - item.manualCost
                   : null;
               const diffPct =
                 diff != null && item.manualCost
@@ -558,8 +558,8 @@ export default function RecipeTab() {
                   ? ((item.price - item.manualCost) / item.price) * 100
                   : null;
               const marginRecipe =
-                item.recipeCost != null && item.price
-                  ? ((item.price - item.recipeCost) / item.price) * 100
+                item.cost != null && item.price
+                  ? ((item.price - item.cost) / item.price) * 100
                   : null;
               return (
                 <div
@@ -620,7 +620,7 @@ export default function RecipeTab() {
                         fontVariantNumeric: "tabular-nums",
                       }}
                     >
-                      {item.recipeCost != null ? fmtPeso(item.recipeCost) : "—"}
+                      {item.cost != null ? fmtPeso(item.cost) : "—"}
                     </span>
                     <span
                       style={{
@@ -1387,7 +1387,7 @@ export default function RecipeTab() {
                               }}
                             >
                               <span style={{ fontSize: 11, color: T.textMute }}>
-                                Recipe cost:{" "}
+                                Ingredient cost:{" "}
                                 <strong style={{ color: T.text }}>
                                   {fmtPeso(item.recipeCost ?? 0)}
                                 </strong>
@@ -1429,7 +1429,7 @@ export default function RecipeTab() {
                                     cursor: "pointer",
                                   }}
                                 >
-                                  Confirm & Use Recipe Cost
+                                  Confirm & Use Ingredient Cost
                                 </button>
                               )}
                             </div>
