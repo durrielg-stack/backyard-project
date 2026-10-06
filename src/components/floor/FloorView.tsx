@@ -326,12 +326,13 @@ export function PanelHd({
   action?: React.ReactNode;
 }) {
   const { T } = useTheme();
+  const m3 = T.m3;
   return (
     <div
       style={{
-        height: 46,
+        height: m3 ? 56 : 46,
         padding: "0 20px",
-        borderBottom: `1px solid ${T.line}`,
+        borderBottom: m3 ? "none" : `1px solid ${T.line}`,
         display: "flex",
         alignItems: "center",
         gap: 10,
@@ -339,13 +340,17 @@ export function PanelHd({
       }}
     >
       <span
-        style={{
-          fontSize: 11,
-          fontWeight: 600,
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          color: T.text,
-        }}
+        style={
+          m3
+            ? { fontSize: 16, fontWeight: 600, color: T.text }
+            : {
+                fontSize: 11,
+                fontWeight: 600,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: T.text,
+              }
+        }
       >
         {title}
       </span>
@@ -355,9 +360,14 @@ export function PanelHd({
             fontFamily: T.mono,
             fontSize: 11,
             color: badgeColor ?? T.textDim,
-            background: badgeColor ? `${badgeColor}18` : T.chip,
-            padding: "2px 8px",
-            borderRadius: 2,
+            background: badgeColor
+              ? `${badgeColor}18`
+              : m3
+                ? m3.containerHighest
+                : T.chip,
+            padding: m3 ? "4px 10px" : "2px 8px",
+            borderRadius: m3 ? 12 : 2,
+            fontWeight: m3 ? 600 : undefined,
           }}
         >
           {badge}
@@ -541,59 +551,88 @@ function KpiStrip({
         height: "clamp(80px, 9.3vh, 120px)",
       };
 
+  const m3 = T.m3;
   return (
     <div
       className="bp-no-scrollbar"
       style={{
         ...kpiStyle,
-        borderBottom: `1px solid ${T.line}`,
+        ...(m3 && {
+          height: "auto",
+          gap: isMobile ? 10 : 14,
+          padding: isMobile ? "12px 12px 0" : "16px 20px 0",
+        }),
+        borderBottom: m3 ? "none" : `1px solid ${T.line}`,
         flexShrink: 0,
       }}
     >
-      {kpis.map((k, i) => (
-        <div
-          key={k.label}
-          style={{
-            padding: isMobile ? "12px 16px" : "16px 24px",
-            borderRight: `1px solid ${T.line}`,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-            minWidth: isMobile ? 150 : undefined,
-            flexShrink: 0,
-            gap: isMobile ? 4 : undefined,
-          }}
-        >
+      {kpis.map((k, i) => {
+        const hero = m3 && i === 0;
+        return (
           <div
+            key={k.label}
             style={{
-              fontSize: 10,
-              fontWeight: 600,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: T.textMute,
-              whiteSpace: "nowrap",
+              padding: isMobile ? "12px 16px" : m3 ? "16px 20px" : "16px 24px",
+              borderRight: m3 ? "none" : `1px solid ${T.line}`,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              minWidth: isMobile ? 150 : undefined,
+              flexShrink: 0,
+              gap: isMobile ? 4 : m3 ? 8 : undefined,
+              ...(m3 && {
+                background: hero ? m3.primaryContainer : m3.container,
+                borderRadius: 20,
+                boxShadow: hero ? m3.elev2 : m3.elev1,
+              }),
             }}
           >
-            {k.label}
+            <div
+              style={
+                m3
+                  ? {
+                      fontSize: 12,
+                      fontWeight: hero ? 600 : 500,
+                      color: hero ? m3.onPrimaryContainer : T.textDim,
+                      whiteSpace: "nowrap",
+                    }
+                  : {
+                      fontSize: 10,
+                      fontWeight: 600,
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
+                      color: T.textMute,
+                      whiteSpace: "nowrap",
+                    }
+              }
+            >
+              {k.label}
+            </div>
+            <div
+              style={{
+                fontSize: isMobile ? 18 : i <= 1 ? 28 : 24,
+                fontWeight: 700,
+                fontFamily: T.mono,
+                letterSpacing: "-0.02em",
+                color: hero ? m3.onPrimaryContainerStrong : T.text,
+                fontVariantNumeric: "tabular-nums",
+                lineHeight: 1,
+              }}
+            >
+              {k.value}
+            </div>
+            <div
+              style={{
+                fontSize: 11,
+                color: hero ? m3.onPrimaryContainer : k.noteColor,
+                fontWeight: 500,
+              }}
+            >
+              {k.note}
+            </div>
           </div>
-          <div
-            style={{
-              fontSize: isMobile ? 18 : i <= 1 ? 28 : 24,
-              fontWeight: 700,
-              fontFamily: T.mono,
-              letterSpacing: "-0.02em",
-              color: T.text,
-              fontVariantNumeric: "tabular-nums",
-              lineHeight: 1,
-            }}
-          >
-            {k.value}
-          </div>
-          <div style={{ fontSize: 11, color: k.noteColor, fontWeight: 500 }}>
-            {k.note}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -609,10 +648,43 @@ function TableCard({
   onRemove?: () => void;
 }) {
   const { T } = useTheme();
+  const m3 = T.m3;
   const color = statusColor(table.status, T);
   const isAttn = table.status === "attention";
   const isAging = table.status === "aging";
   const isActive = ["occupied", "aging", "attention"].includes(table.status);
+  // M3: status reads from a tonal card + chip instead of the left stripe.
+  const m3Look = m3
+    ? {
+        available: {
+          bg: m3.containerHigh,
+          chipBg: m3.containerHighest,
+          chipFg: T.textDim,
+        },
+        occupied: {
+          bg: m3.containerHigh,
+          chipBg: m3.okContainer,
+          chipFg: m3.onOkContainer,
+        },
+        aging: {
+          bg: m3.warnTint,
+          chipBg: m3.warnContainer,
+          chipFg: m3.onWarnContainer,
+        },
+        attention: {
+          bg: m3.badTint,
+          chipBg: m3.badContainer,
+          chipFg: m3.onBadContainer,
+        },
+        reserved: {
+          bg: m3.containerHigh,
+          chipBg: m3.infoContainer,
+          chipFg: m3.onInfoContainer,
+        },
+      }[table.status]
+    : null;
+  const restBg = m3Look ? m3Look.bg : T.surface;
+  const hoverBg = m3 ? m3.containerHighest : T.surface2;
 
   return (
     <div
@@ -620,27 +692,35 @@ function TableCard({
       className={isAttn ? "bp-attn" : isAging ? "bp-aging" : ""}
       style={{
         textAlign: "left",
-        padding: 12,
+        padding: m3 ? 14 : 12,
         cursor: "pointer",
-        background: T.surface,
+        background: restBg,
         fontFamily: "inherit",
         color: T.text,
-        border: `1px solid ${color}26`, // statusColor at ~15% alpha
-        borderLeft: `4px solid ${color}`, // 4px left stripe — the status tell
-        borderRadius: T.radius,
+        ...(m3
+          ? {
+              border: "none",
+              borderRadius: 16,
+              boxShadow: isAttn ? `0 0 0 2px ${T.bad}` : "none",
+            }
+          : {
+              border: `1px solid ${color}26`, // statusColor at ~15% alpha
+              borderLeft: `4px solid ${color}`, // 4px left stripe — the status tell
+              borderRadius: T.radius,
+            }),
         display: "flex",
         flexDirection: "column",
-        gap: 4,
-        minHeight: 96,
+        gap: m3 ? 6 : 4,
+        minHeight: m3 ? 108 : 96,
         position: "relative",
         transition: "background 0.12s ease, transform 0.1s ease",
       }}
       onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.background = T.surface2;
+        (e.currentTarget as HTMLElement).style.background = hoverBg;
         (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)";
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.background = T.surface;
+        (e.currentTarget as HTMLElement).style.background = restBg;
         (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
       }}
     >
@@ -654,9 +734,9 @@ function TableCard({
       >
         <span
           style={{
-            fontSize: 17,
+            fontSize: m3 ? 20 : 17,
             fontWeight: 700,
-            fontFamily: T.mono,
+            fontFamily: m3 ? T.sansHead : T.mono,
             letterSpacing: "-0.01em",
             color: T.text,
           }}
@@ -664,16 +744,32 @@ function TableCard({
           {table.label}
         </span>
         <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-          <span
-            style={{
-              width: 7,
-              height: 7,
-              borderRadius: "50%",
-              background: color,
-              flexShrink: 0,
-              marginTop: 3,
-            }}
-          />
+          {m3Look ? (
+            <span
+              style={{
+                padding: "4px 10px",
+                borderRadius: 10,
+                fontSize: 11,
+                fontWeight: 600,
+                background: m3Look.chipBg,
+                color: m3Look.chipFg,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {statusLabel(table.status)}
+            </span>
+          ) : (
+            <span
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: "50%",
+                background: color,
+                flexShrink: 0,
+                marginTop: 3,
+              }}
+            />
+          )}
           {onRemove && (
             <button
               onClick={(e) => {
@@ -705,17 +801,19 @@ function TableCard({
       </div>
 
       {/* Status label */}
-      <div
-        style={{
-          fontSize: 10,
-          fontWeight: 600,
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
-          color,
-        }}
-      >
-        {statusLabel(table.status)}
-      </div>
+      {!m3 && (
+        <div
+          style={{
+            fontSize: 10,
+            fontWeight: 600,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color,
+          }}
+        >
+          {statusLabel(table.status)}
+        </div>
+      )}
 
       {/* Foot row: time + check total */}
       {isActive && (
@@ -740,10 +838,10 @@ function TableCard({
           {table.checkTotal > 0 && (
             <span
               style={{
-                fontSize: 13,
-                fontWeight: 600,
+                fontSize: m3 ? 15 : 13,
+                fontWeight: m3 ? 700 : 600,
                 fontFamily: T.mono,
-                color,
+                color: m3 ? T.text : color,
                 fontVariantNumeric: "tabular-nums",
               }}
             >
@@ -819,8 +917,8 @@ function NewTableCard({
           background: "transparent",
           fontFamily: "inherit",
           color: T.textMute,
-          border: `1px dashed ${T.line2}`,
-          borderRadius: T.radius,
+          border: `${T.m3 ? 2 : 1}px dashed ${T.line2}`,
+          borderRadius: T.m3 ? 16 : T.radius,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -855,12 +953,16 @@ function NewTableCard({
           <path d="M8 3v10M3 8h10" />
         </svg>
         <span
-          style={{
-            fontSize: 11,
-            fontWeight: 600,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-          }}
+          style={
+            T.m3
+              ? { fontSize: 13, fontWeight: 600 }
+              : {
+                  fontSize: 11,
+                  fontWeight: 600,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                }
+          }
         >
           New Table
         </span>
@@ -1120,8 +1222,9 @@ function FloorPanel({
             onClick={(e) => e.stopPropagation()}
             style={{
               background: T.surface2,
-              border: `1px solid ${T.line}`,
-              borderRadius: 6,
+              border: T.m3 ? "none" : `1px solid ${T.line}`,
+              borderRadius: T.m3 ? 28 : 6,
+              boxShadow: T.m3 ? T.shadowModal : undefined,
               padding: "28px 32px",
               width: 360,
               display: "flex",
@@ -1172,8 +1275,8 @@ function FloorPanel({
       <div
         style={{
           padding: isMobile ? "0 16px" : "0 20px",
-          height: 46,
-          borderBottom: `1px solid ${T.line}`,
+          height: T.m3 ? 56 : 46,
+          borderBottom: T.m3 ? "none" : `1px solid ${T.line}`,
           display: "flex",
           alignItems: "center",
           gap: 10,
@@ -1181,29 +1284,34 @@ function FloorPanel({
         }}
       >
         {/* Section title — hidden on mobile to save space */}
-        {!isMobile && (
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: T.text,
-            }}
-          >
-            <span style={{ color: T.accent, marginRight: 8 }}>▸</span>Floor ·
-            Section 1
-          </span>
-        )}
+        {!isMobile &&
+          (T.m3 ? (
+            <span style={{ fontSize: 16, fontWeight: 600, color: T.text }}>
+              Floor
+            </span>
+          ) : (
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: T.text,
+              }}
+            >
+              <span style={{ color: T.accent, marginRight: 8 }}>▸</span>Floor ·
+              Section 1
+            </span>
+          ))}
 
         <span
           style={{
             fontFamily: T.mono,
             fontSize: 11,
             color: T.textDim,
-            background: T.chip,
-            padding: "2px 8px",
-            borderRadius: 2,
+            background: T.m3 ? T.m3.containerHighest : T.chip,
+            padding: T.m3 ? "4px 10px" : "2px 8px",
+            borderRadius: T.m3 ? 12 : 2,
             flexShrink: 0,
           }}
         >
@@ -1247,9 +1355,9 @@ function FloorPanel({
             >
               <span
                 style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: "50%",
+                  width: T.m3 ? 10 : 6,
+                  height: T.m3 ? 10 : 6,
+                  borderRadius: T.m3 ? 3 : "50%",
                   background: color,
                 }}
               />
@@ -1292,9 +1400,9 @@ function FloorPanel({
               ) : (
                 <span
                   style={{
-                    fontSize: 10,
-                    color: T.textMute,
-                    fontFamily: T.mono,
+                    fontSize: T.m3 ? 12 : 10,
+                    color: T.m3 ? T.textDim : T.textMute,
+                    fontFamily: T.m3 ? T.sansBody : T.mono,
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -1309,7 +1417,11 @@ function FloorPanel({
       {/* Body — grid view */}
       <div
         className="bp-no-scrollbar"
-        style={{ flex: 1, overflowY: "auto", padding: isMobile ? 12 : 20 }}
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: isMobile ? 12 : T.m3 ? "4px 20px 20px" : 20,
+        }}
       >
         <div
           style={{
@@ -1319,7 +1431,7 @@ function FloorPanel({
               : isTablet
                 ? "repeat(4, 1fr)"
                 : "repeat(6, 1fr)",
-            gap: isMobile ? 8 : 10,
+            gap: isMobile ? 8 : T.m3 ? 12 : 10,
           }}
         >
           {tables.map((t) => (
@@ -1356,6 +1468,67 @@ export default function FloorView({
   const { T } = useTheme();
   const bp = useBreakpoint();
   const isMobile = bp === "mobile";
+  const m3 = T.m3;
+  const card: React.CSSProperties | undefined = m3
+    ? {
+        background: m3.container,
+        borderRadius: 24,
+        boxShadow: m3.elev1,
+        overflow: "hidden",
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column",
+      }
+    : undefined;
+
+  if (m3) {
+    return (
+      <div
+        className={isMobile ? "bp-no-scrollbar" : undefined}
+        style={{
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          overflowY: isMobile ? "auto" : undefined,
+          touchAction: isMobile ? "pan-y" : undefined,
+        }}
+      >
+        <KpiStrip tables={tables} tickets={tickets} />
+        <div
+          style={
+            isMobile
+              ? {
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
+                  padding: 12,
+                  flex: 1,
+                  minHeight: 0,
+                }
+              : {
+                  flex: 1,
+                  minHeight: 0,
+                  display: "grid",
+                  gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1fr)",
+                  gap: 16,
+                  padding: "16px 20px 20px",
+                }
+          }
+        >
+          <div style={card}>
+            <FloorPanel
+              tables={tables}
+              tickets={tickets}
+              onOpenTable={onOpenTable}
+            />
+          </div>
+          <div style={{ ...card, minHeight: isMobile ? 220 : 0 }}>
+            <KdsPanel tickets={tickets} tick={tick} onBump={onBump} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

@@ -6,16 +6,32 @@ import {
   useEffect,
   ReactNode,
 } from "react";
-import { THEME, LIGHT_THEME, type ThemeTokens } from "./theme";
+import {
+  THEME,
+  LIGHT_THEME,
+  M3_DARK_THEME,
+  M3_LIGHT_THEME,
+  type ThemeTokens,
+} from "./theme";
 
-type ThemeMode = "dark" | "light";
+export type ThemeMode = "dark" | "light" | "m3dark" | "m3light";
 
 const THEMES: Record<ThemeMode, ThemeTokens> = {
   dark: THEME,
   light: LIGHT_THEME,
+  m3dark: M3_DARK_THEME,
+  m3light: M3_LIGHT_THEME,
 };
 
-const CYCLE: ThemeMode[] = ["dark", "light"];
+export const THEME_NAMES: Record<ThemeMode, string> = {
+  dark: "Classic dark",
+  light: "Classic light",
+  m3dark: "Material dark",
+  m3light: "Material light",
+};
+
+export const THEME_CYCLE: ThemeMode[] = ["dark", "light", "m3dark", "m3light"];
+const CYCLE = THEME_CYCLE;
 
 interface ThemeContextValue {
   T: ThemeTokens;
@@ -50,7 +66,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   return (
     <ThemeContext.Provider
-      value={{ T: THEMES[mode], mode, isDark: mode === "dark", toggle }}
+      value={{
+        T: THEMES[mode],
+        mode,
+        isDark: mode === "dark" || mode === "m3dark",
+        toggle,
+      }}
     >
       {children}
     </ThemeContext.Provider>

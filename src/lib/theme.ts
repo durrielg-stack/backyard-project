@@ -28,6 +28,34 @@ export interface Theme {
   radiusLg: string;
   shadow: string;
   shadowModal: string;
+  // Present only on the Material 3 themes. Components check `T.m3` to switch
+  // from the flat bordered layout to tonal cards; classic themes never set it.
+  m3?: M3Tokens;
+}
+
+// Material 3 tonal roles (pinned by the v2 mockups in
+// byp-pos-v2/docs/design/owner-reports-mockup.dc.html, teal seed).
+export interface M3Tokens {
+  topBar: string;
+  track: string; // segmented-control track
+  container: string; // cards and KPI tiles
+  containerHigh: string; // rows and tiles inside a card
+  containerHighest: string; // neutral chips
+  primaryContainer: string;
+  onPrimaryContainer: string;
+  onPrimaryContainerStrong: string;
+  okContainer: string;
+  onOkContainer: string;
+  warnContainer: string;
+  onWarnContainer: string;
+  warnTint: string;
+  badContainer: string;
+  onBadContainer: string;
+  badTint: string;
+  infoContainer: string;
+  onInfoContainer: string;
+  elev1: string;
+  elev2: string;
 }
 
 export type ThemeTokens = Theme;
@@ -102,6 +130,126 @@ export const LIGHT_THEME: Theme = {
 
   shadow: "0 1px 0 rgba(0,0,0,0.04) inset, 0 8px 24px rgba(0,0,0,0.10)",
   shadowModal: "0 30px 90px rgba(0,0,0,0.20)",
+};
+
+const M3_FONTS = {
+  sansHead: '"Roboto", "Helvetica Neue", system-ui, sans-serif',
+  sansBody: '"Roboto", "Helvetica Neue", system-ui, sans-serif',
+  mono: '"Roboto Mono", ui-monospace, "SF Mono", Menlo, monospace',
+};
+
+export const M3_DARK_THEME: Theme = {
+  bg: "#0E1210",
+  surface: "#1B2022",
+  surface2: "#20262A",
+  surface3: "#2B3236",
+
+  line: "#2B3236",
+  line2: "#3C4542",
+
+  text: "#E2E5E3",
+  textDim: "#A9B2AE",
+  textMute: "#8B958F",
+  headerText: "#8B958F",
+
+  accent: "#6EEAD2",
+  accentInk: "#00332C",
+
+  ok: "#6FD8A8",
+  warn: "#FFDB99",
+  bad: "#FF9E96",
+  info: "#B8C7FF",
+
+  chip: "#20262A",
+  chipBd: "#2B3236",
+
+  ...M3_FONTS,
+
+  radius: "12px",
+  radiusLg: "20px",
+
+  shadow: "0 1px 3px rgba(0,0,0,0.3)",
+  shadowModal: "0 24px 64px rgba(0,0,0,0.55)",
+
+  m3: {
+    topBar: "#14181A",
+    track: "#14181A",
+    container: "#1B2022",
+    containerHigh: "#20262A",
+    containerHighest: "#2B3236",
+    primaryContainer: "#00504A",
+    onPrimaryContainer: "#8AF8DF",
+    onPrimaryContainerStrong: "#F1FFFB",
+    okContainer: "#1E3B36",
+    onOkContainer: "#8AF8DF",
+    warnContainer: "#453816",
+    onWarnContainer: "#FFDB99",
+    warnTint: "#2A2717",
+    badContainer: "#4A2323",
+    onBadContainer: "#FF9E96",
+    badTint: "#331C1C",
+    infoContainer: "#22304A",
+    onInfoContainer: "#B8C7FF",
+    elev1: "0 1px 3px rgba(0,0,0,0.3)",
+    elev2: "0 2px 6px rgba(0,0,0,0.35)",
+  },
+};
+
+export const M3_LIGHT_THEME: Theme = {
+  bg: "#EEF3F1",
+  surface: "#FFFFFF",
+  surface2: "#EFF5F2",
+  surface3: "#E3EAE7",
+
+  line: "#DEE4E1",
+  line2: "#BEC9C5",
+
+  text: "#171D1B",
+  textDim: "#3F4946",
+  textMute: "#5B6562",
+  headerText: "#3F4946",
+
+  accent: "#006A60",
+  accentInk: "#FFFFFF",
+
+  ok: "#1E7A4F",
+  warn: "#7A5900",
+  bad: "#BA1A1A",
+  info: "#3A56A8",
+
+  chip: "#E9EFEC",
+  chipBd: "#DEE4E1",
+
+  ...M3_FONTS,
+
+  radius: "12px",
+  radiusLg: "20px",
+
+  shadow: "0 1px 3px rgba(16,24,22,0.08)",
+  shadowModal: "0 24px 64px rgba(16,24,22,0.18)",
+
+  m3: {
+    topBar: "#FFFFFF",
+    track: "#E9EFEC",
+    container: "#FFFFFF",
+    containerHigh: "#F4F8F6",
+    containerHighest: "#E3EAE7",
+    primaryContainer: "#9EF2E4",
+    onPrimaryContainer: "#00504A",
+    onPrimaryContainerStrong: "#00201C",
+    okContainer: "#CCE8E2",
+    onOkContainer: "#00504A",
+    warnContainer: "#FFDEA6",
+    onWarnContainer: "#5C4300",
+    warnTint: "#FFF4DE",
+    badContainer: "#FFDAD6",
+    onBadContainer: "#93000A",
+    badTint: "#FFEDEA",
+    infoContainer: "#DCE1FF",
+    onInfoContainer: "#2A4290",
+    elev1: "0 1px 3px rgba(16,24,22,0.08)",
+    elev2: "0 2px 6px rgba(16,24,22,0.12)",
+  },
 };
 
 // Status color helper — used by table cards, nav dots, ticket headers
