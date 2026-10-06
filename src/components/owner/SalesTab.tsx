@@ -809,9 +809,8 @@ export default function SalesTab() {
                           cursor: "pointer",
                           fontFamily: "inherit",
                           border: "none",
-                          background:
-                            tableView === v ? T.accent : "transparent",
-                          color: tableView === v ? T.accentInk : T.textDim,
+                          background: tableView === v ? T.sel : "transparent",
+                          color: tableView === v ? T.onSel : T.textDim,
                         }
                       : {
                           padding: "2px 8px",

@@ -750,8 +750,8 @@ function TransactionsPanel({
                   textTransform: "none",
                   borderRadius: 16,
                   border: "none",
-                  background: view === v ? T.accent : "transparent",
-                  color: view === v ? T.accentInk : T.textDim,
+                  background: view === v ? T.sel : "transparent",
+                  color: view === v ? T.onSel : T.textDim,
                 }),
               }}
             >

@@ -138,7 +138,7 @@ function NavTab({
   const m3Bg = !m3
     ? undefined
     : active
-      ? T.accent
+      ? T.sel
       : dot === "bad"
         ? m3.badContainer
         : dot === "warn"
@@ -191,7 +191,7 @@ function NavTab({
             fontSize: 13,
             fontWeight: active ? 700 : m3 ? 500 : 400,
             lineHeight: 1,
-            color: active ? (m3 ? T.accentInk : T.text) : T.textDim,
+            color: active ? (m3 ? T.onSel : T.text) : T.textDim,
             fontFamily:
               typeof label === "string" && /^[TB]\d/.test(label as string)
                 ? T.mono
@@ -209,7 +209,7 @@ function NavTab({
             }}
             style={{
               marginLeft: 4,
-              color: m3 && active ? T.accentInk : T.textMute,
+              color: m3 && active ? T.onSel : T.textMute,
               cursor: "pointer",
               lineHeight: 1,
               display: "flex",
@@ -224,7 +224,7 @@ function NavTab({
         style={{
           fontSize: 10,
           fontFamily: T.mono,
-          color: m3 && active ? T.accentInk : T.textMute,
+          color: m3 && active ? T.onSel : T.textMute,
           lineHeight: 1,
           fontVariantNumeric: "tabular-nums",
         }}
@@ -600,14 +600,14 @@ export default function NavBar({
                 width: 22,
                 height: 22,
                 borderRadius: "50%",
-                background: dropdownOpen ? T.accent : T.chip,
+                background: dropdownOpen ? T.sel : T.chip,
                 border: `1px solid ${dropdownOpen ? T.accent : T.line2}`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 fontSize: 10,
                 fontWeight: 600,
-                color: dropdownOpen ? T.accentInk : T.text,
+                color: dropdownOpen ? T.onSel : T.text,
                 flexShrink: 0,
                 transition: "background 0.12s, border-color 0.12s",
               }}

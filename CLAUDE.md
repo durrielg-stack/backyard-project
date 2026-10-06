@@ -28,6 +28,7 @@ A full knowledge base lives in `memory-bank/`. **Read these first before scannin
 8. `memory-bank/skill-financial-data-integrity.md` — loadable skill: snapshot-vs-derive, silent-failure defenses, verification discipline for the live production DB; **load before money/inventory/report work**
 9. `memory-bank/skill-owner-intent-translation.md` — loadable skill: turning the owner's requests/feedback into correct behavior; vocabulary collisions, ask-vs-decide, correction generalization; **load before designing features or interpreting feedback**
 10. `memory-bank/skill-verification-without-a-net.md` — loadable skill: constructing justified confidence with no test suite; the verification ladder, round-trip testing, failure prediction; **load before claiming any change is done**
+    10b. `memory-bank/design-system-m3.md` — **the Material 3 rule base** (colour roles, type scale, shape, states, components, data-presentation rules, refactor backlog); **read before any UI/styling change**
 11. `memory-bank/architecture.md` — component hierarchy, data flow, styling system
 12. `memory-bank/database-schema.md` — all tables, columns, and types with notes
 13. `memory-bank/coding-patterns.md` — reusable patterns (theme, scroll, optimistic updates, visualViewport)
@@ -129,6 +130,7 @@ Two tiers:
 
 - **No CSS classes for layout** — all layout is inline `style` props with values from `THEME`
 - **`src/lib/theme.ts`** — token sets: `THEME` (Classic dark, `radius` 2px), `LIGHT_THEME`, and `M3_DARK_THEME` / `M3_LIGHT_THEME` (Google Material 3, teal seed, values pinned by `byp-pos-v2/docs/design/*.dc.html`). Material dark is the default and the NavBar ☀/🌙 button toggles Material dark ↔ light (`THEME_CYCLE`, stored in `localStorage` `bp-theme`; saved classic values map to their Material twin). Classic themes stay defined for rollback but are not offered
+- **All styling follows `memory-bank/design-system-m3.md`.** Selected states use `T.sel`/`T.onSel` (secondary-container under M3), primary is for the one main action; focus ring, hover/pressed state layers and tabular numerals come from the Material 3 block in `globals.css` (`html[data-ds="m3"]`).
 - **Material 3 rule (2026-10-06):** only the M3 themes set `T.m3` (tonal roles: `container`, `primaryContainer`, `okContainer`… `elev1/2`). Components branch `T.m3 ? m3Style : classicStyle`; the classic branch must stay byte-identical so Classic themes never change. New UI must ship both branches
 - **Global CSS** (`src/styles/globals.css`) — only scrollbar hiding (`.bp-no-scrollbar`) and the `@keyframes bp-attn` pulse for tables needing attention
 - Tailwind is installed but not used for component styles

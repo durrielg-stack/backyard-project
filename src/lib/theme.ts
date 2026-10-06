@@ -15,6 +15,11 @@ export interface Theme {
   headerText: string;
   accent: string;
   accentInk: string;
+  // Selected state of segmented controls, tabs, filter chips and nav items.
+  // Classic: the accent fill. M3: secondary-container (primary is reserved
+  // for the one main action on a surface).
+  sel: string;
+  onSel: string;
   ok: string;
   warn: string;
   bad: string;
@@ -57,7 +62,130 @@ export interface M3Tokens {
   onInfoContainer: string;
   elev1: string;
   elev2: string;
+  // Full M3 roles (material-color-utilities SchemeTonalSpot, seed #006A60;
+  // primary/surfaces above stay pinned to the approved mockup values).
+  secondary: string;
+  secondaryContainer: string;
+  onSecondaryContainer: string;
+  tertiary: string;
+  tertiaryContainer: string;
+  onTertiaryContainer: string;
+  error: string;
+  onError: string;
+  errorContainer: string;
+  onErrorContainer: string;
+  outline: string;
+  outlineVariant: string;
+  inverseSurface: string;
+  inverseOnSurface: string;
+  inversePrimary: string;
+  containerLowest: string;
+  level1: string; // md.sys.elevation shadows for floating UI only
+  level2: string;
+  level3: string;
 }
+
+// md.sys.shape corner scale (material-web tokens v0.192). Use these instead
+// of ad-hoc radii: chips/tags small, rows/inputs medium, cards large,
+// dialogs/panels extra-large, buttons/pills full.
+export const M3_SHAPE = {
+  none: 0,
+  extraSmall: 4,
+  small: 8,
+  medium: 12,
+  large: 16,
+  largeIncreased: 20,
+  extraLarge: 28,
+  full: 9999,
+} as const;
+
+// md.sys.typescale (Roboto). size / line-height px, weight, tracking px.
+export const M3_TYPE = {
+  displaySmall: {
+    fontSize: 36,
+    lineHeight: "44px",
+    fontWeight: 400,
+    letterSpacing: 0,
+  },
+  headlineMedium: {
+    fontSize: 28,
+    lineHeight: "36px",
+    fontWeight: 400,
+    letterSpacing: 0,
+  },
+  headlineSmall: {
+    fontSize: 24,
+    lineHeight: "32px",
+    fontWeight: 400,
+    letterSpacing: 0,
+  },
+  titleLarge: {
+    fontSize: 22,
+    lineHeight: "28px",
+    fontWeight: 400,
+    letterSpacing: 0,
+  },
+  titleMedium: {
+    fontSize: 16,
+    lineHeight: "24px",
+    fontWeight: 500,
+    letterSpacing: 0.15,
+  },
+  titleSmall: {
+    fontSize: 14,
+    lineHeight: "20px",
+    fontWeight: 500,
+    letterSpacing: 0.1,
+  },
+  bodyLarge: {
+    fontSize: 16,
+    lineHeight: "24px",
+    fontWeight: 400,
+    letterSpacing: 0.5,
+  },
+  bodyMedium: {
+    fontSize: 14,
+    lineHeight: "20px",
+    fontWeight: 400,
+    letterSpacing: 0.25,
+  },
+  bodySmall: {
+    fontSize: 12,
+    lineHeight: "16px",
+    fontWeight: 400,
+    letterSpacing: 0.4,
+  },
+  labelLarge: {
+    fontSize: 14,
+    lineHeight: "20px",
+    fontWeight: 500,
+    letterSpacing: 0.1,
+  },
+  labelMedium: {
+    fontSize: 12,
+    lineHeight: "16px",
+    fontWeight: 500,
+    letterSpacing: 0.5,
+  },
+  labelSmall: {
+    fontSize: 11,
+    lineHeight: "16px",
+    fontWeight: 500,
+    letterSpacing: 0.5,
+  },
+} as const;
+
+// md.sys.state opacities and the M3 focus indicator.
+export const M3_STATE = {
+  hover: 0.08,
+  focus: 0.12,
+  pressed: 0.12,
+  dragged: 0.16,
+  disabledContainer: 0.12,
+  disabledContent: 0.38,
+  focusRingWidth: 3,
+  focusRingOffset: 2,
+} as const;
 
 export type ThemeTokens = Theme;
 
@@ -77,6 +205,8 @@ export const THEME: Theme = {
 
   accent: "#5EEAD4",
   accentInk: "#0F1115",
+  sel: "#5EEAD4",
+  onSel: "#0F1115",
 
   ok: "#34D399",
   warn: "#FBBF24",
@@ -113,6 +243,8 @@ export const LIGHT_THEME: Theme = {
 
   accent: "#2563EB",
   accentInk: "#FFFFFF",
+  sel: "#2563EB",
+  onSel: "#FFFFFF",
 
   ok: "#16A34A",
   warn: "#D97706",
@@ -136,6 +268,8 @@ export const LIGHT_THEME: Theme = {
 const M3_FONTS = {
   sansHead: '"Roboto", "Helvetica Neue", system-ui, sans-serif',
   sansBody: '"Roboto", "Helvetica Neue", system-ui, sans-serif',
+  // House typefaces (owner preference 2026-10-06): Roboto for text, Roboto
+  // Mono for numerals.
   mono: '"Roboto Mono", ui-monospace, "SF Mono", Menlo, monospace',
 };
 
@@ -155,6 +289,8 @@ export const M3_DARK_THEME: Theme = {
 
   accent: "#6EEAD2",
   accentInk: "#00332C",
+  sel: "#334B47",
+  onSel: "#CCE8E2",
 
   ok: "#6FD8A8",
   warn: "#FFDB99",
@@ -170,7 +306,7 @@ export const M3_DARK_THEME: Theme = {
   radiusLg: "20px",
 
   shadow: "0 1px 3px rgba(0,0,0,0.3)",
-  shadowModal: "0 24px 64px rgba(0,0,0,0.55)",
+  shadowModal: "0 1px 3px rgba(0,0,0,0.3), 0 4px 8px 3px rgba(0,0,0,0.15)", // M3 dialog = level3
 
   m3: {
     topBar: "#14181A",
@@ -194,6 +330,25 @@ export const M3_DARK_THEME: Theme = {
     onInfoContainer: "#B8C7FF",
     elev1: "0 1px 3px rgba(0,0,0,0.3)",
     elev2: "0 2px 6px rgba(0,0,0,0.35)",
+    secondary: "#B1CCC6",
+    secondaryContainer: "#334B47",
+    onSecondaryContainer: "#CCE8E2",
+    tertiary: "#ADCAE6",
+    tertiaryContainer: "#2D4961",
+    onTertiaryContainer: "#CCE5FF",
+    error: "#FFB4AB",
+    onError: "#690005",
+    errorContainer: "#93000A",
+    onErrorContainer: "#FFDAD6",
+    outline: "#899390",
+    outlineVariant: "#3F4947",
+    inverseSurface: "#DDE4E1",
+    inverseOnSurface: "#2B3230",
+    inversePrimary: "#006A60",
+    containerLowest: "#090F0E",
+    level1: "0 1px 2px rgba(0,0,0,0.3), 0 1px 3px 1px rgba(0,0,0,0.15)",
+    level2: "0 1px 2px rgba(0,0,0,0.3), 0 2px 6px 2px rgba(0,0,0,0.15)",
+    level3: "0 1px 3px rgba(0,0,0,0.3), 0 4px 8px 3px rgba(0,0,0,0.15)",
   },
 };
 
@@ -213,6 +368,8 @@ export const M3_LIGHT_THEME: Theme = {
 
   accent: "#006A60",
   accentInk: "#FFFFFF",
+  sel: "#CCE8E2",
+  onSel: "#334B47",
 
   ok: "#1E7A4F",
   warn: "#7A5900",
@@ -228,7 +385,7 @@ export const M3_LIGHT_THEME: Theme = {
   radiusLg: "20px",
 
   shadow: "0 1px 3px rgba(16,24,22,0.08)",
-  shadowModal: "0 24px 64px rgba(16,24,22,0.18)",
+  shadowModal: "0 1px 3px rgba(0,0,0,0.3), 0 4px 8px 3px rgba(0,0,0,0.15)", // M3 dialog = level3
 
   m3: {
     topBar: "#FFFFFF",
@@ -252,6 +409,25 @@ export const M3_LIGHT_THEME: Theme = {
     onInfoContainer: "#2A4290",
     elev1: "0 1px 3px rgba(16,24,22,0.08)",
     elev2: "0 2px 6px rgba(16,24,22,0.12)",
+    secondary: "#4A635F",
+    secondaryContainer: "#CCE8E2",
+    onSecondaryContainer: "#334B47",
+    tertiary: "#466179",
+    tertiaryContainer: "#CCE5FF",
+    onTertiaryContainer: "#2D4961",
+    error: "#BA1A1A",
+    onError: "#FFFFFF",
+    errorContainer: "#FFDAD6",
+    onErrorContainer: "#93000A",
+    outline: "#6F7977",
+    outlineVariant: "#BEC9C6",
+    inverseSurface: "#2B3230",
+    inverseOnSurface: "#ECF2EF",
+    inversePrimary: "#82D5C8",
+    containerLowest: "#FFFFFF",
+    level1: "0 1px 2px rgba(0,0,0,0.3), 0 1px 3px 1px rgba(0,0,0,0.15)",
+    level2: "0 1px 2px rgba(0,0,0,0.3), 0 2px 6px 2px rgba(0,0,0,0.15)",
+    level3: "0 1px 3px rgba(0,0,0,0.3), 0 4px 8px 3px rgba(0,0,0,0.15)",
   },
 };
 

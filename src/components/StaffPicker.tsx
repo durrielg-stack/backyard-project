@@ -238,8 +238,8 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: Props) {
                       padding: "9px 0",
                       fontSize: 13,
                       fontWeight: 700,
-                      background: active ? T.accent : T.surface,
-                      color: active ? T.accentInk : T.textMute,
+                      background: active ? T.sel : T.surface,
+                      color: active ? T.onSel : T.textMute,
                       border: `1px solid ${active ? T.accent : T.line2}`,
                       borderRadius: T.radius,
                       cursor: "pointer",
@@ -251,8 +251,8 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: Props) {
                         border: "none",
                         borderRadius: 20,
                         fontWeight: 600,
-                        background: active ? T.accent : "transparent",
-                        color: active ? T.accentInk : T.textDim,
+                        background: active ? T.sel : "transparent",
+                        color: active ? T.onSel : T.textDim,
                       }),
                     }}
                   >

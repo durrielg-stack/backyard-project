@@ -58,8 +58,8 @@ function Tab({
           minHeight: 44,
           borderBottomWidth: 0,
           borderRadius: 22,
-          background: active ? T.accent : "transparent",
-          color: active ? T.accentInk : T.textDim,
+          background: active ? T.sel : "transparent",
+          color: active ? T.onSel : T.textDim,
         }),
       }}
     >
@@ -141,8 +141,8 @@ function EquallyTab({
               fontFamily: T.mono,
               fontSize: 18,
               fontWeight: 700,
-              background: ways === n ? T.accent : T.chip,
-              color: ways === n ? T.accentInk : T.textDim,
+              background: ways === n ? T.sel : T.chip,
+              color: ways === n ? T.onSel : T.textDim,
               border: `1px solid ${ways === n ? T.accent : T.line2}`,
               borderRadius: T.radius,
               cursor: "pointer",
@@ -152,7 +152,7 @@ function EquallyTab({
                 height: 56,
                 border: "none",
                 borderRadius: 28,
-                background: ways === n ? T.accent : T.m3.containerHigh,
+                background: ways === n ? T.sel : T.m3.containerHigh,
               }),
             }}
           >

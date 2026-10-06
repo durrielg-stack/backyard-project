@@ -65,9 +65,9 @@ export default function DateRangeNav({
   };
   const activeBtn: React.CSSProperties = {
     ...btnBase,
-    background: T.accent,
-    color: T.accentInk,
-    borderColor: T.accent,
+    background: T.sel,
+    color: T.onSel,
+    borderColor: T.sel,
     fontWeight: 600,
   };
   const inactiveBtn: React.CSSProperties = {

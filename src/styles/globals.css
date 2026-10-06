@@ -216,3 +216,44 @@ body {
 .t-lift {
   transition: transform 0.1s ease;
 }
+
+/* ── Material 3 (html[data-ds="m3"], set by ThemeProvider) ──────────────
+   Rules from memory-bank/design-system-m3.md. Inline styles can't express
+   :hover / :focus-visible / :active, so the M3 interaction states live here.
+   - Focus indicator: 3px secondary ring, 2px outside the element.
+   - State layers: on-color overlay at 8% hover / 12% pressed, painted as a
+     background-image so it sits on top of any inline background colour.
+   - Numerals: tabular figures everywhere (money lines up). Typefaces and
+     weights stay as designed (Roboto / Roboto Mono, owner preference).    */
+html[data-ds="m3"] body {
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+html[data-ds="m3"] :focus {
+  outline: none;
+}
+html[data-ds="m3"] :focus-visible {
+  outline: 3px solid var(--m3-focus);
+  outline-offset: 2px;
+}
+html[data-ds="m3"]
+  :where(button, [role="button"], [role="tab"], [style*="cursor: pointer"]):not(
+    :disabled
+  ):hover {
+  background-image: linear-gradient(
+    color-mix(in srgb, currentColor 8%, transparent),
+    color-mix(in srgb, currentColor 8%, transparent)
+  ) !important;
+}
+html[data-ds="m3"]
+  :where(button, [role="button"], [role="tab"], [style*="cursor: pointer"]):not(
+    :disabled
+  ):active {
+  background-image: linear-gradient(
+    color-mix(in srgb, currentColor 12%, transparent),
+    color-mix(in srgb, currentColor 12%, transparent)
+  ) !important;
+}
+html[data-ds="m3"] button:disabled {
+  cursor: not-allowed;
+}

@@ -303,8 +303,8 @@ export default function KdsPanel({
                     fontSize: m3 ? 12 : 11,
                     fontFamily: "inherit",
                     background:
-                      filter === m ? T.accent : m3 ? "transparent" : T.chip,
-                    color: filter === m ? T.accentInk : T.textDim,
+                      filter === m ? T.sel : m3 ? "transparent" : T.chip,
+                    color: filter === m ? T.onSel : T.textDim,
                     border: "none",
                     borderRadius: T.radius,
                     cursor: "pointer",
