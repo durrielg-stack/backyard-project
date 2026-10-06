@@ -734,10 +734,14 @@ export function TrendLineChart({
   height = 260,
 }: {
   bars: MultiBar[];
-  height?: number;
+  // "fill": grow to the parent's free height (parent must be a flex column),
+  // never shorter than 260px.
+  height?: number | "fill";
 }) {
   const { T } = useTheme();
   const m3 = T.m3;
+  const box: React.CSSProperties =
+    height === "fill" ? { flex: 1, minHeight: 260 } : { height };
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
   const [hover, setHover] = useState<number | null>(null);
   const gid = useId().replace(/:/g, "");
@@ -756,7 +760,7 @@ export function TrendLineChart({
     return (
       <div
         style={{
-          height,
+          ...box,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -786,7 +790,7 @@ export function TrendLineChart({
   return (
     <div
       style={{
-        height,
+        ...box,
         padding: m3 ? "8px 20px 0" : "10px 24px 0",
         display: "flex",
         flexDirection: "column",
