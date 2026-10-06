@@ -1323,8 +1323,9 @@ function FloorPanel({
           style={{
             display: "flex",
             alignItems: "center",
-            gap: isMobile ? 10 : 12,
-            marginLeft: isMobile ? 0 : 8,
+            gap: isMobile ? 10 : T.m3 ? 14 : 12,
+            // M3: legend sits at the right end of the header, as in the design
+            marginLeft: T.m3 ? "auto" : isMobile ? 0 : 8,
           }}
         >
           {legendItems.map(([label, color], i) => (
