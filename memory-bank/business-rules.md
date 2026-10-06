@@ -85,3 +85,4 @@
 ## Copy Rules
 - **No em dashes (—)** anywhere in UI copy — restructure the phrase instead
 - Currency symbol: `₱` (Philippine Peso)
+- Recipe tab "Recipe Cost" column shows `menu_items.cost` (the cost the POS snapshots into `order_items.unit_cost`), not the ingredient sum; the ingredient sum appears as "Ingredient cost" in the expanded row. Owner decision 2026-10-06 when all Food costs were set to ceil(flat × 1.25) with `manual_cost` (Flat Cost) kept at the old value; past Food `order_items.unit_cost` rewritten to match (old values in `backup_order_item_cost_20261006`)
