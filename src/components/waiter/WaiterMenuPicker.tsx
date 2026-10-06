@@ -55,7 +55,8 @@ export default function WaiterMenuPicker({
   onBack,
   onSent,
 }: Props) {
-  const { T, mode, toggle } = useTheme();
+  const { T, isDark, toggle } = useTheme();
+  const m3 = T.m3;
   const { items, loading } = useMenuItems();
   const { addItem } = useOrder(tableId, waiterId);
 
@@ -173,11 +174,23 @@ export default function WaiterMenuPicker({
             justifyContent: "center",
             fontSize: 30,
             color: T.ok,
+            ...(m3 && {
+              background: m3.okContainer,
+              border: "none",
+              color: m3.onOkContainer,
+            }),
           }}
         >
           ✓
         </div>
-        <div style={{ fontSize: 20, fontWeight: 800, color: T.text }}>
+        <div
+          style={{
+            fontSize: 20,
+            fontWeight: 800,
+            color: T.text,
+            ...(m3 && { fontSize: 22, fontWeight: 600 }),
+          }}
+        >
           Order Sent!
         </div>
         <div style={{ fontSize: 13, color: T.textMute, textAlign: "center" }}>
@@ -209,6 +222,12 @@ export default function WaiterMenuPicker({
           alignItems: "center",
           justifyContent: "space-between",
           flexShrink: 0,
+          ...(m3 && {
+            background: m3.topBar,
+            borderBottom: "none",
+            padding: "12px 16px",
+            boxShadow: m3.elev1,
+          }),
         }}
       >
         <button
@@ -225,11 +244,25 @@ export default function WaiterMenuPicker({
             minHeight: 44,
             display: "flex",
             alignItems: "center",
+            ...(m3 && {
+              background: m3.containerHigh,
+              borderRadius: 22,
+              padding: "0 16px",
+              color: sending ? T.textMute : T.text,
+              fontWeight: 600,
+            }),
           }}
         >
           ← Order
         </button>
-        <div style={{ fontSize: 15, fontWeight: 700, color: T.text }}>
+        <div
+          style={{
+            fontSize: 15,
+            fontWeight: 700,
+            color: T.text,
+            ...(m3 && { fontSize: 20, fontWeight: 600 }),
+          }}
+        >
           Add Items
         </div>
         <button
@@ -248,9 +281,14 @@ export default function WaiterMenuPicker({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            ...(m3 && {
+              background: m3.containerHigh,
+              border: "none",
+              borderRadius: 22,
+            }),
           }}
         >
-          {mode === "dark" ? "☀️" : "🌙"}
+          {isDark ? "☀️" : "🌙"}
         </button>
       </div>
 
@@ -272,6 +310,12 @@ export default function WaiterMenuPicker({
             borderRadius: T.radius,
             fontFamily: "inherit",
             outline: "none",
+            ...(m3 && {
+              background: m3.containerHigh,
+              border: "none",
+              borderRadius: 12,
+              minHeight: 48,
+            }),
           }}
         />
       </div>
@@ -303,6 +347,13 @@ export default function WaiterMenuPicker({
               color: group === g.id ? T.accentInk : T.textDim,
               border: `1px solid ${group === g.id ? T.accent : T.line2}`,
               transition: "all 0.1s",
+              ...(m3 && {
+                padding: "0 16px",
+                minHeight: 40,
+                fontSize: 13,
+                border: "none",
+                background: group === g.id ? T.accent : m3.containerHigh,
+              }),
             }}
           >
             {g.label}
@@ -366,6 +417,13 @@ export default function WaiterMenuPicker({
                   display: "flex",
                   flexDirection: "column",
                   transition: "border-color 0.1s, background 0.1s",
+                  ...(m3 && {
+                    background: selected ? m3.primaryContainer : m3.container,
+                    border: "none",
+                    borderRadius: 16,
+                    padding: 12,
+                    boxShadow: m3.elev1,
+                  }),
                 }}
               >
                 <div style={{ flex: 1 }}>
@@ -380,7 +438,17 @@ export default function WaiterMenuPicker({
                   >
                     {item.name}
                   </div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: T.info }}>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: T.info,
+                      ...(m3 && {
+                        color: selected ? m3.onPrimaryContainer : T.textDim,
+                        fontFamily: T.mono,
+                      }),
+                    }}
+                  >
                     {fmtPeso(item.price)}
                   </div>
                 </div>
@@ -405,6 +473,13 @@ export default function WaiterMenuPicker({
                           border: `1px solid ${T.line2}`,
                           color: T.text,
                           fontSize: 18,
+                          ...(m3 && {
+                            width: 44,
+                            height: 44,
+                            borderRadius: 22,
+                            background: m3.container,
+                            border: "none",
+                          }),
                           cursor: "pointer",
                           lineHeight: 1,
                           display: "flex",
@@ -436,6 +511,11 @@ export default function WaiterMenuPicker({
                           border: "none",
                           color: T.accentInk,
                           fontSize: 18,
+                          ...(m3 && {
+                            width: 44,
+                            height: 44,
+                            borderRadius: 22,
+                          }),
                           cursor: "pointer",
                           lineHeight: 1,
                           display: "flex",
@@ -461,6 +541,14 @@ export default function WaiterMenuPicker({
                         fontWeight: 600,
                         cursor: "pointer",
                         fontFamily: "inherit",
+                        ...(m3 && {
+                          padding: 0,
+                          minHeight: 44,
+                          borderRadius: 22,
+                          background: m3.containerHigh,
+                          border: "none",
+                          color: T.text,
+                        }),
                       }}
                     >
                       + Add
@@ -488,6 +576,11 @@ export default function WaiterMenuPicker({
             alignItems: "center",
             justifyContent: "space-between",
             gap: 12,
+            ...(m3 && {
+              background: m3.topBar,
+              borderTop: "none",
+              boxShadow: m3.elev2,
+            }),
           }}
         >
           <div>
@@ -512,6 +605,7 @@ export default function WaiterMenuPicker({
               fontWeight: 700,
               cursor: "pointer",
               fontFamily: "inherit",
+              ...(m3 && { borderRadius: 24, minHeight: 48 }),
             }}
           >
             Review Order →
@@ -543,6 +637,12 @@ export default function WaiterMenuPicker({
               maxHeight: "70dvh",
               overflowY: "auto",
               overscrollBehavior: "contain",
+              ...(m3 && {
+                background: m3.container,
+                borderRadius: "28px 28px 0 0",
+                borderTop: "none",
+                boxShadow: T.shadowModal,
+              }),
             }}
           >
             <div
@@ -560,6 +660,7 @@ export default function WaiterMenuPicker({
                 fontWeight: 700,
                 color: T.text,
                 marginBottom: 16,
+                ...(m3 && { fontSize: 20, fontWeight: 600 }),
               }}
             >
               Send this order to {tableId}?
@@ -577,6 +678,13 @@ export default function WaiterMenuPicker({
                   fontSize: 14,
                   color: T.textDim,
                   gap: 8,
+                  ...(m3 && {
+                    background: m3.containerHigh,
+                    borderBottom: "none",
+                    borderRadius: 16,
+                    padding: "8px 8px 8px 14px",
+                    marginBottom: 6,
+                  }),
                 }}
               >
                 <div
@@ -607,6 +715,21 @@ export default function WaiterMenuPicker({
                       cursor: "pointer",
                       flexShrink: 0,
                       minHeight: 44,
+                      ...(m3 && {
+                        border: "none",
+                        borderRadius: 22,
+                        letterSpacing: "normal",
+                        textTransform: "none",
+                        fontWeight: 600,
+                        background:
+                          orderType === "takeout"
+                            ? m3.infoContainer
+                            : m3.containerHighest,
+                        color:
+                          orderType === "takeout"
+                            ? m3.onInfoContainer
+                            : T.textDim,
+                      }),
                     }}
                   >
                     {orderType === "takeout" ? "Takeout" : "Dine-In"}
@@ -628,6 +751,7 @@ export default function WaiterMenuPicker({
                 color: T.text,
                 borderTop: `1px solid ${T.line}`,
                 marginTop: 4,
+                ...(m3 && { borderTop: "none", padding: "14px 4px 20px" }),
               }}
             >
               <span>Adding to order</span>
@@ -649,6 +773,13 @@ export default function WaiterMenuPicker({
                   borderRadius: T.radius,
                   cursor: sending ? "default" : "pointer",
                   fontFamily: "inherit",
+                  ...(m3 && {
+                    background: m3.containerHigh,
+                    border: "none",
+                    color: T.text,
+                    borderRadius: 24,
+                    minHeight: 48,
+                  }),
                 }}
               >
                 Cancel
@@ -667,6 +798,12 @@ export default function WaiterMenuPicker({
                   borderRadius: T.radius,
                   cursor: sending ? "default" : "pointer",
                   fontFamily: "inherit",
+                  ...(m3 && {
+                    background: sending ? m3.containerHighest : T.accent,
+                    color: sending ? T.textMute : T.accentInk,
+                    borderRadius: 24,
+                    minHeight: 48,
+                  }),
                 }}
               >
                 {sending ? "Sending…" : "Yes, Send Order"}

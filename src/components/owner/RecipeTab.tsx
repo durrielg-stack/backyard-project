@@ -51,6 +51,7 @@ const sb = getClient() as any;
 
 export default function RecipeTab() {
   const { T } = useTheme();
+  const m3 = T.m3;
 
   const [items, setItems] = useState<MenuRow[]>([]);
   const [ingredients, setIngredients] = useState<IngredientRow[]>([]);
@@ -342,6 +343,13 @@ export default function RecipeTab() {
       },
     } as const;
     const s = map[status];
+    const m3Pair = m3
+      ? status === "confirmed"
+        ? { bg: m3.okContainer, fg: m3.onOkContainer }
+        : status === "in_progress"
+          ? { bg: m3.warnContainer, fg: m3.onWarnContainer }
+          : { bg: m3.containerHighest, fg: T.textDim }
+      : null;
     return (
       <span
         style={{
@@ -354,6 +362,16 @@ export default function RecipeTab() {
           padding: "2px 8px",
           borderRadius: T.radius,
           whiteSpace: "nowrap",
+          ...(m3Pair && {
+            fontSize: 11,
+            fontWeight: 600,
+            letterSpacing: "0.01em",
+            color: m3Pair.fg,
+            background: m3Pair.bg,
+            border: "none",
+            padding: "4px 10px",
+            borderRadius: 10,
+          }),
         }}
       >
         {s.label}
@@ -372,7 +390,85 @@ export default function RecipeTab() {
     borderRadius: T.radius,
     padding: "2px 6px",
     outline: "none",
+    ...(m3 && {
+      background: m3.containerHighest,
+      borderRadius: 10,
+      padding: "6px 8px",
+    }),
   } as const;
+
+  // ── M3 building blocks (empty under the classic themes) ───────────────────
+  const m3Label: React.CSSProperties = {
+    fontSize: 12,
+    fontWeight: 500,
+    color: T.textDim,
+    marginBottom: 6,
+  };
+  const m3Input: React.CSSProperties = m3
+    ? {
+        fontSize: 13,
+        background: m3.containerHigh,
+        border: "none",
+        borderRadius: 12,
+        minHeight: 40,
+        padding: "0 12px",
+        boxSizing: "border-box",
+      }
+    : {};
+  const m3Primary: React.CSSProperties = m3
+    ? {
+        background: T.accent,
+        color: T.accentInk,
+        border: "none",
+        borderRadius: 20,
+        minHeight: 40,
+        padding: "0 18px",
+        fontSize: 13,
+        fontWeight: 600,
+      }
+    : {};
+  const m3Secondary: React.CSSProperties = m3
+    ? {
+        background: m3.containerHighest,
+        color: T.text,
+        border: "none",
+        borderRadius: 20,
+        minHeight: 40,
+        padding: "0 16px",
+        fontSize: 13,
+        fontWeight: 500,
+      }
+    : {};
+  const m3Track: React.CSSProperties = m3
+    ? { gap: 4, padding: 3, background: m3.track, borderRadius: 18 }
+    : {};
+  const segBtn = (
+    key: string,
+    label: string,
+    active: boolean,
+    onClick: () => void,
+  ) => (
+    <button
+      key={key}
+      onClick={onClick}
+      style={{
+        padding: "0 16px",
+        height: 34,
+        fontSize: 13,
+        fontFamily: "inherit",
+        fontWeight: active ? 600 : 500,
+        flexShrink: 0,
+        background: active ? T.accent : "transparent",
+        color: active ? T.accentInk : T.textDim,
+        border: "none",
+        borderRadius: 16,
+        cursor: "pointer",
+        transition: "background 0.12s ease",
+      }}
+    >
+      {label}
+    </button>
+  );
 
   return (
     <div
@@ -395,16 +491,21 @@ export default function RecipeTab() {
                 gap: 4,
                 overflowX: "auto",
                 touchAction: "pan-x pan-y",
+                ...m3Track,
               }}
             >
-              {MENU_GROUPS.map((g) => (
-                <Pill
-                  key={g.id}
-                  label={g.label}
-                  active={group === g.id}
-                  onClick={() => selectGroup(g.id)}
-                />
-              ))}
+              {MENU_GROUPS.map((g) =>
+                m3 ? (
+                  segBtn(g.id, g.label, group === g.id, () => selectGroup(g.id))
+                ) : (
+                  <Pill
+                    key={g.id}
+                    label={g.label}
+                    active={group === g.id}
+                    onClick={() => selectGroup(g.id)}
+                  />
+                ),
+              )}
             </div>
             <SearchBox
               value={search}
@@ -421,9 +522,9 @@ export default function RecipeTab() {
           className="bp-no-scrollbar"
           style={{
             display: "flex",
-            gap: 6,
-            padding: "10px 24px",
-            borderBottom: `1px solid ${T.line}`,
+            gap: m3 ? 8 : 6,
+            padding: m3 ? "0 20px 14px" : "10px 24px",
+            borderBottom: m3 ? "none" : `1px solid ${T.line}`,
             overflowX: "auto",
             flexShrink: 0,
           }}
@@ -467,19 +568,25 @@ export default function RecipeTab() {
             touchAction: "pan-x pan-y",
             overscrollBehaviorX: "contain",
             overscrollBehaviorY: "none",
+            ...(m3 && {
+              margin: "0 20px 20px",
+              background: m3.container,
+              borderRadius: 24,
+              boxShadow: m3.elev1,
+            }),
           }}
         >
-          <div style={{ minWidth: 960 }}>
+          <div style={{ minWidth: 960, ...(m3 && { padding: "0 8px 8px" }) }}>
             <div
               style={{
                 display: "grid",
                 gridTemplateColumns:
                   "1fr 90px 90px 100px 110px 90px 80px 100px 100px 110px 24px",
-                padding: "0 24px",
-                height: 36,
+                padding: m3 ? "0 12px" : "0 24px",
+                height: m3 ? 44 : 36,
                 alignItems: "center",
-                borderBottom: `1px solid ${T.line}`,
-                background: T.surface2,
+                borderBottom: m3 ? "none" : `1px solid ${T.line}`,
+                background: m3 ? m3.container : T.surface2,
                 position: "sticky",
                 top: 0,
                 zIndex: 1,
@@ -510,11 +617,11 @@ export default function RecipeTab() {
                       padding: 0,
                       cursor: "pointer",
                       fontFamily: "inherit",
-                      fontSize: 10,
+                      fontSize: m3 ? 11 : 10,
                       fontWeight: 600,
-                      letterSpacing: "0.12em",
+                      letterSpacing: m3 ? "0.04em" : "0.12em",
                       textTransform: "uppercase",
-                      color: T.headerText,
+                      color: m3 ? T.textMute : T.headerText,
                       display: "flex",
                       alignItems: "center",
                       gap: 3,
@@ -530,11 +637,11 @@ export default function RecipeTab() {
                   <span
                     key={h}
                     style={{
-                      fontSize: 10,
+                      fontSize: m3 ? 11 : 10,
                       fontWeight: 600,
-                      letterSpacing: "0.12em",
+                      letterSpacing: m3 ? "0.04em" : "0.12em",
                       textTransform: "uppercase",
-                      color: T.headerText,
+                      color: m3 ? T.textMute : T.headerText,
                     }}
                   >
                     {h}
@@ -564,7 +671,20 @@ export default function RecipeTab() {
               return (
                 <div
                   key={item.id}
-                  style={{ borderBottom: `1px solid ${T.line}` }}
+                  style={
+                    m3
+                      ? {
+                          borderRadius: isOpen ? 16 : 14,
+                          overflow: "hidden",
+                          background: isOpen
+                            ? m3.containerHigh
+                            : i % 2 === 0
+                              ? m3.containerHigh
+                              : "transparent",
+                          margin: isOpen ? "4px 0" : undefined,
+                        }
+                      : { borderBottom: `1px solid ${T.line}` }
+                  }
                 >
                   <div
                     onClick={() => toggleExpand(item.id)}
@@ -572,15 +692,17 @@ export default function RecipeTab() {
                       display: "grid",
                       gridTemplateColumns:
                         "1fr 90px 90px 100px 110px 90px 80px 100px 100px 110px 24px",
-                      padding: "0 24px",
-                      height: 44,
+                      padding: m3 ? "0 12px" : "0 24px",
+                      height: m3 ? 48 : 44,
                       alignItems: "center",
                       cursor: "pointer",
-                      background: isOpen
-                        ? T.surface2
-                        : i % 2 === 0
-                          ? "transparent"
-                          : T.surface,
+                      background: m3
+                        ? "transparent"
+                        : isOpen
+                          ? T.surface2
+                          : i % 2 === 0
+                            ? "transparent"
+                            : T.surface,
                       opacity: isBusy ? 0.5 : 1,
                     }}
                   >
@@ -698,10 +820,14 @@ export default function RecipeTab() {
 
                   {isOpen && (
                     <div
-                      style={{
-                        background: T.surface2,
-                        borderTop: `1px solid ${T.line}`,
-                      }}
+                      style={
+                        m3
+                          ? { background: "transparent" }
+                          : {
+                              background: T.surface2,
+                              borderTop: `1px solid ${T.line}`,
+                            }
+                      }
                     >
                       <div
                         className="bp-no-scrollbar"
@@ -711,7 +837,10 @@ export default function RecipeTab() {
                         }}
                       >
                         <div
-                          style={{ minWidth: 700, padding: "14px 24px 18px" }}
+                          style={{
+                            minWidth: 700,
+                            padding: m3 ? "4px 12px 16px" : "14px 24px 18px",
+                          }}
                         >
                           {item.lines.length === 0 ? (
                             <div
@@ -745,11 +874,11 @@ export default function RecipeTab() {
                                   <span
                                     key={h}
                                     style={{
-                                      fontSize: 9,
-                                      fontWeight: 700,
-                                      letterSpacing: "0.1em",
+                                      fontSize: m3 ? 11 : 9,
+                                      fontWeight: m3 ? 600 : 700,
+                                      letterSpacing: m3 ? "0.04em" : "0.1em",
                                       textTransform: "uppercase",
-                                      color: T.headerText,
+                                      color: m3 ? T.textMute : T.headerText,
                                     }}
                                   >
                                     {h}
@@ -992,6 +1121,7 @@ export default function RecipeTab() {
                                   color: T.textDim,
                                   borderRadius: T.radius,
                                   cursor: "pointer",
+                                  ...m3Secondary,
                                 }}
                               >
                                 + Add Ingredient
@@ -1005,6 +1135,12 @@ export default function RecipeTab() {
                                 borderRadius: T.radiusLg,
                                 padding: 12,
                                 marginBottom: 4,
+                                ...(m3 && {
+                                  background: m3.container,
+                                  border: "none",
+                                  borderRadius: 16,
+                                  padding: 16,
+                                }),
                               }}
                             >
                               <div
@@ -1012,18 +1148,42 @@ export default function RecipeTab() {
                                   display: "flex",
                                   gap: 6,
                                   marginBottom: 10,
+                                  ...(m3 && {
+                                    ...m3Track,
+                                    width: "fit-content",
+                                    marginBottom: 14,
+                                  }),
                                 }}
                               >
-                                <Pill
-                                  label="Existing"
-                                  active={addMode === "pick"}
-                                  onClick={() => setAddMode("pick")}
-                                />
-                                <Pill
-                                  label="New Ingredient"
-                                  active={addMode === "new"}
-                                  onClick={() => setAddMode("new")}
-                                />
+                                {m3 ? (
+                                  <>
+                                    {segBtn(
+                                      "pick",
+                                      "Existing",
+                                      addMode === "pick",
+                                      () => setAddMode("pick"),
+                                    )}
+                                    {segBtn(
+                                      "new",
+                                      "New Ingredient",
+                                      addMode === "new",
+                                      () => setAddMode("new"),
+                                    )}
+                                  </>
+                                ) : (
+                                  <>
+                                    <Pill
+                                      label="Existing"
+                                      active={addMode === "pick"}
+                                      onClick={() => setAddMode("pick")}
+                                    />
+                                    <Pill
+                                      label="New Ingredient"
+                                      active={addMode === "new"}
+                                      onClick={() => setAddMode("new")}
+                                    />
+                                  </>
+                                )}
                               </div>
 
                               {addMode === "pick" ? (
@@ -1037,14 +1197,18 @@ export default function RecipeTab() {
                                 >
                                   <div>
                                     <div
-                                      style={{
-                                        fontSize: 9,
-                                        fontWeight: 600,
-                                        letterSpacing: "0.08em",
-                                        textTransform: "uppercase",
-                                        color: T.textMute,
-                                        marginBottom: 4,
-                                      }}
+                                      style={
+                                        m3
+                                          ? m3Label
+                                          : {
+                                              fontSize: 9,
+                                              fontWeight: 600,
+                                              letterSpacing: "0.08em",
+                                              textTransform: "uppercase",
+                                              color: T.textMute,
+                                              marginBottom: 4,
+                                            }
+                                      }
                                     >
                                       Ingredient
                                     </div>
@@ -1063,6 +1227,7 @@ export default function RecipeTab() {
                                         borderRadius: T.radius,
                                         padding: "6px 8px",
                                         outline: "none",
+                                        ...m3Input,
                                       }}
                                     >
                                       <option value="">Select…</option>
@@ -1076,14 +1241,18 @@ export default function RecipeTab() {
                                   </div>
                                   <div>
                                     <div
-                                      style={{
-                                        fontSize: 9,
-                                        fontWeight: 600,
-                                        letterSpacing: "0.08em",
-                                        textTransform: "uppercase",
-                                        color: T.textMute,
-                                        marginBottom: 4,
-                                      }}
+                                      style={
+                                        m3
+                                          ? m3Label
+                                          : {
+                                              fontSize: 9,
+                                              fontWeight: 600,
+                                              letterSpacing: "0.08em",
+                                              textTransform: "uppercase",
+                                              color: T.textMute,
+                                              marginBottom: 4,
+                                            }
+                                      }
                                     >
                                       Qty (kg)
                                     </div>
@@ -1107,6 +1276,7 @@ export default function RecipeTab() {
                                         padding: "6px 8px",
                                         outline: "none",
                                         boxSizing: "border-box",
+                                        ...m3Input,
                                       }}
                                     />
                                   </div>
@@ -1124,6 +1294,7 @@ export default function RecipeTab() {
                                       borderRadius: T.radius,
                                       cursor: "pointer",
                                       opacity: !pickId || !qtyInput ? 0.4 : 1,
+                                      ...m3Primary,
                                     }}
                                   >
                                     Add
@@ -1139,6 +1310,10 @@ export default function RecipeTab() {
                                       color: T.textDim,
                                       borderRadius: T.radius,
                                       cursor: "pointer",
+                                      ...m3Secondary,
+                                      ...(m3 && {
+                                        background: m3.containerHigh,
+                                      }),
                                     }}
                                   >
                                     Cancel
@@ -1156,14 +1331,18 @@ export default function RecipeTab() {
                                 >
                                   <div>
                                     <div
-                                      style={{
-                                        fontSize: 9,
-                                        fontWeight: 600,
-                                        letterSpacing: "0.08em",
-                                        textTransform: "uppercase",
-                                        color: T.textMute,
-                                        marginBottom: 4,
-                                      }}
+                                      style={
+                                        m3
+                                          ? m3Label
+                                          : {
+                                              fontSize: 9,
+                                              fontWeight: 600,
+                                              letterSpacing: "0.08em",
+                                              textTransform: "uppercase",
+                                              color: T.textMute,
+                                              marginBottom: 4,
+                                            }
+                                      }
                                     >
                                       Name
                                     </div>
@@ -1184,19 +1363,24 @@ export default function RecipeTab() {
                                         padding: "6px 8px",
                                         outline: "none",
                                         boxSizing: "border-box",
+                                        ...m3Input,
                                       }}
                                     />
                                   </div>
                                   <div>
                                     <div
-                                      style={{
-                                        fontSize: 9,
-                                        fontWeight: 600,
-                                        letterSpacing: "0.08em",
-                                        textTransform: "uppercase",
-                                        color: T.textMute,
-                                        marginBottom: 4,
-                                      }}
+                                      style={
+                                        m3
+                                          ? m3Label
+                                          : {
+                                              fontSize: 9,
+                                              fontWeight: 600,
+                                              letterSpacing: "0.08em",
+                                              textTransform: "uppercase",
+                                              color: T.textMute,
+                                              marginBottom: 4,
+                                            }
+                                      }
                                     >
                                       Unit
                                     </div>
@@ -1217,19 +1401,24 @@ export default function RecipeTab() {
                                         padding: "6px 8px",
                                         outline: "none",
                                         boxSizing: "border-box",
+                                        ...m3Input,
                                       }}
                                     />
                                   </div>
                                   <div>
                                     <div
-                                      style={{
-                                        fontSize: 9,
-                                        fontWeight: 600,
-                                        letterSpacing: "0.08em",
-                                        textTransform: "uppercase",
-                                        color: T.textMute,
-                                        marginBottom: 4,
-                                      }}
+                                      style={
+                                        m3
+                                          ? m3Label
+                                          : {
+                                              fontSize: 9,
+                                              fontWeight: 600,
+                                              letterSpacing: "0.08em",
+                                              textTransform: "uppercase",
+                                              color: T.textMute,
+                                              marginBottom: 4,
+                                            }
+                                      }
                                     >
                                       Price/Unit
                                     </div>
@@ -1253,19 +1442,24 @@ export default function RecipeTab() {
                                         padding: "6px 8px",
                                         outline: "none",
                                         boxSizing: "border-box",
+                                        ...m3Input,
                                       }}
                                     />
                                   </div>
                                   <div>
                                     <div
-                                      style={{
-                                        fontSize: 9,
-                                        fontWeight: 600,
-                                        letterSpacing: "0.08em",
-                                        textTransform: "uppercase",
-                                        color: T.textMute,
-                                        marginBottom: 4,
-                                      }}
+                                      style={
+                                        m3
+                                          ? m3Label
+                                          : {
+                                              fontSize: 9,
+                                              fontWeight: 600,
+                                              letterSpacing: "0.08em",
+                                              textTransform: "uppercase",
+                                              color: T.textMute,
+                                              marginBottom: 4,
+                                            }
+                                      }
                                     >
                                       Loss %
                                     </div>
@@ -1290,19 +1484,24 @@ export default function RecipeTab() {
                                         padding: "6px 8px",
                                         outline: "none",
                                         boxSizing: "border-box",
+                                        ...m3Input,
                                       }}
                                     />
                                   </div>
                                   <div>
                                     <div
-                                      style={{
-                                        fontSize: 9,
-                                        fontWeight: 600,
-                                        letterSpacing: "0.08em",
-                                        textTransform: "uppercase",
-                                        color: T.textMute,
-                                        marginBottom: 4,
-                                      }}
+                                      style={
+                                        m3
+                                          ? m3Label
+                                          : {
+                                              fontSize: 9,
+                                              fontWeight: 600,
+                                              letterSpacing: "0.08em",
+                                              textTransform: "uppercase",
+                                              color: T.textMute,
+                                              marginBottom: 4,
+                                            }
+                                      }
                                     >
                                       Qty (kg)
                                     </div>
@@ -1326,6 +1525,7 @@ export default function RecipeTab() {
                                         padding: "6px 8px",
                                         outline: "none",
                                         boxSizing: "border-box",
+                                        ...m3Input,
                                       }}
                                     />
                                   </div>
@@ -1350,6 +1550,7 @@ export default function RecipeTab() {
                                         !newName || !newPrice || !qtyInput
                                           ? 0.4
                                           : 1,
+                                      ...m3Primary,
                                     }}
                                   >
                                     Add
@@ -1365,6 +1566,10 @@ export default function RecipeTab() {
                                       color: T.textDim,
                                       borderRadius: T.radius,
                                       cursor: "pointer",
+                                      ...m3Secondary,
+                                      ...(m3 && {
+                                        background: m3.containerHigh,
+                                      }),
                                     }}
                                   >
                                     Cancel
@@ -1379,14 +1584,19 @@ export default function RecipeTab() {
                             <div
                               style={{
                                 marginTop: 14,
-                                paddingTop: 12,
-                                borderTop: `1px solid ${T.line}`,
+                                paddingTop: m3 ? 4 : 12,
+                                borderTop: m3 ? "none" : `1px solid ${T.line}`,
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "space-between",
                               }}
                             >
-                              <span style={{ fontSize: 11, color: T.textMute }}>
+                              <span
+                                style={{
+                                  fontSize: m3 ? 12 : 11,
+                                  color: m3 ? T.textDim : T.textMute,
+                                }}
+                              >
                                 Ingredient cost:{" "}
                                 <strong style={{ color: T.text }}>
                                   {fmtPeso(item.recipeCost ?? 0)}
@@ -1410,6 +1620,7 @@ export default function RecipeTab() {
                                     color: T.textDim,
                                     borderRadius: T.radius,
                                     cursor: "pointer",
+                                    ...m3Secondary,
                                   }}
                                 >
                                   Revert to Manual Cost
@@ -1427,6 +1638,15 @@ export default function RecipeTab() {
                                     border: "none",
                                     borderRadius: T.radius,
                                     cursor: "pointer",
+                                    ...(m3 && {
+                                      background: m3.okContainer,
+                                      color: m3.onOkContainer,
+                                      borderRadius: 20,
+                                      minHeight: 40,
+                                      padding: "0 18px",
+                                      fontSize: 13,
+                                      fontWeight: 600,
+                                    }),
                                   }}
                                 >
                                   Confirm & Use Ingredient Cost

@@ -22,6 +22,7 @@ export default function OperationsView() {
   const isMobile = bp === "mobile";
   const [tab, setTab] = useState<OpsTab>("recipe");
   const today = new Date();
+  const m3 = T.m3;
 
   const tabStrip = (
     <div
@@ -33,27 +34,52 @@ export default function OperationsView() {
         touchAction: "pan-x pan-y",
         overscrollBehaviorX: "contain",
         overscrollBehaviorY: "none",
+        ...(m3 && {
+          gap: 4,
+          padding: 3,
+          background: m3.track,
+          borderRadius: 18,
+        }),
       }}
     >
       {TABS.map((t) => (
         <button
           key={t.id}
           onClick={() => setTab(t.id)}
-          style={{
-            padding: "10px 16px",
-            fontSize: 12,
-            fontFamily: "inherit",
-            fontWeight: tab === t.id ? 700 : 400,
-            flexShrink: 0,
-            background: tab === t.id ? T.surface2 : "transparent",
-            color: tab === t.id ? T.text : T.textDim,
-            border: `1px solid ${tab === t.id ? T.line2 : "transparent"}`,
-            borderRadius: T.radius,
-            cursor: "pointer",
-            borderBottom:
-              tab === t.id ? `2px solid ${T.accent}` : `2px solid transparent`,
-            transition: "background 0.12s ease",
-          }}
+          style={
+            m3
+              ? {
+                  padding: "0 16px",
+                  height: 34,
+                  fontSize: 13,
+                  fontFamily: "inherit",
+                  fontWeight: tab === t.id ? 600 : 500,
+                  flexShrink: 0,
+                  background: tab === t.id ? T.accent : "transparent",
+                  color: tab === t.id ? T.accentInk : T.textDim,
+                  border: "none",
+                  borderRadius: 16,
+                  cursor: "pointer",
+                  transition: "background 0.12s ease",
+                }
+              : {
+                  padding: "10px 16px",
+                  fontSize: 12,
+                  fontFamily: "inherit",
+                  fontWeight: tab === t.id ? 700 : 400,
+                  flexShrink: 0,
+                  background: tab === t.id ? T.surface2 : "transparent",
+                  color: tab === t.id ? T.text : T.textDim,
+                  border: `1px solid ${tab === t.id ? T.line2 : "transparent"}`,
+                  borderRadius: T.radius,
+                  cursor: "pointer",
+                  borderBottom:
+                    tab === t.id
+                      ? `2px solid ${T.accent}`
+                      : `2px solid transparent`,
+                  transition: "background 0.12s ease",
+                }
+          }
         >
           {t.label}
         </button>
@@ -76,7 +102,7 @@ export default function OperationsView() {
           style={{
             flexShrink: 0,
             background: T.bg,
-            borderBottom: `1px solid ${T.line}`,
+            borderBottom: m3 ? "none" : `1px solid ${T.line}`,
           }}
         >
           <div
@@ -89,17 +115,23 @@ export default function OperationsView() {
             }}
           >
             <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: T.accent,
-              }}
+              style={
+                m3
+                  ? { fontSize: 18, fontWeight: 600, color: T.text }
+                  : {
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
+                      color: T.accent,
+                    }
+              }
             >
               Operations
             </span>
-            <div style={{ width: 1, height: 16, background: T.line2 }} />
+            {!m3 && (
+              <div style={{ width: 1, height: 16, background: T.line2 }} />
+            )}
             <span
               style={{ fontFamily: T.mono, fontSize: 11, color: T.textMute }}
             >
@@ -108,10 +140,10 @@ export default function OperationsView() {
           </div>
           <div
             style={{
-              height: 44,
+              height: m3 ? 52 : 44,
               display: "flex",
               alignItems: "center",
-              padding: "0 8px",
+              padding: m3 ? "0 12px" : "0 8px",
             }}
           >
             {tabStrip}
@@ -120,28 +152,32 @@ export default function OperationsView() {
       ) : (
         <div
           style={{
-            height: 52,
-            padding: "0 24px",
+            height: m3 ? 64 : 52,
+            padding: m3 ? "0 20px" : "0 24px",
             flexShrink: 0,
             background: T.bg,
-            borderBottom: `1px solid ${T.line}`,
+            borderBottom: m3 ? "none" : `1px solid ${T.line}`,
             display: "flex",
             alignItems: "center",
             gap: 16,
           }}
         >
           <span
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: T.accent,
-            }}
+            style={
+              m3
+                ? { fontSize: 18, fontWeight: 600, color: T.text }
+                : {
+                    fontSize: 11,
+                    fontWeight: 700,
+                    letterSpacing: "0.12em",
+                    textTransform: "uppercase",
+                    color: T.accent,
+                  }
+            }
           >
             Operations
           </span>
-          <div style={{ width: 1, height: 20, background: T.line2 }} />
+          {!m3 && <div style={{ width: 1, height: 20, background: T.line2 }} />}
           <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute }}>
             {fmtDate(today)}
           </span>

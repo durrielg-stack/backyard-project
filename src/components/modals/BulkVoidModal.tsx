@@ -29,36 +29,40 @@ export default function BulkVoidModal({
     <ModalBase width={400} onBackdropClick={onClose}>
       <div
         style={{
-          padding: "28px 32px 24px",
+          padding: T.m3 ? "24px" : "28px 32px 24px",
           display: "flex",
           flexDirection: "column",
-          gap: 20,
+          gap: T.m3 ? 16 : 20,
         }}
       >
         <div
           style={{
-            fontSize: 17,
-            fontWeight: 700,
+            fontSize: T.m3 ? 20 : 17,
+            fontWeight: T.m3 ? 600 : 700,
             color: T.bad,
-            letterSpacing: "-0.01em",
+            letterSpacing: T.m3 ? 0 : "-0.01em",
           }}
         >
           Void {count} item{count !== 1 ? "s" : ""}
         </div>
 
         <div
-          style={{
-            fontSize: 10,
-            fontWeight: 600,
-            letterSpacing: "0.10em",
-            textTransform: "uppercase",
-            color: T.textMute,
-          }}
+          style={
+            T.m3
+              ? { fontSize: 12, fontWeight: 500, color: T.textDim }
+              : {
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: "0.10em",
+                  textTransform: "uppercase",
+                  color: T.textMute,
+                }
+          }
         >
           Reason
         </div>
 
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: T.m3 ? 8 : 6 }}>
           {VOID_REASONS.map((r) => {
             const active = reason === r;
             return (
@@ -77,6 +81,14 @@ export default function BulkVoidModal({
                   cursor: "pointer",
                   transition:
                     "background 0.12s ease, border-color 0.12s ease, color 0.12s ease",
+                  ...(T.m3 && {
+                    minHeight: 40,
+                    padding: "0 16px",
+                    border: "none",
+                    borderRadius: 20,
+                    background: active ? T.m3.badContainer : T.m3.containerHigh,
+                    color: active ? T.m3.onBadContainer : T.textDim,
+                  }),
                 }}
               >
                 {r}
@@ -99,6 +111,13 @@ export default function BulkVoidModal({
               color: T.textDim,
               borderRadius: T.radius,
               cursor: "pointer",
+              ...(T.m3 && {
+                minHeight: 48,
+                background: T.m3.containerHigh,
+                border: "none",
+                color: T.text,
+                borderRadius: 24,
+              }),
             }}
           >
             Cancel
@@ -118,6 +137,12 @@ export default function BulkVoidModal({
               borderRadius: T.radius,
               cursor: reason ? "pointer" : "not-allowed",
               transition: "background 0.12s ease, color 0.12s ease",
+              ...(T.m3 && {
+                minHeight: 48,
+                borderRadius: 24,
+                background: reason ? T.m3.badContainer : T.m3.containerHigh,
+                color: reason ? T.m3.onBadContainer : T.textMute,
+              }),
             }}
           >
             Confirm Void

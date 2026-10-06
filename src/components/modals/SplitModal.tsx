@@ -53,6 +53,14 @@ function Tab({
         cursor: "pointer",
         transition:
           "color 0.12s ease, border-color 0.12s ease, background 0.12s ease",
+        ...(T.m3 && {
+          padding: 0,
+          minHeight: 44,
+          borderBottomWidth: 0,
+          borderRadius: 22,
+          background: active ? T.accent : "transparent",
+          color: active ? T.accentInk : T.textDim,
+        }),
       }}
     >
       {label}
@@ -83,13 +91,23 @@ function EquallyTab({
       }}
     >
       {/* Big readout */}
-      <div style={{ textAlign: "center" }}>
+      <div
+        style={{
+          textAlign: "center",
+          ...(T.m3 && {
+            alignSelf: "stretch",
+            background: T.m3.primaryContainer,
+            borderRadius: 20,
+            padding: "24px 20px",
+          }),
+        }}
+      >
         <div
           style={{
             fontFamily: T.mono,
             fontSize: "clamp(48px, 12vw, 96px)",
             fontWeight: 700,
-            color: T.accent,
+            color: T.m3 ? T.m3.onPrimaryContainerStrong : T.accent,
             letterSpacing: "-0.04em",
             fontVariantNumeric: "tabular-nums",
             lineHeight: 1,
@@ -101,9 +119,9 @@ function EquallyTab({
           style={{
             fontFamily: T.mono,
             fontSize: 13,
-            color: T.textMute,
+            color: T.m3 ? T.m3.onPrimaryContainer : T.textMute,
             marginTop: 8,
-            letterSpacing: "0.04em",
+            letterSpacing: T.m3 ? 0 : "0.04em",
           }}
         >
           per person · {ways} way{ways !== 1 ? "s" : ""} · ₱{total.toFixed(2)}{" "}
@@ -112,7 +130,7 @@ function EquallyTab({
       </div>
 
       {/* Ways selector */}
-      <div style={{ display: "flex", gap: 6 }}>
+      <div style={{ display: "flex", gap: T.m3 ? 8 : 6 }}>
         {[2, 3, 4, 5, 6].map((n) => (
           <button
             key={n}
@@ -129,6 +147,13 @@ function EquallyTab({
               borderRadius: T.radius,
               cursor: "pointer",
               transition: "background 0.12s ease, border-color 0.12s ease",
+              ...(T.m3 && {
+                width: 56,
+                height: 56,
+                border: "none",
+                borderRadius: 28,
+                background: ways === n ? T.accent : T.m3.containerHigh,
+              }),
             }}
           >
             {n}
@@ -153,6 +178,12 @@ function EquallyTab({
           borderRadius: T.radius,
           cursor: "pointer",
           transition: "background 0.12s ease",
+          ...(T.m3 && {
+            minHeight: 52,
+            borderRadius: 26,
+            textTransform: "none",
+            letterSpacing: 0,
+          }),
         }}
       >
         Split {ways} Ways · ₱{perPerson.toFixed(2)} each
@@ -199,7 +230,13 @@ function ByItemTab({
         style={{
           flex: 1,
           overflowY: "auto",
-          borderRight: `1px solid ${T.line}`,
+          borderRight: T.m3 ? "none" : `1px solid ${T.line}`,
+          ...(T.m3 && {
+            padding: "4px 8px 12px 24px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+          }),
         }}
         className="bp-no-scrollbar"
       >
@@ -219,6 +256,14 @@ function ByItemTab({
                 cursor: "pointer",
                 background: on ? `${T.accent}0A` : "transparent",
                 transition: "background 0.12s ease",
+                ...(T.m3 && {
+                  flexShrink: 0,
+                  padding: "12px 16px",
+                  minHeight: 48,
+                  borderBottom: "none",
+                  borderRadius: 14,
+                  background: on ? T.m3.containerHighest : T.m3.containerHigh,
+                }),
               }}
             >
               {/* Checkbox */}
@@ -226,9 +271,9 @@ function ByItemTab({
                 style={{
                   width: 18,
                   height: 18,
-                  borderRadius: T.radius,
+                  borderRadius: T.m3 ? 6 : T.radius,
                   background: on ? T.accent : "transparent",
-                  border: `1.5px solid ${on ? T.accent : T.line2}`,
+                  border: `${T.m3 ? 2 : 1.5}px solid ${on ? T.accent : T.line2}`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -317,13 +362,17 @@ function ByItemTab({
         }}
       >
         <div
-          style={{
-            fontSize: 10,
-            fontWeight: 600,
-            letterSpacing: "0.10em",
-            textTransform: "uppercase",
-            color: T.textMute,
-          }}
+          style={
+            T.m3
+              ? { fontSize: 12, fontWeight: 500, color: T.textDim }
+              : {
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: "0.10em",
+                  textTransform: "uppercase",
+                  color: T.textMute,
+                }
+          }
         >
           This Payment
         </div>
@@ -351,9 +400,9 @@ function ByItemTab({
           <div
             style={{
               padding: "10px 12px",
-              background: T.surface2,
-              border: `1px solid ${T.line2}`,
-              borderRadius: T.radius,
+              background: T.m3 ? T.m3.warnTint : T.surface2,
+              border: T.m3 ? "none" : `1px solid ${T.line2}`,
+              borderRadius: T.m3 ? 16 : T.radius,
               fontSize: 11,
               color: T.textMute,
               fontFamily: T.mono,
@@ -382,6 +431,11 @@ function ByItemTab({
             borderRadius: T.radius,
             cursor: checked.size > 0 ? "pointer" : "not-allowed",
             transition: "background 0.12s ease",
+            ...(T.m3 && {
+              minHeight: 48,
+              borderRadius: 24,
+              background: checked.size > 0 ? T.accent : T.m3.containerHigh,
+            }),
           }}
         >
           Bill Out
@@ -429,6 +483,25 @@ function BySeatTab({
   );
   const allAssigned = unassigned.length === 0;
 
+  // Under M3 each seat column is a tonal card instead of a ruled column.
+  const m3Col: React.CSSProperties | undefined = T.m3
+    ? {
+        borderRight: "none",
+        background: T.m3.containerHigh,
+        borderRadius: 16,
+        paddingBottom: 6,
+      }
+    : undefined;
+  const m3Row: React.CSSProperties | undefined = T.m3
+    ? {
+        borderBottom: "none",
+        margin: "0 6px 4px",
+        padding: "8px 10px",
+        borderRadius: 10,
+        background: T.m3.containerHighest,
+      }
+    : undefined;
+
   return (
     <div
       style={{
@@ -445,6 +518,12 @@ function BySeatTab({
           display: "flex",
           gap: 0,
           borderBottom: `1px solid ${T.line}`,
+          ...(T.m3 && {
+            gap: 8,
+            padding: "4px 24px 0",
+            borderBottom: "none",
+            alignItems: "flex-start",
+          }),
         }}
         className="bp-no-scrollbar"
       >
@@ -454,18 +533,28 @@ function BySeatTab({
             flex: 1,
             borderRight: `1px solid ${T.line}`,
             minWidth: 0,
+            ...m3Col,
           }}
         >
           <div
-            style={{
-              padding: "8px 12px",
-              fontSize: 10,
-              fontWeight: 600,
-              letterSpacing: "0.10em",
-              textTransform: "uppercase",
-              color: T.warn,
-              borderBottom: `1px solid ${T.line}`,
-            }}
+            style={
+              T.m3
+                ? {
+                    padding: "10px 12px 6px",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: T.warn,
+                  }
+                : {
+                    padding: "8px 12px",
+                    fontSize: 10,
+                    fontWeight: 600,
+                    letterSpacing: "0.10em",
+                    textTransform: "uppercase",
+                    color: T.warn,
+                    borderBottom: `1px solid ${T.line}`,
+                  }
+            }
           >
             Unassigned · {unassigned.length}
           </div>
@@ -475,6 +564,7 @@ function BySeatTab({
               style={{
                 padding: "8px 12px",
                 borderBottom: `1px solid ${T.line}`,
+                ...m3Row,
               }}
             >
               <div
@@ -502,6 +592,15 @@ function BySeatTab({
                       borderRadius: T.radius,
                       cursor: "pointer",
                       transition: "background 0.12s ease",
+                      ...(T.m3 && {
+                        minHeight: 32,
+                        minWidth: 40,
+                        padding: "0 10px",
+                        fontSize: 12,
+                        background: T.m3.container,
+                        border: `1px dashed ${T.line2}`,
+                        borderRadius: 16,
+                      }),
                     }}
                   >
                     S{s}
@@ -534,6 +633,7 @@ function BySeatTab({
                 flex: 1,
                 borderRight: `1px solid ${T.line}`,
                 minWidth: 0,
+                ...m3Col,
               }}
             >
               <div
@@ -543,16 +643,24 @@ function BySeatTab({
                   justifyContent: "space-between",
                   alignItems: "center",
                   borderBottom: `1px solid ${T.line}`,
+                  ...(T.m3 && {
+                    padding: "10px 12px 6px",
+                    borderBottom: "none",
+                  }),
                 }}
               >
                 <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 600,
-                    letterSpacing: "0.10em",
-                    textTransform: "uppercase",
-                    color: T.accent,
-                  }}
+                  style={
+                    T.m3
+                      ? { fontSize: 12, fontWeight: 600, color: T.accent }
+                      : {
+                          fontSize: 10,
+                          fontWeight: 600,
+                          letterSpacing: "0.10em",
+                          textTransform: "uppercase",
+                          color: T.accent,
+                        }
+                  }
                 >
                   S{s}
                 </span>
@@ -581,6 +689,8 @@ function BySeatTab({
                     fontSize: 12,
                     color: T.text,
                     transition: "background 0.12s ease",
+                    ...m3Row,
+                    ...(T.m3 && { minHeight: 36, boxSizing: "border-box" }),
                   }}
                 >
                   {line.itemName}
@@ -606,7 +716,7 @@ function BySeatTab({
       {/* Footer */}
       <div
         style={{
-          padding: "12px 24px",
+          padding: T.m3 ? "12px 24px 24px" : "12px 24px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -631,6 +741,12 @@ function BySeatTab({
             borderRadius: T.radius,
             cursor: allAssigned ? "pointer" : "not-allowed",
             transition: "background 0.12s ease",
+            ...(T.m3 && {
+              minHeight: 48,
+              padding: "0 28px",
+              borderRadius: 24,
+              background: allAssigned ? T.accent : T.m3.containerHigh,
+            }),
           }}
         >
           Confirm Split
@@ -656,20 +772,26 @@ export default function SplitModal({
       {/* ── Header ────────────────────────────────────────────────────── */}
       <div
         style={{
-          padding: "22px 32px 0",
-          borderBottom: `1px solid ${T.line}`,
+          padding: T.m3 ? "20px 24px 12px" : "22px 32px 0",
+          borderBottom: T.m3 ? "none" : `1px solid ${T.line}`,
           flexShrink: 0,
         }}
       >
         <div
           style={{
             display: "flex",
-            alignItems: "baseline",
+            alignItems: T.m3 ? "center" : "baseline",
             gap: 12,
-            marginBottom: 16,
+            marginBottom: T.m3 ? 12 : 16,
           }}
         >
-          <span style={{ fontSize: 15, fontWeight: 700, color: T.text }}>
+          <span
+            style={{
+              fontSize: T.m3 ? 20 : 15,
+              fontWeight: T.m3 ? 600 : 700,
+              color: T.text,
+            }}
+          >
             Split Bill
           </span>
           <span style={{ fontFamily: T.mono, fontSize: 12, color: T.textMute }}>
@@ -687,6 +809,14 @@ export default function SplitModal({
               fontSize: 20,
               lineHeight: 1,
               padding: "0 2px",
+              ...(T.m3 && {
+                width: 44,
+                height: 44,
+                borderRadius: 22,
+                background: T.m3.containerHigh,
+                color: T.textDim,
+                padding: 0,
+              }),
             }}
           >
             ×
@@ -694,7 +824,17 @@ export default function SplitModal({
         </div>
 
         {/* Mode tabs */}
-        <div style={{ display: "flex" }}>
+        <div
+          style={{
+            display: "flex",
+            ...(T.m3 && {
+              gap: 4,
+              padding: 4,
+              background: T.m3.track,
+              borderRadius: 26,
+            }),
+          }}
+        >
           <Tab
             label="Equally"
             active={mode === "equally"}

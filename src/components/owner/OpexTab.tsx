@@ -89,6 +89,7 @@ export function computeDailyOpex(
 
 export default function OpexTab() {
   const { T } = useTheme();
+  const m3 = T.m3;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb = getClient() as any;
 
@@ -347,16 +348,59 @@ export default function OpexTab() {
     outline: "none",
     width: "100%",
     boxSizing: "border-box" as const,
+    ...(m3 && {
+      fontSize: 13,
+      background: m3.containerHigh,
+      border: "none",
+      borderRadius: 12,
+      minHeight: 40,
+      padding: "0 12px",
+    }),
   };
 
-  const fieldLabelStyle = {
-    fontSize: 10,
-    fontWeight: 600,
-    letterSpacing: "0.10em",
-    textTransform: "uppercase" as const,
-    color: T.textMute,
-    marginBottom: 4,
-  };
+  const fieldLabelStyle = m3
+    ? { fontSize: 12, fontWeight: 500, color: T.textDim, marginBottom: 6 }
+    : {
+        fontSize: 10,
+        fontWeight: 600,
+        letterSpacing: "0.10em",
+        textTransform: "uppercase" as const,
+        color: T.textMute,
+        marginBottom: 4,
+      };
+  // M3 card shell for the list, form and side cards.
+  const m3Card: React.CSSProperties = m3
+    ? {
+        background: m3.container,
+        border: "none",
+        borderRadius: 24,
+        boxShadow: m3.elev1,
+      }
+    : {};
+  const m3Secondary: React.CSSProperties = m3
+    ? {
+        background: m3.containerHigh,
+        color: T.text,
+        border: "none",
+        borderRadius: 20,
+        minHeight: 40,
+        padding: "0 16px",
+        fontSize: 13,
+        fontWeight: 500,
+      }
+    : {};
+  const m3Primary: React.CSSProperties = m3
+    ? {
+        background: T.accent,
+        color: T.accentInk,
+        border: "none",
+        borderRadius: 20,
+        minHeight: 40,
+        padding: "0 18px",
+        fontSize: 13,
+        fontWeight: 600,
+      }
+    : {};
 
   return (
     <div
@@ -388,6 +432,7 @@ export default function OpexTab() {
               border: `1px solid ${showForm ? T.line2 : T.accent}`,
               borderRadius: T.radius,
               cursor: "pointer",
+              ...(showForm ? m3Secondary : m3Primary),
             }}
           >
             {showForm ? "Cancel" : "+ Add Item"}
@@ -406,26 +451,36 @@ export default function OpexTab() {
             flexDirection: "column",
             gap: 10,
             flexShrink: 0,
+            ...(m3 && {
+              ...m3Card,
+              margin: "0 20px 16px",
+              padding: "16px 20px",
+              gap: 12,
+            }),
           }}
         >
           <div
             style={{
               display: "grid",
               gridTemplateColumns: "1fr 120px 100px 120px 130px 90px",
-              gap: 8,
+              gap: m3 ? 10 : 8,
               alignItems: "end",
             }}
           >
             <div>
               <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  letterSpacing: "0.10em",
-                  textTransform: "uppercase",
-                  color: T.textMute,
-                  marginBottom: 4,
-                }}
+                style={
+                  m3
+                    ? fieldLabelStyle
+                    : {
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: "0.10em",
+                        textTransform: "uppercase",
+                        color: T.textMute,
+                        marginBottom: 4,
+                      }
+                }
               >
                 Name *
               </div>
@@ -438,14 +493,18 @@ export default function OpexTab() {
             </div>
             <div>
               <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  letterSpacing: "0.10em",
-                  textTransform: "uppercase",
-                  color: T.textMute,
-                  marginBottom: 4,
-                }}
+                style={
+                  m3
+                    ? fieldLabelStyle
+                    : {
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: "0.10em",
+                        textTransform: "uppercase",
+                        color: T.textMute,
+                        marginBottom: 4,
+                      }
+                }
               >
                 Type
               </div>
@@ -461,14 +520,18 @@ export default function OpexTab() {
             </div>
             <div>
               <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  letterSpacing: "0.10em",
-                  textTransform: "uppercase",
-                  color: T.textMute,
-                  marginBottom: 4,
-                }}
+                style={
+                  m3
+                    ? fieldLabelStyle
+                    : {
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: "0.10em",
+                        textTransform: "uppercase",
+                        color: T.textMute,
+                        marginBottom: 4,
+                      }
+                }
               >
                 Amount ₱
               </div>
@@ -484,14 +547,18 @@ export default function OpexTab() {
             {fType === "band" ? (
               <div>
                 <div
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 600,
-                    letterSpacing: "0.10em",
-                    textTransform: "uppercase",
-                    color: T.textMute,
-                    marginBottom: 4,
-                  }}
+                  style={
+                    m3
+                      ? fieldLabelStyle
+                      : {
+                          fontSize: 10,
+                          fontWeight: 600,
+                          letterSpacing: "0.10em",
+                          textTransform: "uppercase",
+                          color: T.textMute,
+                          marginBottom: 4,
+                        }
+                  }
                 >
                   Band Day
                 </div>
@@ -509,14 +576,18 @@ export default function OpexTab() {
             ) : (
               <div>
                 <div
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 600,
-                    letterSpacing: "0.10em",
-                    textTransform: "uppercase",
-                    color: T.textMute,
-                    marginBottom: 4,
-                  }}
+                  style={
+                    m3
+                      ? fieldLabelStyle
+                      : {
+                          fontSize: 10,
+                          fontWeight: 600,
+                          letterSpacing: "0.10em",
+                          textTransform: "uppercase",
+                          color: T.textMute,
+                          marginBottom: 4,
+                        }
+                  }
                 >
                   Notes
                 </div>
@@ -553,6 +624,7 @@ export default function OpexTab() {
                   borderRadius: T.radius,
                   cursor: "pointer",
                   opacity: !fName.trim() || !fAmt ? 0.4 : 1,
+                  ...m3Primary,
                 }}
               >
                 Save
@@ -565,7 +637,15 @@ export default function OpexTab() {
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 0, flex: 1, minHeight: 0 }}>
+      <div
+        style={{
+          display: "flex",
+          gap: m3 ? 16 : 0,
+          flex: 1,
+          minHeight: 0,
+          ...(m3 && { padding: "0 20px 20px" }),
+        }}
+      >
         {/* Left: OPEX items list */}
         <div
           style={{
@@ -574,18 +654,21 @@ export default function OpexTab() {
             flexDirection: "column",
             minWidth: 0,
             borderRight: `1px solid ${T.line}`,
+            ...(m3 && { ...m3Card, overflow: "hidden" }),
           }}
         >
           {/* Header */}
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 110px 120px 90px 68px",
-              padding: "0 16px",
-              height: 36,
+              gridTemplateColumns: m3
+                ? "1fr 110px 120px 90px 76px"
+                : "1fr 110px 120px 90px 68px",
+              padding: m3 ? "0 20px" : "0 16px",
+              height: m3 ? 48 : 36,
               alignItems: "center",
-              borderBottom: `1px solid ${T.line}`,
-              background: T.surface2,
+              borderBottom: m3 ? "none" : `1px solid ${T.line}`,
+              background: m3 ? "transparent" : T.surface2,
               flexShrink: 0,
             }}
           >
@@ -593,11 +676,11 @@ export default function OpexTab() {
               <span
                 key={h}
                 style={{
-                  fontSize: 10,
+                  fontSize: m3 ? 11 : 10,
                   fontWeight: 600,
-                  letterSpacing: "0.12em",
+                  letterSpacing: m3 ? "0.04em" : "0.12em",
                   textTransform: "uppercase",
-                  color: T.headerText,
+                  color: m3 ? T.textMute : T.headerText,
                 }}
               >
                 {h}
@@ -606,7 +689,11 @@ export default function OpexTab() {
           </div>
           <div
             className="bp-no-scrollbar"
-            style={{ flex: 1, overflowY: "auto" }}
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              ...(m3 && { padding: "0 8px 8px" }),
+            }}
           >
             {loading ? (
               <div
@@ -636,12 +723,21 @@ export default function OpexTab() {
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "1fr 110px 120px 90px 68px",
-                      padding: "0 16px",
-                      height: 44,
+                      gridTemplateColumns: m3
+                        ? "1fr 110px 120px 90px 76px"
+                        : "1fr 110px 120px 90px 68px",
+                      padding: m3 ? "0 12px" : "0 16px",
+                      height: m3 ? 52 : 44,
                       alignItems: "center",
-                      borderBottom: `1px solid ${T.line}`,
-                      background: i % 2 === 0 ? "transparent" : T.surface,
+                      borderBottom: m3 ? "none" : `1px solid ${T.line}`,
+                      background: m3
+                        ? i % 2 === 0
+                          ? m3.containerHigh
+                          : "transparent"
+                        : i % 2 === 0
+                          ? "transparent"
+                          : T.surface,
+                      ...(m3 && { borderRadius: 14 }),
                       opacity: item.isActive ? 1 : 0.4,
                     }}
                   >
@@ -702,15 +798,15 @@ export default function OpexTab() {
                         onClick={() => toggleActive(item)}
                         title={item.isActive ? "Deactivate" : "Activate"}
                         style={{
-                          width: 28,
-                          height: 28,
+                          width: m3 ? 32 : 28,
+                          height: m3 ? 32 : 28,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          background: "transparent",
-                          border: `1px solid ${T.line2}`,
+                          background: m3 ? m3.containerHighest : "transparent",
+                          border: m3 ? "none" : `1px solid ${T.line2}`,
                           color: item.isActive ? T.ok : T.textMute,
-                          borderRadius: T.radius,
+                          borderRadius: m3 ? 16 : T.radius,
                           cursor: "pointer",
                           fontSize: 12,
                         }}
@@ -721,15 +817,15 @@ export default function OpexTab() {
                         onClick={() => startEdit(item)}
                         title="Change amount from a month onward"
                         style={{
-                          width: 28,
-                          height: 28,
+                          width: m3 ? 32 : 28,
+                          height: m3 ? 32 : 28,
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          background: "transparent",
-                          border: `1px solid ${T.line2}`,
+                          background: m3 ? m3.containerHighest : "transparent",
+                          border: m3 ? "none" : `1px solid ${T.line2}`,
                           color: T.textDim,
-                          borderRadius: T.radius,
+                          borderRadius: m3 ? 16 : T.radius,
                           cursor: "pointer",
                           fontSize: 12,
                         }}
@@ -741,12 +837,13 @@ export default function OpexTab() {
                   {editId === item.id && (
                     <div
                       style={{
-                        padding: "10px 16px",
-                        background: T.surface2,
-                        borderBottom: `1px solid ${T.line}`,
+                        padding: m3 ? "12px 16px" : "10px 16px",
+                        background: m3 ? m3.containerHigh : T.surface2,
+                        borderBottom: m3 ? "none" : `1px solid ${T.line}`,
                         display: "flex",
                         gap: 10,
                         alignItems: "flex-end",
+                        ...(m3 && { borderRadius: 16, margin: "4px 0 8px" }),
                       }}
                     >
                       <div style={{ width: 120 }}>
@@ -756,7 +853,11 @@ export default function OpexTab() {
                           onChange={(e) => setEAmt(e.target.value)}
                           type="number"
                           min="0"
-                          style={{ ...inputStyle, fontFamily: T.mono }}
+                          style={{
+                            ...inputStyle,
+                            fontFamily: T.mono,
+                            ...(m3 && { background: m3.containerHighest }),
+                          }}
                         />
                       </div>
                       <div style={{ width: 150 }}>
@@ -765,7 +866,11 @@ export default function OpexTab() {
                           value={eFrom}
                           onChange={(e) => setEFrom(e.target.value)}
                           type="month"
-                          style={{ ...inputStyle, fontFamily: T.mono }}
+                          style={{
+                            ...inputStyle,
+                            fontFamily: T.mono,
+                            ...(m3 && { background: m3.containerHighest }),
+                          }}
                         />
                       </div>
                       <button
@@ -782,6 +887,7 @@ export default function OpexTab() {
                           borderRadius: T.radius,
                           cursor: "pointer",
                           opacity: !eAmt ? 0.4 : 1,
+                          ...m3Primary,
                         }}
                       >
                         Apply
@@ -800,6 +906,8 @@ export default function OpexTab() {
                           border: `1px solid ${T.line2}`,
                           borderRadius: T.radius,
                           cursor: "pointer",
+                          ...m3Secondary,
+                          ...(m3 && { background: m3.containerHighest }),
                         }}
                       >
                         Cancel
@@ -808,7 +916,7 @@ export default function OpexTab() {
                         style={{
                           fontSize: 11,
                           color: err ? T.bad : T.textMute,
-                          paddingBottom: 6,
+                          paddingBottom: m3 ? 12 : 6,
                         }}
                       >
                         {err ?? "Earlier months keep the current amount."}
@@ -824,26 +932,35 @@ export default function OpexTab() {
           {visibleItems.filter((i) => i.isActive).length > 0 && (
             <div
               style={{
-                padding: "10px 16px",
-                borderTop: `1px solid ${T.line}`,
+                padding: m3 ? "12px 20px 16px" : "10px 16px",
+                borderTop: m3 ? "none" : `1px solid ${T.line}`,
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
                 flexShrink: 0,
               }}
             >
-              <span style={{ fontSize: 11, color: T.textMute }}>
+              <span
+                style={{
+                  fontSize: m3 ? 12 : 11,
+                  color: m3 ? T.textDim : T.textMute,
+                }}
+              >
                 {visibleItems.filter((i) => i.isActive).length} active items
               </span>
               <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
                 <div style={{ textAlign: "right" }}>
                   <div
-                    style={{
-                      fontSize: 10,
-                      color: T.headerText,
-                      letterSpacing: "0.08em",
-                      textTransform: "uppercase",
-                    }}
+                    style={
+                      m3
+                        ? { fontSize: 12, fontWeight: 500, color: T.textDim }
+                        : {
+                            fontSize: 10,
+                            color: T.headerText,
+                            letterSpacing: "0.08em",
+                            textTransform: "uppercase",
+                          }
+                    }
                   >
                     Monthly Total
                   </div>
@@ -870,7 +987,8 @@ export default function OpexTab() {
             flexShrink: 0,
             display: "flex",
             flexDirection: "column",
-            padding: "16px",
+            padding: m3 ? 0 : "16px",
+            ...(m3 && { width: 300, gap: 14 }),
           }}
         >
           {/* Month nav */}
@@ -879,7 +997,12 @@ export default function OpexTab() {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              marginBottom: 12,
+              marginBottom: m3 ? 0 : 12,
+              ...(m3 && {
+                ...m3Card,
+                borderRadius: 20,
+                padding: "8px 8px",
+              }),
             }}
           >
             <button
@@ -895,11 +1018,26 @@ export default function OpexTab() {
                 color: T.textDim,
                 borderRadius: T.radius,
                 cursor: "pointer",
+                ...(m3 && {
+                  width: 40,
+                  height: 40,
+                  background: m3.containerHigh,
+                  border: "none",
+                  color: T.text,
+                  borderRadius: 20,
+                  fontSize: 18,
+                }),
               }}
             >
               ‹
             </button>
-            <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>
+            <span
+              style={{
+                fontSize: m3 ? 15 : 13,
+                fontWeight: m3 ? 600 : 700,
+                color: T.text,
+              }}
+            >
               {monthLabel}
             </span>
             <button
@@ -915,6 +1053,15 @@ export default function OpexTab() {
                 color: T.textDim,
                 borderRadius: T.radius,
                 cursor: "pointer",
+                ...(m3 && {
+                  width: 40,
+                  height: 40,
+                  background: m3.containerHigh,
+                  border: "none",
+                  color: T.text,
+                  borderRadius: 20,
+                  fontSize: 18,
+                }),
               }}
             >
               ›
@@ -929,6 +1076,7 @@ export default function OpexTab() {
               borderRadius: T.radiusLg,
               padding: 14,
               marginBottom: 12,
+              ...(m3 && { ...m3Card, padding: "16px 20px", marginBottom: 0 }),
             }}
           >
             <div
@@ -940,13 +1088,17 @@ export default function OpexTab() {
               }}
             >
               <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  color: T.headerText,
-                }}
+                style={
+                  m3
+                    ? { fontSize: 16, fontWeight: 600, color: T.text }
+                    : {
+                        fontSize: 10,
+                        fontWeight: 700,
+                        letterSpacing: "0.12em",
+                        textTransform: "uppercase",
+                        color: T.headerText,
+                      }
+                }
               >
                 Monthly Config
               </span>
@@ -961,6 +1113,12 @@ export default function OpexTab() {
                     color: T.textDim,
                     borderRadius: T.radius,
                     cursor: "pointer",
+                    ...m3Secondary,
+                    ...(m3 && {
+                      minHeight: 32,
+                      padding: "0 14px",
+                      fontSize: 12,
+                    }),
                   }}
                 >
                   {cfg ? "Edit" : "Set Up"}
@@ -999,12 +1157,13 @@ export default function OpexTab() {
                         fontFamily: T.mono,
                         fontSize: 13,
                         textAlign: "right",
-                        background: T.surface,
-                        border: `1px solid ${T.line2}`,
+                        background: m3 ? m3.containerHigh : T.surface,
+                        border: m3 ? "none" : `1px solid ${T.line2}`,
                         color: T.text,
-                        borderRadius: T.radius,
-                        padding: "4px 6px",
+                        borderRadius: m3 ? 12 : T.radius,
+                        padding: m3 ? "0 10px" : "4px 6px",
                         outline: "none",
+                        ...(m3 && { minHeight: 40, width: 72 }),
                       }}
                     />
                   </div>
@@ -1025,6 +1184,7 @@ export default function OpexTab() {
                       border: `1px solid ${T.line2}`,
                       borderRadius: T.radius,
                       cursor: "pointer",
+                      ...m3Secondary,
                     }}
                   >
                     Cancel
@@ -1043,6 +1203,7 @@ export default function OpexTab() {
                       border: "none",
                       borderRadius: T.radius,
                       cursor: "pointer",
+                      ...m3Primary,
                     }}
                   >
                     Save
@@ -1091,17 +1252,27 @@ export default function OpexTab() {
                 border: `1px solid ${T.line}`,
                 borderRadius: T.radiusLg,
                 padding: 14,
+                ...(m3 && { ...m3Card, padding: "16px 20px" }),
               }}
             >
               <div
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  color: T.textMute,
-                  marginBottom: 10,
-                }}
+                style={
+                  m3
+                    ? {
+                        fontSize: 16,
+                        fontWeight: 600,
+                        color: T.text,
+                        marginBottom: 12,
+                      }
+                    : {
+                        fontSize: 10,
+                        fontWeight: 700,
+                        letterSpacing: "0.12em",
+                        textTransform: "uppercase",
+                        color: T.textMute,
+                        marginBottom: 10,
+                      }
+                }
               >
                 Daily Allocation
               </div>
@@ -1161,19 +1332,30 @@ export default function OpexTab() {
                     justifyContent: "space-between",
                     alignItems: "center",
                     marginTop: 2,
+                    ...(m3 && {
+                      borderTop: "none",
+                      background: m3.primaryContainer,
+                      borderRadius: 16,
+                      padding: "12px 14px",
+                      marginTop: 8,
+                    }),
                   }}
                 >
                   <span
-                    style={{ fontSize: 12, fontWeight: 700, color: T.text }}
+                    style={{
+                      fontSize: 12,
+                      fontWeight: m3 ? 600 : 700,
+                      color: m3 ? m3.onPrimaryContainer : T.text,
+                    }}
                   >
                     Daily Total
                   </span>
                   <span
                     style={{
                       fontFamily: T.mono,
-                      fontSize: 15,
+                      fontSize: m3 ? 18 : 15,
                       fontWeight: 700,
-                      color: T.ok,
+                      color: m3 ? m3.onPrimaryContainerStrong : T.ok,
                       fontVariantNumeric: "tabular-nums",
                     }}
                   >

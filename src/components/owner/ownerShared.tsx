@@ -62,26 +62,31 @@ export function SectionHd({
   action?: React.ReactNode;
 }) {
   const { T } = useTheme();
+  const m3 = T.m3;
   return (
     <div
       style={{
-        height: 48,
-        padding: "0 24px",
+        height: m3 ? 56 : 48,
+        padding: m3 ? "0 20px" : "0 24px",
         flexShrink: 0,
         display: "flex",
         alignItems: "center",
         gap: 10,
-        borderBottom: `1px solid ${T.line}`,
+        borderBottom: m3 ? "none" : `1px solid ${T.line}`,
       }}
     >
       <span
-        style={{
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          color: T.textMute,
-        }}
+        style={
+          m3
+            ? { fontSize: 16, fontWeight: 600, color: T.text }
+            : {
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: T.textMute,
+              }
+        }
       >
         {title}
       </span>
@@ -91,10 +96,10 @@ export function SectionHd({
             fontFamily: T.mono,
             fontSize: 12,
             fontWeight: 600,
-            color: T.accent,
-            background: `${T.accent}18`,
-            border: `1px solid ${T.accent}44`,
-            padding: "2px 8px",
+            color: m3 ? m3.onPrimaryContainer : T.accent,
+            background: m3 ? m3.primaryContainer : `${T.accent}18`,
+            border: m3 ? "none" : `1px solid ${T.accent}44`,
+            padding: m3 ? "4px 10px" : "2px 8px",
             borderRadius: T.radius,
           }}
         >
@@ -132,6 +137,12 @@ export function SearchBox({
         width: 200,
         flexShrink: 0,
         boxSizing: "border-box",
+        ...(T.m3 && {
+          padding: "0 14px",
+          minHeight: 40,
+          background: T.m3.containerHigh,
+          border: value ? `1px solid ${T.accent}` : "1px solid transparent",
+        }),
       }}
     >
       <svg
@@ -205,6 +216,15 @@ export function Pill({
         cursor: "pointer",
         fontWeight: active ? 600 : 400,
         transition: "background 0.12s ease",
+        ...(T.m3 && {
+          padding: "0 16px",
+          minHeight: 32,
+          fontSize: 13,
+          fontWeight: active ? 600 : 500,
+          background: active ? T.accent : T.m3.containerHigh,
+          border: "none",
+          borderRadius: 16,
+        }),
       }}
     >
       {label}
@@ -414,7 +434,7 @@ export function HBarChart({
             style={{
               flex: 1,
               height: 18,
-              background: T.line2,
+              background: T.m3 ? T.m3.containerHighest : T.line2,
               borderRadius: T.radius,
               position: "relative",
               overflow: "hidden",

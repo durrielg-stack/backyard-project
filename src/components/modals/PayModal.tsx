@@ -25,7 +25,11 @@ function NumPad({ onDigit }: { onDigit: (d: string) => void }) {
   const keys = ["7", "8", "9", "4", "5", "6", "1", "2", "3", ".", "0", "⌫"];
   return (
     <div
-      style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(3, 1fr)",
+        gap: T.m3 ? 8 : 6,
+      }}
     >
       {keys.map((k) => (
         <button
@@ -45,6 +49,12 @@ function NumPad({ onDigit }: { onDigit: (d: string) => void }) {
             alignItems: "center",
             justifyContent: "center",
             transition: "background 0.12s ease",
+            ...(T.m3 && {
+              height: 56,
+              background: T.m3.containerHigh,
+              border: "none",
+              borderRadius: 16,
+            }),
           }}
         >
           {k}
@@ -116,9 +126,17 @@ function QRCodeVisual({ size = 160 }: { size?: number }) {
       width={size}
       height={size}
       viewBox={`0 0 ${size} ${size}`}
-      style={{ borderRadius: T.radius, border: `1px solid ${T.line2}` }}
+      style={
+        T.m3
+          ? { borderRadius: 16 }
+          : { borderRadius: T.radius, border: `1px solid ${T.line2}` }
+      }
     >
-      <rect width={size} height={size} fill={T.surface2} />
+      <rect
+        width={size}
+        height={size}
+        fill={T.m3 ? T.m3.containerHigh : T.surface2}
+      />
       {grid.flatMap((row, r) =>
         row.map((on, c) =>
           on ? (
@@ -181,8 +199,15 @@ function CardFlow({ total, onPaid }: { total: number; onPaid: () => void }) {
                     width: 32,
                     height: 32,
                     borderRadius: "50%",
-                    background: done ? T.ok : current ? T.accent : T.chip,
-                    border: done || current ? "none" : `1px solid ${T.line2}`,
+                    background: done
+                      ? T.ok
+                      : current
+                        ? T.accent
+                        : T.m3
+                          ? T.m3.containerHighest
+                          : T.chip,
+                    border:
+                      done || current || T.m3 ? "none" : `1px solid ${T.line2}`,
                     color: done || current ? T.accentInk : T.textMute,
                     display: "flex",
                     alignItems: "center",
@@ -209,7 +234,8 @@ function CardFlow({ total, onPaid }: { total: number; onPaid: () => void }) {
                 <div
                   style={{
                     width: 80,
-                    height: 1,
+                    height: T.m3 ? 2 : 1,
+                    borderRadius: T.m3 ? 1 : undefined,
                     marginBottom: 18,
                     background: i < idx ? T.ok : T.line2,
                     transition: "background 0.4s ease",
@@ -226,9 +252,13 @@ function CardFlow({ total, onPaid }: { total: number; onPaid: () => void }) {
         style={{
           width: 180,
           height: 128,
-          borderRadius: 6,
-          background: T.surface2,
-          border: `2px solid ${step === "approved" ? T.ok : T.line2}`,
+          borderRadius: T.m3 ? 20 : 6,
+          background: T.m3
+            ? step === "approved"
+              ? T.m3.okContainer
+              : T.m3.containerHigh
+            : T.surface2,
+          border: `2px solid ${step === "approved" ? T.ok : T.m3 ? "transparent" : T.line2}`,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -317,6 +347,7 @@ function CardFlow({ total, onPaid }: { total: number; onPaid: () => void }) {
           cursor: "pointer",
           letterSpacing: "-0.01em",
           transition: "background 0.2s ease",
+          ...(T.m3 && { minHeight: 48, borderRadius: 24, letterSpacing: 0 }),
         }}
       >
         {step === "insert"
@@ -376,7 +407,18 @@ function QRFlow({
       }}
     >
       {/* QR method toggle */}
-      <div style={{ display: "flex", gap: 6 }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 6,
+          ...(T.m3 && {
+            gap: 2,
+            background: T.m3.track,
+            borderRadius: 22,
+            padding: 3,
+          }),
+        }}
+      >
         {(["gcash", "maya"] as QRMethod[]).map((m) => {
           const active = qrMethod === m;
           return (
@@ -395,6 +437,14 @@ function QRFlow({
                 cursor: "pointer",
                 transition:
                   "background 0.12s ease, border-color 0.12s ease, color 0.12s ease",
+                ...(T.m3 && {
+                  minHeight: 40,
+                  padding: "0 22px",
+                  border: "none",
+                  borderRadius: 20,
+                  background: active ? T.accent : "transparent",
+                  color: active ? T.accentInk : T.textDim,
+                }),
               }}
             >
               {m === "gcash" ? "GCash" : "Maya"}
@@ -424,6 +474,24 @@ function QRFlow({
           alignItems: "center",
           gap: 10,
           transition: "all 0.3s ease",
+          ...(T.m3 && {
+            border: "none",
+            borderRadius: 16,
+            minHeight: 44,
+            letterSpacing: 0,
+            background:
+              step === "received"
+                ? T.m3.okContainer
+                : step === "scanned"
+                  ? T.m3.warnContainer
+                  : T.m3.containerHigh,
+            color:
+              step === "received"
+                ? T.m3.onOkContainer
+                : step === "scanned"
+                  ? T.m3.onWarnContainer
+                  : T.textDim,
+          }),
         }}
       >
         {step === "waiting" && (
@@ -506,6 +574,17 @@ export default function PayModal({
     setInput(next);
   }
 
+  const m3 = T.m3;
+  const m3Secondary: React.CSSProperties | undefined = m3
+    ? {
+        minHeight: 52,
+        background: m3.containerHigh,
+        border: "none",
+        color: T.text,
+        borderRadius: 26,
+      }
+    : undefined;
+
   const methodLabel: Record<Method, string> = {
     cash: "Cash",
     card: "Card",
@@ -520,6 +599,13 @@ export default function PayModal({
           padding: "28px 32px 20px",
           borderBottom: `1px solid ${T.line}`,
           flexShrink: 0,
+          ...(m3 && {
+            margin: "24px 24px 8px",
+            padding: "20px 24px",
+            borderBottom: "none",
+            background: m3.primaryContainer,
+            borderRadius: 20,
+          }),
         }}
       >
         <div
@@ -527,7 +613,7 @@ export default function PayModal({
             fontFamily: T.mono,
             fontSize: "clamp(26px, 6vw, 40px)",
             fontWeight: 700,
-            color: T.accent,
+            color: m3 ? m3.onPrimaryContainerStrong : T.accent,
             letterSpacing: "-0.02em",
             fontVariantNumeric: "tabular-nums",
             marginBottom: 8,
@@ -541,9 +627,9 @@ export default function PayModal({
             display: "flex",
             gap: 20,
             fontFamily: T.mono,
-            fontSize: 11,
-            color: T.textMute,
-            letterSpacing: "0.04em",
+            fontSize: m3 ? 12 : 11,
+            color: m3 ? m3.onPrimaryContainer : T.textMute,
+            letterSpacing: m3 ? 0 : "0.04em",
           }}
         >
           <span>Subtotal ₱{subtotal.toFixed(2)}</span>
@@ -559,6 +645,14 @@ export default function PayModal({
           padding: "14px 32px",
           borderBottom: `1px solid ${T.line}`,
           flexShrink: 0,
+          ...(m3 && {
+            gap: 4,
+            margin: "8px 24px",
+            padding: 4,
+            borderBottom: "none",
+            background: m3.track,
+            borderRadius: 26,
+          }),
         }}
       >
         {(["cash", "card", "qr"] as Method[]).map((m) => {
@@ -580,6 +674,14 @@ export default function PayModal({
                 cursor: "pointer",
                 transition:
                   "background 0.12s ease, border-color 0.12s ease, color 0.12s ease",
+                ...(m3 && {
+                  minHeight: 44,
+                  padding: 0,
+                  border: "none",
+                  borderRadius: 22,
+                  background: active ? T.accent : "transparent",
+                  color: active ? T.accentInk : T.textDim,
+                }),
               }}
             >
               {methodLabel[m]}
@@ -589,7 +691,13 @@ export default function PayModal({
       </div>
 
       {/* ── Method body ────────────────────────────────────────────────── */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "24px 32px" }}>
+      <div
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: m3 ? "16px 24px" : "24px 32px",
+        }}
+      >
         {/* Cash ──────────────────────────────────────────────────────── */}
         {method === "cash" && (
           <div
@@ -606,9 +714,9 @@ export default function PayModal({
               <div
                 style={{
                   height: 60,
-                  background: T.surface2,
-                  border: `1px solid ${input ? T.accent : T.line2}`,
-                  borderRadius: T.radius,
+                  background: m3 ? m3.containerHigh : T.surface2,
+                  border: `${m3 ? 2 : 1}px solid ${input ? T.accent : m3 ? "transparent" : T.line2}`,
+                  borderRadius: m3 ? 16 : T.radius,
                   padding: "0 16px",
                   display: "flex",
                   alignItems: "center",
@@ -634,14 +742,23 @@ export default function PayModal({
             {/* Right: quick tenders + change */}
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 600,
-                  letterSpacing: "0.10em",
-                  textTransform: "uppercase",
-                  color: T.textMute,
-                  marginBottom: 2,
-                }}
+                style={
+                  m3
+                    ? {
+                        fontSize: 12,
+                        fontWeight: 500,
+                        color: T.textDim,
+                        marginBottom: 2,
+                      }
+                    : {
+                        fontSize: 10,
+                        fontWeight: 600,
+                        letterSpacing: "0.10em",
+                        textTransform: "uppercase",
+                        color: T.textMute,
+                        marginBottom: 2,
+                      }
+                }
               >
                 Quick Tender
               </span>
@@ -661,6 +778,12 @@ export default function PayModal({
                     cursor: "pointer",
                     fontVariantNumeric: "tabular-nums",
                     transition: "background 0.12s ease",
+                    ...(m3 && {
+                      minHeight: 48,
+                      background: m3.containerHigh,
+                      border: "none",
+                      borderRadius: 24,
+                    }),
                   }}
                 >
                   ₱{amt.toLocaleString()}
@@ -676,17 +799,32 @@ export default function PayModal({
                   border: `1px solid ${change > 0 ? T.accent : T.line2}`,
                   borderRadius: T.radius,
                   transition: "all 0.15s ease",
+                  ...(m3 && {
+                    background:
+                      change > 0 ? m3.primaryContainer : m3.containerHigh,
+                    border: "none",
+                    borderRadius: 20,
+                  }),
                 }}
               >
                 <div
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 600,
-                    letterSpacing: "0.10em",
-                    textTransform: "uppercase",
-                    color: change > 0 ? T.accent : T.textMute,
-                    marginBottom: 4,
-                  }}
+                  style={
+                    m3
+                      ? {
+                          fontSize: 12,
+                          fontWeight: 500,
+                          color: change > 0 ? m3.onPrimaryContainer : T.textDim,
+                          marginBottom: 4,
+                        }
+                      : {
+                          fontSize: 10,
+                          fontWeight: 600,
+                          letterSpacing: "0.10em",
+                          textTransform: "uppercase",
+                          color: change > 0 ? T.accent : T.textMute,
+                          marginBottom: 4,
+                        }
+                  }
                 >
                   Change
                 </div>
@@ -696,7 +834,12 @@ export default function PayModal({
                     fontSize: 22,
                     fontWeight: 700,
                     fontVariantNumeric: "tabular-nums",
-                    color: change > 0 ? T.accent : T.textMute,
+                    color:
+                      change > 0
+                        ? m3
+                          ? m3.onPrimaryContainerStrong
+                          : T.accent
+                        : T.textMute,
                   }}
                 >
                   {change > 0 ? `₱${change.toFixed(2)}` : "—"}
@@ -725,8 +868,8 @@ export default function PayModal({
       {method === "cash" && (
         <div
           style={{
-            padding: "16px 32px 24px",
-            borderTop: `1px solid ${T.line}`,
+            padding: m3 ? "8px 24px 24px" : "16px 32px 24px",
+            borderTop: m3 ? "none" : `1px solid ${T.line}`,
             display: "flex",
             gap: 8,
             flexShrink: 0,
@@ -745,6 +888,7 @@ export default function PayModal({
               color: T.textDim,
               borderRadius: T.radius,
               cursor: "pointer",
+              ...m3Secondary,
             }}
           >
             Cancel
@@ -766,6 +910,13 @@ export default function PayModal({
               borderRadius: T.radius,
               cursor: canCharge ? "pointer" : "not-allowed",
               transition: "background 0.12s ease, color 0.12s ease",
+              ...(m3 && {
+                minHeight: 52,
+                borderRadius: 26,
+                textTransform: "none",
+                letterSpacing: 0,
+                background: canCharge ? T.accent : m3.containerHigh,
+              }),
             }}
           >
             {canCharge ? `Bill Out · ₱${total.toFixed(2)}` : "Enter amount"}
@@ -776,8 +927,8 @@ export default function PayModal({
       {method !== "cash" && (
         <div
           style={{
-            padding: "16px 32px 24px",
-            borderTop: `1px solid ${T.line}`,
+            padding: m3 ? "8px 24px 24px" : "16px 32px 24px",
+            borderTop: m3 ? "none" : `1px solid ${T.line}`,
             flexShrink: 0,
           }}
         >
@@ -794,6 +945,7 @@ export default function PayModal({
               color: T.textDim,
               borderRadius: T.radius,
               cursor: "pointer",
+              ...m3Secondary,
             }}
           >
             Cancel

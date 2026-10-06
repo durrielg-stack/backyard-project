@@ -50,10 +50,12 @@ export default function PaidOverlay({
     >
       <div
         style={{
-          background: T.surface,
-          border: `1px solid ${T.ok}44`,
-          borderRadius: T.radiusLg,
-          boxShadow: `${T.shadowModal}, 0 0 60px ${T.ok}22`,
+          background: T.m3 ? T.m3.container : T.surface,
+          border: T.m3 ? "none" : `1px solid ${T.ok}44`,
+          borderRadius: T.m3 ? 28 : T.radiusLg,
+          boxShadow: T.m3
+            ? T.shadowModal
+            : `${T.shadowModal}, 0 0 60px ${T.ok}22`,
           padding: "clamp(24px, 5vw, 48px) clamp(24px, 6vw, 64px)",
           display: "flex",
           flexDirection: "column",
@@ -69,8 +71,8 @@ export default function PaidOverlay({
             width: 72,
             height: 72,
             borderRadius: "50%",
-            background: `${T.ok}18`,
-            border: `2px solid ${T.ok}`,
+            background: T.m3 ? T.m3.okContainer : `${T.ok}18`,
+            border: T.m3 ? "none" : `2px solid ${T.ok}`,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -81,7 +83,7 @@ export default function PaidOverlay({
             width={32}
             height={32}
             fill="none"
-            stroke={T.ok}
+            stroke={T.m3 ? T.m3.onOkContainer : T.ok}
             strokeWidth={2.5}
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -92,13 +94,17 @@ export default function PaidOverlay({
 
         {/* "Paid" label */}
         <div
-          style={{
-            fontSize: 13,
-            fontWeight: 700,
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            color: T.ok,
-          }}
+          style={
+            T.m3
+              ? { fontSize: 20, fontWeight: 600, color: T.text }
+              : {
+                  fontSize: 13,
+                  fontWeight: 700,
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                  color: T.ok,
+                }
+          }
         >
           Paid
         </div>
@@ -113,6 +119,14 @@ export default function PaidOverlay({
             letterSpacing: "-0.03em",
             fontVariantNumeric: "tabular-nums",
             lineHeight: 1,
+            ...(T.m3 && {
+              color: T.m3.onPrimaryContainerStrong,
+              background: T.m3.primaryContainer,
+              borderRadius: 20,
+              padding: "16px 24px",
+              alignSelf: "stretch",
+              textAlign: "center",
+            }),
           }}
         >
           ₱{total.toFixed(2)}
@@ -124,8 +138,8 @@ export default function PaidOverlay({
             style={{
               fontFamily: T.mono,
               fontSize: 12,
-              color: T.textMute,
-              letterSpacing: "0.04em",
+              color: T.m3 ? T.textDim : T.textMute,
+              letterSpacing: T.m3 ? 0 : "0.04em",
               textAlign: "center",
             }}
           >
@@ -155,6 +169,15 @@ export default function PaidOverlay({
             display: "flex",
             alignItems: "center",
             gap: 6,
+            ...(T.m3 && {
+              minHeight: 44,
+              padding: "0 22px",
+              fontSize: 13,
+              background: T.m3.containerHigh,
+              border: "none",
+              color: T.text,
+              borderRadius: 22,
+            }),
           }}
         >
           <svg
@@ -176,7 +199,7 @@ export default function PaidOverlay({
             fontFamily: T.mono,
             fontSize: 11,
             color: T.textMute,
-            letterSpacing: "0.06em",
+            letterSpacing: T.m3 ? 0 : "0.06em",
           }}
         >
           Returning to floor in {remaining}s · tap to dismiss

@@ -61,16 +61,16 @@ export default function MoveItemsModal({
         {/* Header */}
         <div
           style={{
-            padding: "24px 28px 16px",
+            padding: T.m3 ? "24px 24px 12px" : "24px 28px 16px",
             flexShrink: 0,
-            borderBottom: `1px solid ${T.line}`,
+            borderBottom: T.m3 ? "none" : `1px solid ${T.line}`,
           }}
         >
           <div
             style={{
-              fontSize: 17,
-              fontWeight: 700,
-              letterSpacing: "-0.01em",
+              fontSize: T.m3 ? 20 : 17,
+              fontWeight: T.m3 ? 600 : 700,
+              letterSpacing: T.m3 ? 0 : "-0.01em",
               color: T.text,
             }}
           >
@@ -78,7 +78,14 @@ export default function MoveItemsModal({
           </div>
         </div>
 
-        <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
+        <div
+          style={{
+            display: "flex",
+            flex: 1,
+            minHeight: 0,
+            ...(T.m3 && { gap: 12, padding: "0 24px" }),
+          }}
+        >
           {/* Left: item checklist */}
           <div
             style={{
@@ -86,6 +93,12 @@ export default function MoveItemsModal({
               overflowY: "auto",
               borderRight: `1px solid ${T.line}`,
               padding: "12px 0",
+              ...(T.m3 && {
+                borderRight: "none",
+                padding: 8,
+                background: T.m3.containerHigh,
+                borderRadius: 20,
+              }),
             }}
             className="bp-no-scrollbar"
           >
@@ -97,6 +110,14 @@ export default function MoveItemsModal({
                 letterSpacing: "0.10em",
                 textTransform: "uppercase",
                 color: T.textMute,
+                ...(T.m3 && {
+                  padding: "4px 12px 8px",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  letterSpacing: 0,
+                  textTransform: "none",
+                  color: T.textDim,
+                }),
               }}
             >
               Items to move
@@ -115,6 +136,14 @@ export default function MoveItemsModal({
                     cursor: "pointer",
                     background: checked ? `${T.accent}0A` : "transparent",
                     transition: "background 0.1s ease",
+                    ...(T.m3 && {
+                      padding: "0 12px",
+                      minHeight: 44,
+                      borderRadius: 12,
+                      background: checked
+                        ? T.m3.containerHighest
+                        : "transparent",
+                    }),
                   }}
                 >
                   <div
@@ -123,7 +152,7 @@ export default function MoveItemsModal({
                       height: 18,
                       flexShrink: 0,
                       border: `1.5px solid ${checked ? T.accent : T.line2}`,
-                      borderRadius: 2,
+                      borderRadius: T.m3 ? 6 : 2,
                       background: checked ? T.accent : "transparent",
                       display: "flex",
                       alignItems: "center",
@@ -187,6 +216,11 @@ export default function MoveItemsModal({
               width: 260,
               overflowY: "auto",
               padding: "12px 0",
+              ...(T.m3 && {
+                padding: 8,
+                background: T.m3.containerHigh,
+                borderRadius: 20,
+              }),
             }}
             className="bp-no-scrollbar"
           >
@@ -198,6 +232,14 @@ export default function MoveItemsModal({
                 letterSpacing: "0.10em",
                 textTransform: "uppercase",
                 color: T.textMute,
+                ...(T.m3 && {
+                  padding: "4px 12px 8px",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  letterSpacing: 0,
+                  textTransform: "none",
+                  color: T.textDim,
+                }),
               }}
             >
               Move to table
@@ -212,6 +254,13 @@ export default function MoveItemsModal({
                     letterSpacing: "0.12em",
                     textTransform: "uppercase",
                     color: T.textMute,
+                    ...(T.m3 && {
+                      padding: "8px 12px 4px",
+                      fontSize: 12,
+                      fontWeight: 500,
+                      letterSpacing: 0,
+                      textTransform: "none",
+                    }),
                   }}
                 >
                   {section}
@@ -231,6 +280,15 @@ export default function MoveItemsModal({
                         background: active ? `${T.accent}14` : "transparent",
                         borderLeft: `2px solid ${active ? T.accent : "transparent"}`,
                         transition: "background 0.1s ease",
+                        ...(T.m3 && {
+                          padding: "0 12px",
+                          minHeight: 44,
+                          borderLeft: "none",
+                          borderRadius: 22,
+                          background: active
+                            ? T.m3.primaryContainer
+                            : "transparent",
+                        }),
                       }}
                     >
                       <div
@@ -246,7 +304,11 @@ export default function MoveItemsModal({
                         style={{
                           fontSize: 13,
                           fontWeight: active ? 600 : 400,
-                          color: active ? T.accent : T.text,
+                          color: active
+                            ? T.m3
+                              ? T.m3.onPrimaryContainer
+                              : T.accent
+                            : T.text,
                         }}
                       >
                         {t.label}
@@ -275,8 +337,8 @@ export default function MoveItemsModal({
         {/* Footer */}
         <div
           style={{
-            padding: "14px 28px 20px",
-            borderTop: `1px solid ${T.line}`,
+            padding: T.m3 ? "16px 24px 24px" : "14px 28px 20px",
+            borderTop: T.m3 ? "none" : `1px solid ${T.line}`,
             display: "flex",
             gap: 8,
             flexShrink: 0,
@@ -295,6 +357,13 @@ export default function MoveItemsModal({
               color: T.textDim,
               borderRadius: T.radius,
               cursor: "pointer",
+              ...(T.m3 && {
+                minHeight: 48,
+                background: T.m3.containerHigh,
+                border: "none",
+                color: T.text,
+                borderRadius: 24,
+              }),
             }}
           >
             Cancel
@@ -316,6 +385,11 @@ export default function MoveItemsModal({
               borderRadius: T.radius,
               cursor: canConfirm ? "pointer" : "not-allowed",
               transition: "background 0.12s ease, color 0.12s ease",
+              ...(T.m3 && {
+                minHeight: 48,
+                borderRadius: 24,
+                background: canConfirm ? T.accent : T.m3.containerHigh,
+              }),
             }}
           >
             Move {selected.size} item{selected.size !== 1 ? "s" : ""}

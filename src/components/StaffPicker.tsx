@@ -41,6 +41,7 @@ interface Props {
 
 const StaffPicker = memo(function StaffPicker({ onSelect }: Props) {
   const { T } = useTheme();
+  const m3 = T.m3;
   const [users, setUsers] = useState<StaffUser[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [category, setCategory] = useState<Category>("staff");
@@ -152,6 +153,12 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: Props) {
               fontSize: 16,
               letterSpacing: "-0.04em",
               borderRadius: 3,
+              ...(m3 && {
+                width: 44,
+                height: 44,
+                borderRadius: 14,
+                fontSize: 20,
+              }),
             }}
           >
             B
@@ -163,6 +170,7 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: Props) {
                 fontWeight: 700,
                 letterSpacing: "-0.01em",
                 color: T.text,
+                ...(m3 && { fontSize: 18, fontWeight: 600 }),
               }}
             >
               The Backyard Project
@@ -174,6 +182,13 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: Props) {
                 fontFamily: T.mono,
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
+                ...(m3 && {
+                  fontSize: 13,
+                  fontFamily: T.sansBody,
+                  letterSpacing: "normal",
+                  textTransform: "none",
+                  color: T.textDim,
+                }),
               }}
             >
               POS · Sign In
@@ -186,8 +201,32 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: Props) {
             Loading...
           </div>
         ) : !selected ? (
-          <div style={{ width: "100%" }}>
-            <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+          <div
+            style={{
+              width: "100%",
+              ...(m3 && {
+                background: m3.container,
+                borderRadius: 28,
+                padding: 20,
+                boxShadow: m3.elev1,
+                boxSizing: "border-box",
+              }),
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                gap: 8,
+                marginBottom: 20,
+                ...(m3 && {
+                  gap: 4,
+                  padding: 4,
+                  background: m3.track,
+                  borderRadius: 24,
+                  marginBottom: 16,
+                }),
+              }}
+            >
               {CATEGORIES.map((cat) => {
                 const active = category === cat.id;
                 return (
@@ -206,6 +245,15 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: Props) {
                       cursor: "pointer",
                       fontFamily: "inherit",
                       transition: "background 0.12s ease",
+                      ...(m3 && {
+                        padding: 0,
+                        minHeight: 44,
+                        border: "none",
+                        borderRadius: 20,
+                        fontWeight: 600,
+                        background: active ? T.accent : "transparent",
+                        color: active ? T.accentInk : T.textDim,
+                      }),
                     }}
                   >
                     {cat.label}
@@ -231,16 +279,24 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: Props) {
                       "background 0.12s ease, border-color 0.12s ease",
                     fontFamily: "inherit",
                     textAlign: "left",
+                    ...(m3 && {
+                      background: m3.containerHigh,
+                      border: "none",
+                      borderRadius: 20,
+                      minHeight: 68,
+                    }),
                   }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.background =
-                      T.surface2;
+                    (e.currentTarget as HTMLElement).style.background = m3
+                      ? m3.containerHighest
+                      : T.surface2;
                     (e.currentTarget as HTMLElement).style.borderColor =
                       T.accent;
                   }}
                   onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.background =
-                      T.surface;
+                    (e.currentTarget as HTMLElement).style.background = m3
+                      ? m3.containerHigh
+                      : T.surface;
                     (e.currentTarget as HTMLElement).style.borderColor =
                       T.line2;
                   }}
@@ -259,6 +315,11 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: Props) {
                       fontSize: 13,
                       fontWeight: 700,
                       color: T.text,
+                      ...(m3 && {
+                        background: m3.primaryContainer,
+                        border: "none",
+                        color: m3.onPrimaryContainer,
+                      }),
                     }}
                   >
                     {initials(u.name)}
@@ -270,7 +331,12 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: Props) {
                       {u.name}
                     </div>
                     <div
-                      style={{ fontSize: 11, color: T.textMute, marginTop: 1 }}
+                      style={{
+                        fontSize: 11,
+                        color: T.textMute,
+                        marginTop: 1,
+                        ...(m3 && { fontSize: 12, color: T.textDim }),
+                      }}
                     >
                       {roleLabel(u.role)}
                     </div>
@@ -280,7 +346,18 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: Props) {
             </div>
           </div>
         ) : (
-          <div style={{ width: "100%" }}>
+          <div
+            style={{
+              width: "100%",
+              ...(m3 && {
+                background: m3.container,
+                borderRadius: 28,
+                padding: 20,
+                boxShadow: m3.elev1,
+                boxSizing: "border-box",
+              }),
+            }}
+          >
             <div
               style={{
                 display: "flex",
@@ -305,11 +382,21 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: Props) {
                   display: "flex",
                   alignItems: "center",
                   gap: 6,
+                  ...(m3 && {
+                    background: m3.containerHigh,
+                    borderRadius: 22,
+                    minHeight: 44,
+                    padding: "0 16px",
+                    color: T.text,
+                    fontWeight: 600,
+                  }),
                 }}
               >
                 ← Back
               </button>
-              <div style={{ width: 1, height: 16, background: T.line }} />
+              {!m3 && (
+                <div style={{ width: 1, height: 16, background: T.line }} />
+              )}
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <div
                   style={{
@@ -324,6 +411,13 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: Props) {
                     fontSize: 11,
                     fontWeight: 700,
                     color: T.text,
+                    ...(m3 && {
+                      width: 36,
+                      height: 36,
+                      background: m3.primaryContainer,
+                      border: "none",
+                      color: m3.onPrimaryContainer,
+                    }),
                   }}
                 >
                   {initials(selected.name)}
@@ -340,6 +434,11 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: Props) {
                   padding: 16,
                   background: T.surface2,
                   borderRadius: T.radiusLg,
+                  ...(m3 && {
+                    background: m3.okContainer,
+                    color: m3.onOkContainer,
+                    borderRadius: 20,
+                  }),
                   fontSize: 13,
                   color: T.text,
                   textAlign: "center",
@@ -374,6 +473,13 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: Props) {
                     textTransform: "uppercase",
                     color: T.textMute,
                     marginBottom: 8,
+                    ...(m3 && {
+                      fontSize: 14,
+                      fontWeight: 600,
+                      letterSpacing: "normal",
+                      textTransform: "none",
+                      color: T.textDim,
+                    }),
                   }}
                 >
                   Password
@@ -399,6 +505,14 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: Props) {
                     fontFamily: "inherit",
                     borderRadius: T.radius,
                     outline: "none",
+                    ...(m3 && {
+                      background: m3.containerHigh,
+                      border: error
+                        ? `1px solid ${T.bad}`
+                        : "1px solid transparent",
+                      borderRadius: 12,
+                      minHeight: 48,
+                    }),
                   }}
                 />
                 {error && (
@@ -429,6 +543,14 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: Props) {
                     cursor: password && !submitting ? "pointer" : "default",
                     fontFamily: "inherit",
                     transition: "background 0.12s ease",
+                    ...(m3 && {
+                      background:
+                        password && !submitting
+                          ? T.accent
+                          : m3.containerHighest,
+                      borderRadius: 24,
+                      minHeight: 48,
+                    }),
                   }}
                 >
                   {submitting ? "Signing in..." : "Sign In"}
@@ -444,6 +566,15 @@ const StaffPicker = memo(function StaffPicker({ onSelect }: Props) {
                       fontSize: 12,
                       fontFamily: "inherit",
                       textDecoration: "underline",
+                      ...(m3 && {
+                        minHeight: 44,
+                        padding: "0 16px",
+                        borderRadius: 22,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: T.accent,
+                        textDecoration: "none",
+                      }),
                     }}
                   >
                     Forgot password?

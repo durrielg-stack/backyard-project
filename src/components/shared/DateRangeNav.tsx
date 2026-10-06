@@ -44,6 +44,7 @@ export default function DateRangeNav({
   const { T } = useTheme();
   const bp = useBreakpoint();
   const isMobile = bp === "mobile";
+  const m3 = T.m3;
 
   const btnBase: React.CSSProperties = {
     padding: isMobile ? "10px 14px" : "5px 14px",
@@ -54,6 +55,13 @@ export default function DateRangeNav({
     borderRadius: T.radius,
     cursor: "pointer",
     lineHeight: 1,
+    ...(m3 && {
+      border: "none",
+      borderRadius: 16,
+      padding: isMobile ? "10px 16px" : "0 16px",
+      minHeight: isMobile ? 44 : 34,
+      fontWeight: 500,
+    }),
   };
   const activeBtn: React.CSSProperties = {
     ...btnBase,
@@ -64,10 +72,51 @@ export default function DateRangeNav({
   };
   const inactiveBtn: React.CSSProperties = {
     ...btnBase,
-    background: T.chip,
+    background: m3 ? "transparent" : T.chip,
     color: T.textDim,
-    fontWeight: 400,
+    fontWeight: m3 ? 500 : 400,
   };
+  // Secondary "jump back" buttons (Today / This Week / This Month).
+  const jumpBtn: React.CSSProperties = m3
+    ? {
+        ...inactiveBtn,
+        background: m3.containerHigh,
+        color: T.text,
+        borderRadius: 999,
+        padding: "0 12px",
+        minHeight: isMobile ? 44 : 32,
+        fontSize: 12,
+        whiteSpace: "nowrap",
+      }
+    : { ...inactiveBtn, padding: "3px 8px", fontSize: 11 };
+
+  // Date input / select styling.
+  const fieldStyle = (mobileTall: boolean): React.CSSProperties =>
+    m3
+      ? {
+          padding: "0 12px",
+          minHeight: isMobile ? 44 : 36,
+          fontSize: 13,
+          fontFamily: T.mono,
+          background: m3.containerHigh,
+          color: T.text,
+          border: "none",
+          borderRadius: 12,
+          outline: "none",
+          cursor: "pointer",
+        }
+      : {
+          padding: mobileTall && isMobile ? "10px 8px" : "4px 8px",
+          minHeight: mobileTall && isMobile ? 44 : undefined,
+          fontSize: 12,
+          fontFamily: T.mono,
+          background: T.surface2,
+          color: T.text,
+          border: `1px solid ${T.line2}`,
+          borderRadius: T.radius,
+          outline: "none",
+          cursor: "pointer",
+        };
 
   const navBtn: React.CSSProperties = {
     width: isMobile ? 44 : 28,
@@ -83,6 +132,15 @@ export default function DateRangeNav({
     fontSize: isMobile ? 18 : 14,
     lineHeight: 1,
     flexShrink: 0,
+    ...(m3 && {
+      width: isMobile ? 44 : 36,
+      height: isMobile ? 44 : 36,
+      background: m3.containerHigh,
+      border: "none",
+      borderRadius: "50%",
+      color: T.text,
+      fontSize: isMobile ? 20 : 18,
+    }),
   };
 
   function handlePrev() {
@@ -112,23 +170,12 @@ export default function DateRangeNav({
             type="date"
             value={date}
             onChange={(e) => e.target.value && onDateChange(e.target.value)}
-            style={{
-              padding: isMobile ? "10px 8px" : "4px 8px",
-              minHeight: isMobile ? 44 : undefined,
-              fontSize: 12,
-              fontFamily: T.mono,
-              background: T.surface2,
-              color: T.text,
-              border: `1px solid ${T.line2}`,
-              borderRadius: T.radius,
-              outline: "none",
-              cursor: "pointer",
-            }}
+            style={fieldStyle(true)}
           />
           {date !== localDateStr(new Date()) && (
             <button
               onClick={() => onDateChange(localDateStr(new Date()))}
-              style={{ ...inactiveBtn, padding: "3px 8px", fontSize: 11 }}
+              style={jumpBtn}
             >
               Today
             </button>
@@ -150,18 +197,7 @@ export default function DateRangeNav({
             onChange={(e) =>
               e.target.value && onWeekChange(parseLocalDate(e.target.value))
             }
-            style={{
-              padding: isMobile ? "10px 8px" : "4px 8px",
-              minHeight: isMobile ? 44 : undefined,
-              fontSize: 12,
-              fontFamily: T.mono,
-              background: T.surface2,
-              color: T.text,
-              border: `1px solid ${T.line2}`,
-              borderRadius: T.radius,
-              outline: "none",
-              cursor: "pointer",
-            }}
+            style={fieldStyle(true)}
           />
           <span
             style={{
@@ -174,10 +210,7 @@ export default function DateRangeNav({
             {label}
           </span>
           {weekStartStr !== todayWeekStr && (
-            <button
-              onClick={() => onWeekChange(new Date())}
-              style={{ ...inactiveBtn, padding: "3px 8px", fontSize: 11 }}
-            >
+            <button onClick={() => onWeekChange(new Date())} style={jumpBtn}>
               This Week
             </button>
           )}
@@ -194,17 +227,7 @@ export default function DateRangeNav({
         <select
           value={month}
           onChange={(e) => onMonthChange(year, parseInt(e.target.value))}
-          style={{
-            padding: "4px 8px",
-            fontSize: 12,
-            fontFamily: T.mono,
-            background: T.surface2,
-            color: T.text,
-            border: `1px solid ${T.line2}`,
-            borderRadius: T.radius,
-            outline: "none",
-            cursor: "pointer",
-          }}
+          style={fieldStyle(false)}
         >
           {MONTH_NAMES.map((name, i) => (
             <option key={name} value={i}>
@@ -215,17 +238,7 @@ export default function DateRangeNav({
         <select
           value={year}
           onChange={(e) => onMonthChange(parseInt(e.target.value), month)}
-          style={{
-            padding: "4px 8px",
-            fontSize: 12,
-            fontFamily: T.mono,
-            background: T.surface2,
-            color: T.text,
-            border: `1px solid ${T.line2}`,
-            borderRadius: T.radius,
-            outline: "none",
-            cursor: "pointer",
-          }}
+          style={fieldStyle(false)}
         >
           {[todayDate.getFullYear() - 1, todayDate.getFullYear()].map((y) => (
             <option key={y} value={y}>
@@ -238,7 +251,7 @@ export default function DateRangeNav({
             onClick={() =>
               onMonthChange(todayDate.getFullYear(), todayDate.getMonth())
             }
-            style={{ ...inactiveBtn, padding: "3px 8px", fontSize: 11 }}
+            style={jumpBtn}
           >
             This Month
           </button>
@@ -262,13 +275,25 @@ export default function DateRangeNav({
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 8,
+        gap: m3 ? 10 : 8,
         overflowX: "auto",
         touchAction: "pan-x pan-y",
       }}
     >
       {/* Mode pills */}
-      <div style={{ display: "flex", gap: 2 }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 2,
+          ...(m3 && {
+            gap: 4,
+            padding: 3,
+            background: m3.track,
+            borderRadius: 18,
+            flexShrink: 0,
+          }),
+        }}
+      >
         {(["today", "week", "month"] as ViewMode[]).map((m) => (
           <button
             key={m}
@@ -280,7 +305,7 @@ export default function DateRangeNav({
         ))}
       </div>
 
-      <div style={{ width: 1, height: 20, background: T.line2 }} />
+      {!m3 && <div style={{ width: 1, height: 20, background: T.line2 }} />}
 
       {/* Prev / center / next */}
       <button onClick={handlePrev} style={navBtn}>

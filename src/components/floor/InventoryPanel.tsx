@@ -25,21 +25,28 @@ export default function StockAlertsStrip() {
   if (rows.length === 0) return null;
 
   const critical = rows.filter((r) => r.quantity <= 0).length;
+  const m3 = T.m3;
 
   return (
     <div
       style={{
-        borderTop: `1px solid ${T.line}`,
+        borderTop: m3 ? "none" : `1px solid ${T.line}`,
         background: T.surface,
         flexShrink: 0,
         padding: "8px 20px",
+        ...(m3 && {
+          background: m3.container,
+          borderRadius: 24,
+          boxShadow: m3.elev1,
+          padding: "12px 20px",
+        }),
       }}
     >
       <div
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 16,
+          gap: m3 ? 10 : 16,
           flexWrap: "wrap",
         }}
       >
@@ -53,28 +60,43 @@ export default function StockAlertsStrip() {
           }}
         >
           <span
-            style={{
-              fontSize: 9,
-              fontWeight: 700,
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
-              color: T.textMute,
-            }}
+            style={
+              m3
+                ? { fontSize: 14, fontWeight: 600, color: T.text }
+                : {
+                    fontSize: 9,
+                    fontWeight: 700,
+                    letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                    color: T.textMute,
+                  }
+            }
           >
             Stock Alerts
           </span>
           {critical > 0 && (
             <span
-              style={{
-                fontSize: 9,
-                fontWeight: 700,
-                padding: "2px 6px",
-                background: `${T.bad}22`,
-                color: T.bad,
-                borderRadius: T.radius,
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-              }}
+              style={
+                m3
+                  ? {
+                      fontSize: 11,
+                      fontWeight: 600,
+                      padding: "4px 10px",
+                      background: m3.badContainer,
+                      color: m3.onBadContainer,
+                      borderRadius: 10,
+                    }
+                  : {
+                      fontSize: 9,
+                      fontWeight: 700,
+                      padding: "2px 6px",
+                      background: `${T.bad}22`,
+                      color: T.bad,
+                      borderRadius: T.radius,
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                    }
+              }
             >
               {critical} critical
             </span>
@@ -107,6 +129,17 @@ export default function StockAlertsStrip() {
                 background: `${color}11`,
                 border: `1px solid ${color}44`,
                 borderRadius: T.radius,
+                ...(m3 && {
+                  padding: "6px 12px",
+                  background:
+                    r.quantity <= 0
+                      ? m3.badTint
+                      : r.quantity <= r.low_stock_threshold * 0.4
+                        ? m3.warnTint
+                        : m3.containerHigh,
+                  border: "none",
+                  borderRadius: 12,
+                }),
               }}
             >
               <span style={{ fontSize: 11, fontWeight: 500, color: T.text }}>
@@ -117,8 +150,8 @@ export default function StockAlertsStrip() {
                 style={{
                   width: 40,
                   height: 4,
-                  background: T.surface2,
-                  borderRadius: 2,
+                  background: m3 ? m3.track : T.surface2,
+                  borderRadius: m3 ? 4 : 2,
                   overflow: "hidden",
                 }}
               >
@@ -127,7 +160,7 @@ export default function StockAlertsStrip() {
                     height: "100%",
                     width: `${pct * 100}%`,
                     background: color,
-                    borderRadius: 2,
+                    borderRadius: m3 ? 4 : 2,
                   }}
                 />
               </div>
@@ -175,6 +208,18 @@ export default function StockAlertsStrip() {
             letterSpacing: "0.06em",
             textTransform: "uppercase",
             flexShrink: 0,
+            ...(m3 && {
+              padding: "0 16px",
+              minHeight: 40,
+              fontSize: 13,
+              fontWeight: 500,
+              background: m3.containerHigh,
+              border: "none",
+              color: T.text,
+              borderRadius: 20,
+              letterSpacing: "normal",
+              textTransform: "none",
+            }),
           }}
         >
           Reorder List

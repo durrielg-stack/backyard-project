@@ -21,6 +21,7 @@ type StockFilter = "all" | "out" | "low" | "normal";
 
 export default function InventoryTab() {
   const { T } = useTheme();
+  const m3 = T.m3;
 
   const [rows, setRows] = useState<InvRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,26 +109,45 @@ export default function InventoryTab() {
     label: string,
     count: number,
     color: string,
-  ) => (
-    <button
-      key={id}
-      onClick={() => setStockFilter((prev) => (prev === id ? "all" : id))}
-      style={{
-        padding: "4px 12px",
-        fontSize: 11,
-        fontFamily: "inherit",
-        fontWeight: 700,
-        background: stockFilter === id ? color : `${color}18`,
-        color: stockFilter === id ? "#fff" : color,
-        border: `1px solid ${color}`,
-        borderRadius: T.radius,
-        cursor: "pointer",
-        whiteSpace: "nowrap",
-      }}
-    >
-      {count} {label}
-    </button>
-  );
+  ) => {
+    const m3Pair = m3
+      ? id === "out"
+        ? { bg: m3.badContainer, fg: m3.onBadContainer }
+        : id === "low"
+          ? { bg: m3.warnContainer, fg: m3.onWarnContainer }
+          : { bg: m3.okContainer, fg: m3.onOkContainer }
+      : null;
+    return (
+      <button
+        key={id}
+        onClick={() => setStockFilter((prev) => (prev === id ? "all" : id))}
+        style={{
+          padding: "4px 12px",
+          fontSize: 11,
+          fontFamily: "inherit",
+          fontWeight: 700,
+          background: stockFilter === id ? color : `${color}18`,
+          color: stockFilter === id ? "#fff" : color,
+          border: `1px solid ${color}`,
+          borderRadius: T.radius,
+          cursor: "pointer",
+          whiteSpace: "nowrap",
+          ...(m3Pair && {
+            padding: "0 12px",
+            height: 32,
+            fontSize: 12,
+            fontWeight: 600,
+            background: stockFilter === id ? m3Pair.fg : m3Pair.bg,
+            color: stockFilter === id ? m3Pair.bg : m3Pair.fg,
+            border: "none",
+            borderRadius: 12,
+          }),
+        }}
+      >
+        {count} {label}
+      </button>
+    );
+  };
 
   return (
     <div
@@ -169,6 +189,14 @@ export default function InventoryTab() {
                 padding: "6px 8px",
                 outline: "none",
                 cursor: "pointer",
+                ...(m3 && {
+                  background: m3.containerHigh,
+                  border:
+                    catFilter !== "all" ? `1px solid ${T.accent}` : "none",
+                  borderRadius: 12,
+                  minHeight: 40,
+                  padding: "0 12px",
+                }),
               }}
             >
               <option value="all">All Categories</option>
@@ -209,18 +237,24 @@ export default function InventoryTab() {
             touchAction: "pan-x pan-y",
             overscrollBehaviorX: "contain",
             overscrollBehaviorY: "none",
+            ...(m3 && {
+              margin: "0 20px 20px",
+              background: m3.container,
+              borderRadius: 24,
+              boxShadow: m3.elev1,
+            }),
           }}
         >
-          <div style={{ minWidth: 680 }}>
+          <div style={{ minWidth: 680, ...(m3 && { padding: "0 8px 8px" }) }}>
             <div
               style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 120px 80px 80px 120px 160px",
-                padding: "0 24px",
-                height: 36,
+                padding: m3 ? "0 12px" : "0 24px",
+                height: m3 ? 44 : 36,
                 alignItems: "center",
-                borderBottom: `1px solid ${T.line}`,
-                background: T.surface2,
+                borderBottom: m3 ? "none" : `1px solid ${T.line}`,
+                background: m3 ? m3.container : T.surface2,
                 position: "sticky",
                 top: 0,
                 zIndex: 1,
@@ -246,11 +280,11 @@ export default function InventoryTab() {
                       padding: 0,
                       cursor: "pointer",
                       fontFamily: "inherit",
-                      fontSize: 10,
+                      fontSize: m3 ? 11 : 10,
                       fontWeight: 600,
-                      letterSpacing: "0.12em",
+                      letterSpacing: m3 ? "0.04em" : "0.12em",
                       textTransform: "uppercase",
-                      color: T.headerText,
+                      color: m3 ? T.textMute : T.headerText,
                       display: "flex",
                       alignItems: "center",
                       gap: 3,
@@ -266,11 +300,11 @@ export default function InventoryTab() {
                   <span
                     key={h}
                     style={{
-                      fontSize: 10,
+                      fontSize: m3 ? 11 : 10,
                       fontWeight: 600,
-                      letterSpacing: "0.12em",
+                      letterSpacing: m3 ? "0.04em" : "0.12em",
                       textTransform: "uppercase",
-                      color: T.headerText,
+                      color: m3 ? T.textMute : T.headerText,
                     }}
                   >
                     {h}
@@ -289,11 +323,18 @@ export default function InventoryTab() {
                   style={{
                     display: "grid",
                     gridTemplateColumns: "1fr 120px 80px 80px 120px 160px",
-                    padding: "0 24px",
-                    height: 44,
+                    padding: m3 ? "0 12px" : "0 24px",
+                    height: m3 ? 52 : 44,
                     alignItems: "center",
-                    borderBottom: `1px solid ${T.line}`,
-                    background: i % 2 === 0 ? "transparent" : T.surface,
+                    borderBottom: m3 ? "none" : `1px solid ${T.line}`,
+                    background: m3
+                      ? i % 2 === 0
+                        ? m3.containerHigh
+                        : "transparent"
+                      : i % 2 === 0
+                        ? "transparent"
+                        : T.surface,
+                    ...(m3 && { borderRadius: 14 }),
                     opacity: saving === row.id ? 0.5 : 1,
                   }}
                 >
@@ -335,6 +376,18 @@ export default function InventoryTab() {
                           fontWeight: 700,
                           letterSpacing: "0.06em",
                           color: isCritical ? T.bad : T.warn,
+                          ...(m3 && {
+                            fontFamily: T.sansBody,
+                            fontSize: 10,
+                            padding: "2px 8px",
+                            borderRadius: 10,
+                            background: isCritical
+                              ? m3.badContainer
+                              : m3.warnContainer,
+                            color: isCritical
+                              ? m3.onBadContainer
+                              : m3.onWarnContainer,
+                          }),
                         }}
                       >
                         {isCritical ? "OUT" : "LOW"}
@@ -358,10 +411,10 @@ export default function InventoryTab() {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        background: T.chip,
-                        border: `1px solid ${T.line2}`,
-                        color: T.textDim,
-                        borderRadius: T.radius,
+                        background: m3 ? m3.containerHighest : T.chip,
+                        border: m3 ? "none" : `1px solid ${T.line2}`,
+                        color: m3 ? T.text : T.textDim,
+                        borderRadius: m3 ? 18 : T.radius,
                         cursor: isAuto ? "not-allowed" : "pointer",
                         fontSize: 16,
                         fontFamily: "inherit",
@@ -379,10 +432,10 @@ export default function InventoryTab() {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        background: T.chip,
-                        border: `1px solid ${T.line2}`,
-                        color: T.textDim,
-                        borderRadius: T.radius,
+                        background: m3 ? m3.containerHighest : T.chip,
+                        border: m3 ? "none" : `1px solid ${T.line2}`,
+                        color: m3 ? T.text : T.textDim,
+                        borderRadius: m3 ? 18 : T.radius,
                         cursor: isAuto ? "not-allowed" : "pointer",
                         fontSize: 16,
                         fontFamily: "inherit",
@@ -398,10 +451,10 @@ export default function InventoryTab() {
                         padding: "8px 10px",
                         fontSize: 11,
                         fontFamily: "inherit",
-                        background: T.chip,
-                        border: `1px solid ${T.line2}`,
-                        color: T.textDim,
-                        borderRadius: T.radius,
+                        background: m3 ? m3.containerHighest : T.chip,
+                        border: m3 ? "none" : `1px solid ${T.line2}`,
+                        color: m3 ? T.text : T.textDim,
+                        borderRadius: m3 ? 18 : T.radius,
                         cursor: isAuto ? "not-allowed" : "pointer",
                         opacity: isAuto ? 0.35 : 1,
                       }}

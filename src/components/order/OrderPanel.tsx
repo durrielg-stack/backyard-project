@@ -120,6 +120,21 @@ export default function OrderPanel({
     openMin > 0 ? (hours > 0 ? `${hours}h ${mins}m` : `${mins}m`) : "—";
 
   // Seat chips: All + S1…Scapacity
+  const m3 = T.m3;
+  // Under M3 the header's small actions become tonal pills with a 40px hit area.
+  const m3Pill: React.CSSProperties | undefined = m3
+    ? {
+        padding: "0 16px",
+        minHeight: 40,
+        fontSize: 13,
+        fontWeight: 600,
+        borderRadius: 20,
+        border: "none",
+        letterSpacing: 0,
+        textTransform: "none",
+      }
+    : undefined;
+
   const seats = Array.from(
     { length: Math.max(table.capacity, 1) },
     (_, i) => i + 1,
@@ -132,21 +147,27 @@ export default function OrderPanel({
         flexShrink: 0,
         display: "flex",
         flexDirection: "column",
-        background: T.surface,
-        borderLeft: isMobile ? "none" : `1px solid ${T.line}`,
+        background: m3 ? m3.container : T.surface,
+        borderLeft: isMobile || m3 ? "none" : `1px solid ${T.line}`,
         height: "100%",
+        ...(m3 && {
+          borderRadius: 24,
+          boxShadow: m3.elev1,
+          overflow: "hidden",
+          minHeight: 0,
+        }),
       }}
     >
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div
         style={{
           height: 80,
-          padding: "0 24px",
+          padding: m3 ? "0 16px 0 12px" : "0 24px",
           flexShrink: 0,
-          borderBottom: `1px solid ${T.line}`,
+          borderBottom: m3 ? "none" : `1px solid ${T.line}`,
           display: "flex",
           alignItems: "center",
-          gap: 14,
+          gap: m3 ? 10 : 14,
         }}
       >
         {/* ← Floor */}
@@ -166,6 +187,14 @@ export default function OrderPanel({
             borderRadius: T.radius,
             transition: "color 0.12s ease",
             flexShrink: 0,
+            ...(m3 && {
+              padding: "0 14px 0 10px",
+              minHeight: 40,
+              borderRadius: 20,
+              background: m3.containerHigh,
+              color: T.text,
+              fontWeight: 500,
+            }),
           }}
         >
           <svg
@@ -182,9 +211,11 @@ export default function OrderPanel({
           Floor
         </button>
 
-        <div
-          style={{ width: 1, height: 26, background: T.line2, flexShrink: 0 }}
-        />
+        {!m3 && (
+          <div
+            style={{ width: 1, height: 26, background: T.line2, flexShrink: 0 }}
+          />
+        )}
 
         {/* ORDER #ID */}
         {orderId != null && (
@@ -196,6 +227,15 @@ export default function OrderPanel({
               letterSpacing: "0.08em",
               textTransform: "uppercase",
               flexShrink: 0,
+              ...(m3 && {
+                fontSize: 12,
+                fontWeight: 500,
+                letterSpacing: 0,
+                color: T.textDim,
+                background: m3.containerHighest,
+                padding: "4px 10px",
+                borderRadius: 12,
+              }),
             }}
           >
             ORDER #{orderId}
@@ -205,10 +245,10 @@ export default function OrderPanel({
         {/* Table label */}
         <span
           style={{
-            fontSize: 22,
-            fontWeight: 700,
+            fontSize: m3 ? 20 : 22,
+            fontWeight: m3 ? 600 : 700,
             color: T.text,
-            letterSpacing: "-0.02em",
+            letterSpacing: m3 ? 0 : "-0.02em",
             fontFamily: T.sansHead,
             flexShrink: 0,
           }}
@@ -254,6 +294,7 @@ export default function OrderPanel({
               cursor: onSetStatus ? "pointer" : "default",
               fontFamily: "inherit",
               transition: "background 0.12s ease, border-color 0.12s ease",
+              ...(m3 && { ...m3Pill, background: statusC + "24" }),
             }}
           >
             {statusLabel(table.status)}
@@ -268,10 +309,11 @@ export default function OrderPanel({
                 position: "absolute",
                 top: "calc(100% + 6px)",
                 right: 0,
-                background: T.surface,
-                border: `1px solid ${T.line}`,
-                borderRadius: T.radius,
-                boxShadow: "0 8px 24px rgba(0,0,0,.35)",
+                background: m3 ? m3.containerHigh : T.surface,
+                border: m3 ? "none" : `1px solid ${T.line}`,
+                borderRadius: m3 ? 16 : T.radius,
+                boxShadow: m3 ? m3.elev2 : "0 8px 24px rgba(0,0,0,.35)",
+                ...(m3 && { padding: "6px 0" }),
                 overflow: "hidden",
                 zIndex: 50,
                 minWidth: 140,
@@ -308,6 +350,7 @@ export default function OrderPanel({
                       fontFamily: "inherit",
                       textAlign: "left",
                       transition: "background 0.1s ease",
+                      ...(m3 && { minHeight: 44, padding: "0 16px" }),
                     }}
                     onMouseEnter={(e) => {
                       (e.currentTarget as HTMLElement).style.background =
@@ -329,10 +372,10 @@ export default function OrderPanel({
                     />
                     <span
                       style={{
-                        fontSize: 12,
+                        fontSize: m3 ? 14 : 12,
                         fontWeight: isCurrent ? 600 : 400,
-                        color: isCurrent ? c : T.textDim,
-                        letterSpacing: "0.04em",
+                        color: isCurrent ? c : m3 ? T.text : T.textDim,
+                        letterSpacing: m3 ? 0 : "0.04em",
                       }}
                     >
                       {label}
@@ -367,6 +410,11 @@ export default function OrderPanel({
               cursor: "pointer",
               flexShrink: 0,
               transition: "border-color 0.12s ease, color 0.12s ease",
+              ...(m3 && {
+                ...m3Pill,
+                background: m3.containerHigh,
+                color: T.text,
+              }),
             }}
           >
             Move
@@ -389,6 +437,11 @@ export default function OrderPanel({
             flexShrink: 0,
             transition:
               "background 0.12s ease, border-color 0.12s ease, color 0.12s ease",
+            ...(m3 && {
+              ...m3Pill,
+              background: bulkMode ? m3.warnContainer : m3.containerHigh,
+              color: bulkMode ? m3.onWarnContainer : T.text,
+            }),
           }}
         >
           {bulkMode ? "Cancel" : "Select"}
@@ -402,13 +455,26 @@ export default function OrderPanel({
             padding: "6px 24px",
             background: `${T.bad}14`,
             borderBottom: `1px solid ${T.bad}44`,
+            ...(m3 && {
+              margin: "0 12px 8px",
+              padding: "6px 6px 6px 16px",
+              background: m3.badTint,
+              borderBottom: "none",
+              borderRadius: 20,
+            }),
             display: "flex",
             alignItems: "center",
             gap: 10,
             flexShrink: 0,
           }}
         >
-          <span style={{ fontSize: 12, color: T.bad, fontFamily: T.mono }}>
+          <span
+            style={{
+              fontSize: 12,
+              color: m3 ? m3.onBadContainer : T.bad,
+              fontFamily: T.mono,
+            }}
+          >
             {bulkSelected.size} item{bulkSelected.size !== 1 ? "s" : ""}{" "}
             selected
           </span>
@@ -425,6 +491,11 @@ export default function OrderPanel({
               color: T.bad,
               borderRadius: T.radius,
               cursor: "pointer",
+              ...(m3 && {
+                ...m3Pill,
+                background: m3.badContainer,
+                color: m3.onBadContainer,
+              }),
             }}
           >
             Void {bulkSelected.size} item{bulkSelected.size !== 1 ? "s" : ""}
@@ -436,25 +507,35 @@ export default function OrderPanel({
       <div
         className="bp-no-scrollbar"
         style={{
-          padding: "8px 24px",
-          borderBottom: `1px solid ${T.line}`,
+          padding: m3 ? "0 16px 10px" : "8px 24px",
+          borderBottom: m3 ? "none" : `1px solid ${T.line}`,
           display: "flex",
           alignItems: "center",
-          gap: 6,
+          gap: m3 ? 8 : 6,
           flexShrink: 0,
           overflowX: "auto",
         }}
       >
         <span
-          style={{
-            fontSize: 10,
-            fontWeight: 600,
-            letterSpacing: "0.10em",
-            textTransform: "uppercase",
-            color: T.textMute,
-            marginRight: 4,
-            flexShrink: 0,
-          }}
+          style={
+            m3
+              ? {
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: T.textDim,
+                  marginRight: 4,
+                  flexShrink: 0,
+                }
+              : {
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: "0.10em",
+                  textTransform: "uppercase",
+                  color: T.textMute,
+                  marginRight: 4,
+                  flexShrink: 0,
+                }
+          }
         >
           Seat
         </span>
@@ -474,6 +555,15 @@ export default function OrderPanel({
             cursor: "pointer",
             flexShrink: 0,
             transition: "background 0.12s ease, border-color 0.12s ease",
+            ...(m3 && {
+              border: "none",
+              borderRadius: 18,
+              minHeight: 36,
+              minWidth: 44,
+              padding: "0 14px",
+              fontSize: 13,
+              background: selectedSeat === 0 ? T.accent : m3.containerHigh,
+            }),
           }}
         >
           All
@@ -495,6 +585,15 @@ export default function OrderPanel({
               cursor: "pointer",
               flexShrink: 0,
               transition: "background 0.12s ease, border-color 0.12s ease",
+              ...(m3 && {
+                border: "none",
+                borderRadius: 18,
+                minHeight: 36,
+                minWidth: 44,
+                padding: "0 14px",
+                fontSize: 13,
+                background: selectedSeat === s ? T.accent : m3.containerHigh,
+              }),
             }}
           >
             S{s}
@@ -506,7 +605,17 @@ export default function OrderPanel({
       <div
         ref={listRef}
         className="bp-no-scrollbar"
-        style={{ flex: 1, overflowY: "auto", minHeight: 0 }}
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          minHeight: 0,
+          ...(m3 && {
+            padding: "0 12px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+          }),
+        }}
       >
         {lines.length === 0 ? (
           <div

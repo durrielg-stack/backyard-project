@@ -157,7 +157,24 @@ export default function ManageUsersModal({
     color: T.textMute,
     marginBottom: 8,
     display: "block",
+    ...(T.m3 && {
+      fontSize: 12,
+      fontWeight: 500,
+      letterSpacing: 0,
+      textTransform: "none",
+      color: T.textDim,
+    }),
   };
+  const m3 = T.m3;
+  const m3Pill: React.CSSProperties | undefined = m3
+    ? {
+        minHeight: 40,
+        padding: "0 16px",
+        fontSize: 12,
+        border: "none",
+        borderRadius: 20,
+      }
+    : undefined;
 
   function inputStyle(err?: boolean): React.CSSProperties {
     return {
@@ -171,6 +188,14 @@ export default function ManageUsersModal({
       fontFamily: "inherit",
       borderRadius: T.radius,
       outline: "none",
+      ...(T.m3 && {
+        minHeight: 44,
+        padding: "0 14px",
+        fontSize: 14,
+        background: T.m3.containerHigh,
+        border: `1px solid ${err ? T.bad : "transparent"}`,
+        borderRadius: 12,
+      }),
     };
   }
 
@@ -179,18 +204,35 @@ export default function ManageUsersModal({
       {/* Header */}
       <div
         style={{
-          padding: "20px 24px 16px",
-          borderBottom: `1px solid ${T.line}`,
+          padding: m3 ? "24px 24px 12px" : "20px 24px 16px",
+          borderBottom: m3 ? "none" : `1px solid ${T.line}`,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           flexShrink: 0,
         }}
       >
-        <div style={{ fontSize: 16, fontWeight: 700, color: T.text }}>
+        <div
+          style={{
+            fontSize: m3 ? 20 : 16,
+            fontWeight: m3 ? 600 : 700,
+            color: T.text,
+          }}
+        >
           Manage Users
         </div>
-        <div style={{ display: "flex", gap: 6 }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            ...(m3 && {
+              gap: 2,
+              padding: 3,
+              background: m3.track,
+              borderRadius: 22,
+            }),
+          }}
+        >
           {(["active", "all"] as const).map((t) => (
             <button
               key={t}
@@ -205,6 +247,11 @@ export default function ManageUsersModal({
                 borderRadius: T.radius,
                 cursor: "pointer",
                 fontFamily: "inherit",
+                ...(m3 && {
+                  ...m3Pill,
+                  background: tab === t ? T.accent : "transparent",
+                  color: tab === t ? T.accentInk : T.textDim,
+                }),
               }}
             >
               {t === "active" ? "Active" : "All"}
@@ -220,6 +267,13 @@ export default function ManageUsersModal({
             padding: "20px 24px",
             borderBottom: `1px solid ${T.line}`,
             flexShrink: 0,
+            ...(m3 && {
+              margin: "0 16px 12px",
+              padding: "16px 16px",
+              borderBottom: "none",
+              background: m3.containerHigh,
+              borderRadius: 20,
+            }),
           }}
         >
           <div
@@ -242,6 +296,7 @@ export default function ManageUsersModal({
                 fontSize: 12,
                 cursor: "pointer",
                 fontFamily: "inherit",
+                ...(m3 && { minHeight: 40, padding: "0 12px", fontSize: 13 }),
               }}
             >
               Cancel
@@ -260,6 +315,7 @@ export default function ManageUsersModal({
                   fontSize: 12,
                   cursor: "pointer",
                   fontFamily: "inherit",
+                  ...(m3 && { minHeight: 40, padding: "0 12px", fontSize: 13 }),
                 }}
               >
                 Done
@@ -293,6 +349,13 @@ export default function ManageUsersModal({
                   cursor: resetPw && !resetLoading ? "pointer" : "default",
                   fontFamily: "inherit",
                   whiteSpace: "nowrap",
+                  ...(m3 && {
+                    minHeight: 44,
+                    padding: "0 20px",
+                    borderRadius: 22,
+                    background:
+                      resetPw && !resetLoading ? T.accent : m3.containerHighest,
+                  }),
                 }}
               >
                 {resetLoading ? "Resetting..." : "Reset"}
@@ -315,7 +378,19 @@ export default function ManageUsersModal({
       )}
 
       {/* User list */}
-      <div className="bp-no-scrollbar" style={{ overflowY: "auto", flex: 1 }}>
+      <div
+        className="bp-no-scrollbar"
+        style={{
+          overflowY: "auto",
+          flex: 1,
+          ...(m3 && {
+            padding: "0 16px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+          }),
+        }}
+      >
         {displayed.map((user) => (
           <div
             key={user.id}
@@ -325,6 +400,13 @@ export default function ManageUsersModal({
               gap: 14,
               padding: "14px 24px",
               borderBottom: `1px solid ${T.line}`,
+              ...(m3 && {
+                flexShrink: 0,
+                padding: "10px 12px 10px 14px",
+                borderBottom: "none",
+                background: m3.containerHigh,
+                borderRadius: 16,
+              }),
             }}
           >
             <div
@@ -333,15 +415,25 @@ export default function ManageUsersModal({
                 height: 36,
                 borderRadius: "50%",
                 flexShrink: 0,
-                background:
-                  user.account_status === "disabled" ? T.chip : T.surface2,
-                border: `1px solid ${T.line2}`,
+                background: m3
+                  ? user.account_status === "disabled"
+                    ? m3.containerHighest
+                    : m3.primaryContainer
+                  : user.account_status === "disabled"
+                    ? T.chip
+                    : T.surface2,
+                border: m3 ? "none" : `1px solid ${T.line2}`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 fontSize: 12,
                 fontWeight: 700,
-                color: user.account_status === "disabled" ? T.textMute : T.text,
+                color:
+                  user.account_status === "disabled"
+                    ? T.textMute
+                    : m3
+                      ? m3.onPrimaryContainer
+                      : T.text,
                 opacity: user.account_status === "disabled" ? 0.5 : 1,
               }}
             >
@@ -369,6 +461,17 @@ export default function ManageUsersModal({
                       color: T.bad,
                       textTransform: "uppercase",
                       letterSpacing: "0.08em",
+                      ...(m3 && {
+                        fontFamily: "inherit",
+                        fontSize: 11,
+                        fontWeight: 600,
+                        textTransform: "none",
+                        letterSpacing: 0,
+                        color: m3.onBadContainer,
+                        background: m3.badContainer,
+                        padding: "2px 8px",
+                        borderRadius: 8,
+                      }),
                     }}
                   >
                     Disabled
@@ -396,6 +499,11 @@ export default function ManageUsersModal({
                       borderRadius: T.radius,
                       cursor: "pointer",
                       fontFamily: "inherit",
+                      ...(m3 && {
+                        ...m3Pill,
+                        background: m3.containerHighest,
+                        color: T.text,
+                      }),
                     }}
                   >
                     Reset PW
@@ -417,6 +525,17 @@ export default function ManageUsersModal({
                     cursor: statusLoading === user.id ? "default" : "pointer",
                     fontFamily: "inherit",
                     opacity: statusLoading === user.id ? 0.5 : 1,
+                    ...(m3 && {
+                      ...m3Pill,
+                      background:
+                        user.account_status === "active"
+                          ? m3.badContainer
+                          : m3.primaryContainer,
+                      color:
+                        user.account_status === "active"
+                          ? m3.onBadContainer
+                          : m3.onPrimaryContainer,
+                    }),
                   }}
                 >
                   {user.account_status === "active" ? "Disable" : "Enable"}
@@ -431,8 +550,8 @@ export default function ManageUsersModal({
       {isOwner && (
         <div
           style={{
-            padding: "16px 24px",
-            borderTop: `1px solid ${T.line}`,
+            padding: m3 ? "12px 16px 20px" : "16px 24px",
+            borderTop: m3 ? "none" : `1px solid ${T.line}`,
             flexShrink: 0,
           }}
         >
@@ -450,6 +569,13 @@ export default function ManageUsersModal({
                 borderRadius: T.radius,
                 cursor: "pointer",
                 fontFamily: "inherit",
+                ...(m3 && {
+                  minHeight: 48,
+                  background: m3.primaryContainer,
+                  color: m3.onPrimaryContainer,
+                  border: "none",
+                  borderRadius: 24,
+                }),
               }}
             >
               + Add User
@@ -459,7 +585,13 @@ export default function ManageUsersModal({
               onSubmit={handleAddUser}
               style={{ display: "flex", flexDirection: "column", gap: 12 }}
             >
-              <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>
+              <div
+                style={{
+                  fontSize: m3 ? 16 : 13,
+                  fontWeight: 600,
+                  color: T.text,
+                }}
+              >
                 New User
               </div>
               <div style={{ display: "flex", gap: 8 }}>
@@ -534,6 +666,13 @@ export default function ManageUsersModal({
                     borderRadius: T.radius,
                     cursor: "pointer",
                     fontFamily: "inherit",
+                    ...(m3 && {
+                      minHeight: 44,
+                      background: m3.containerHigh,
+                      color: T.text,
+                      border: "none",
+                      borderRadius: 22,
+                    }),
                   }}
                 >
                   Cancel
@@ -557,6 +696,14 @@ export default function ManageUsersModal({
                     cursor:
                       addLoading || !addName || !addPw ? "default" : "pointer",
                     fontFamily: "inherit",
+                    ...(m3 && {
+                      minHeight: 44,
+                      borderRadius: 22,
+                      background:
+                        addLoading || !addName || !addPw
+                          ? m3.containerHigh
+                          : T.accent,
+                    }),
                   }}
                 >
                   {addLoading ? "Adding..." : "Add User"}

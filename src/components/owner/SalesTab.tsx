@@ -69,6 +69,7 @@ interface ItemSummary {
 
 export default function SalesTab() {
   const { T } = useTheme();
+  const m3 = T.m3;
   const bp = useBreakpoint();
   const isMobile = bp === "mobile";
   const nav = useDateNav();
@@ -316,8 +317,41 @@ export default function SalesTab() {
     top: 0,
     zIndex: 2,
     whiteSpace: "nowrap",
+    ...(m3 && {
+      padding: "14px 16px 10px",
+      fontSize: 11,
+      fontWeight: 600,
+      letterSpacing: "0.04em",
+      color: T.textMute,
+      background: m3.container,
+      borderBottom: "none",
+    }),
     ...extra,
   });
+
+  // M3: rows are rounded pills. The radius lives on the first and last cell,
+  // so the row colour is painted by the cells (via --m3-row), not the <tr>.
+  const m3First: React.CSSProperties = m3
+    ? { borderTopLeftRadius: 14, borderBottomLeftRadius: 14 }
+    : {};
+  const m3Last: React.CSSProperties = m3
+    ? { borderTopRightRadius: 14, borderBottomRightRadius: 14 }
+    : {};
+  const m3RowBg = (i: number) =>
+    m3 ? (i % 2 === 0 ? m3.containerHigh : m3.container) : undefined;
+  const rowStyle = (bg: string): React.CSSProperties =>
+    m3 ? ({ "--m3-row": bg } as React.CSSProperties) : { background: bg };
+  const m3Card: React.CSSProperties = m3
+    ? {
+        background: m3.container,
+        borderRadius: 24,
+        boxShadow: m3.elev1,
+        overflow: "hidden",
+      }
+    : {};
+  const m3Table: React.CSSProperties = m3
+    ? { borderCollapse: "separate", borderSpacing: 0 }
+    : {};
 
   const td = (
     align: "left" | "right" = "left",
@@ -330,6 +364,7 @@ export default function SalesTab() {
     textAlign: align,
     fontVariantNumeric: "tabular-nums",
     whiteSpace: "nowrap",
+    ...(m3 && { background: "var(--m3-row)" }),
     ...extra,
   });
 
@@ -342,9 +377,9 @@ export default function SalesTab() {
     padding: 0,
     cursor: "pointer",
     fontFamily: "inherit",
-    fontSize: 10,
+    fontSize: m3 ? 11 : 10,
     fontWeight: 600,
-    letterSpacing: "0.1em",
+    letterSpacing: m3 ? "0.04em" : "0.1em",
     textTransform: "uppercase",
     color: T.textMute,
     display: "flex",
@@ -365,10 +400,15 @@ export default function SalesTab() {
     >
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       {isMobile ? (
-        <div style={{ borderBottom: `1px solid ${T.line}`, flexShrink: 0 }}>
+        <div
+          style={{
+            borderBottom: m3 ? "none" : `1px solid ${T.line}`,
+            flexShrink: 0,
+          }}
+        >
           <div
             style={{
-              height: 44,
+              height: m3 ? 52 : 44,
               padding: "0 16px",
               display: "flex",
               alignItems: "center",
@@ -376,13 +416,17 @@ export default function SalesTab() {
             }}
           >
             <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: T.headerText,
-              }}
+              style={
+                m3
+                  ? { fontSize: 18, fontWeight: 600, color: T.text }
+                  : {
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
+                      color: T.headerText,
+                    }
+              }
             >
               Sales
             </span>
@@ -397,6 +441,13 @@ export default function SalesTab() {
                   border: `1px solid ${T.accent}44`,
                   padding: "2px 8px",
                   borderRadius: T.radius,
+                  ...(m3 && {
+                    color: m3.onPrimaryContainer,
+                    background: m3.primaryContainer,
+                    border: "none",
+                    padding: "4px 10px",
+                    borderRadius: 12,
+                  }),
                 }}
               >
                 {lines.length} items
@@ -419,6 +470,14 @@ export default function SalesTab() {
                 padding: "6px 28px 6px 8px",
                 outline: "none",
                 boxSizing: "border-box",
+                ...(m3 && {
+                  fontSize: 13,
+                  background: m3.containerHigh,
+                  border: search ? `1px solid ${T.accent}` : "none",
+                  borderRadius: 12,
+                  minHeight: 40,
+                  padding: "0 32px 0 14px",
+                }),
               }}
             />
             {search && (
@@ -490,6 +549,15 @@ export default function SalesTab() {
                     padding: "5px 26px 5px 8px",
                     outline: "none",
                     width: 180,
+                    ...(m3 && {
+                      fontSize: 13,
+                      background: m3.containerHigh,
+                      border: search ? `1px solid ${T.accent}` : "none",
+                      borderRadius: 12,
+                      minHeight: 40,
+                      padding: "0 30px 0 14px",
+                      boxSizing: "border-box",
+                    }),
                   }}
                 />
                 {search && (
@@ -536,10 +604,20 @@ export default function SalesTab() {
           display: "flex",
           flexDirection: "column",
           minHeight: 0,
+          ...(m3 && {
+            gap: 14,
+            padding: isMobile ? "0 12px 12px" : "0 20px 20px",
+          }),
         }}
       >
         {/* ── Category summary ─────────────────────────────────────────────── */}
-        <div style={{ flexShrink: 0, borderBottom: `2px solid ${T.line2}` }}>
+        <div
+          style={{
+            flexShrink: 0,
+            borderBottom: m3 ? "none" : `2px solid ${T.line2}`,
+            ...m3Card,
+          }}
+        >
           <div
             className="bp-no-scrollbar"
             style={{
@@ -547,6 +625,7 @@ export default function SalesTab() {
               touchAction: "pan-x pan-y",
               overscrollBehaviorX: "contain",
               overscrollBehaviorY: "none",
+              ...(m3 && { padding: "0 8px 8px" }),
             }}
           >
             <table
@@ -554,6 +633,7 @@ export default function SalesTab() {
                 borderCollapse: "collapse",
                 minWidth: 620,
                 width: "100%",
+                ...m3Table,
               }}
             >
               <thead>
@@ -576,9 +656,9 @@ export default function SalesTab() {
               </thead>
               <tbody>
                 {catSummaries.map((c, i) => {
-                  const rowBg = i % 2 === 0 ? T.surface : T.bg;
+                  const rowBg = m3RowBg(i) ?? (i % 2 === 0 ? T.surface : T.bg);
                   return (
-                    <tr key={c.category} style={{ background: rowBg }}>
+                    <tr key={c.category} style={rowStyle(rowBg)}>
                       <td
                         style={td("left", {
                           position: "sticky",
@@ -586,6 +666,7 @@ export default function SalesTab() {
                           background: rowBg,
                           zIndex: 1,
                           fontWeight: 500,
+                          ...m3First,
                         })}
                       >
                         {c.category}
@@ -601,26 +682,31 @@ export default function SalesTab() {
                       >
                         {fmtPeso(c.net)}
                       </td>
-                      <td style={td("right", { color: T.textMute })}>
+                      <td style={td("right", { color: T.textMute, ...m3Last })}>
                         {c.margin.toFixed(1)}%
                       </td>
                     </tr>
                   );
                 })}
                 <tr
-                  style={{
-                    background: T.surface2,
-                    borderTop: `1px solid ${T.line2}`,
-                  }}
+                  style={
+                    m3
+                      ? rowStyle(m3.containerHighest)
+                      : {
+                          background: T.surface2,
+                          borderTop: `1px solid ${T.line2}`,
+                        }
+                  }
                 >
                   <td
                     style={td("left", {
                       position: "sticky",
                       left: 0,
-                      background: T.surface2,
+                      background: m3 ? m3.containerHighest : T.surface2,
                       zIndex: 1,
                       fontWeight: 700,
                       color: T.text,
+                      ...m3First,
                     })}
                   >
                     Total
@@ -642,7 +728,11 @@ export default function SalesTab() {
                     {fmtPeso(totalNet)}
                   </td>
                   <td
-                    style={td("right", { fontWeight: 700, color: T.textMute })}
+                    style={td("right", {
+                      fontWeight: 700,
+                      color: T.textMute,
+                      ...m3Last,
+                    })}
                   >
                     {totalMargin.toFixed(1)}%
                   </td>
@@ -659,6 +749,7 @@ export default function SalesTab() {
             display: "flex",
             flexDirection: "column",
             minHeight: 0,
+            ...m3Card,
           }}
         >
           {/* Toggle header */}
@@ -667,45 +758,76 @@ export default function SalesTab() {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              padding: "0 16px",
-              height: 34,
-              borderBottom: `1px solid ${T.line}`,
+              padding: m3 ? "0 12px 0 20px" : "0 16px",
+              height: m3 ? 56 : 34,
+              borderBottom: m3 ? "none" : `1px solid ${T.line}`,
               flexShrink: 0,
-              background: T.surface2,
+              background: m3 ? "transparent" : T.surface2,
             }}
           >
             <span
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                color: T.headerText,
-              }}
+              style={
+                m3
+                  ? { fontSize: 16, fontWeight: 600, color: T.text }
+                  : {
+                      fontSize: 10,
+                      fontWeight: 700,
+                      letterSpacing: "0.1em",
+                      textTransform: "uppercase",
+                      color: T.headerText,
+                    }
+              }
             >
               {tableView === "orders"
                 ? `${filteredLines.length} line${filteredLines.length !== 1 ? "s" : ""}`
                 : `${sortedSummary.length} unique item${sortedSummary.length !== 1 ? "s" : ""}`}
             </span>
-            <div style={{ display: "flex", gap: 2 }}>
+            <div
+              style={{
+                display: "flex",
+                gap: 2,
+                ...(m3 && {
+                  gap: 4,
+                  padding: 3,
+                  background: m3.track,
+                  borderRadius: 18,
+                }),
+              }}
+            >
               {(["orders", "summary"] as const).map((v) => (
                 <button
                   key={v}
                   onClick={() => setTableView(v)}
-                  style={{
-                    padding: "2px 8px",
-                    fontSize: 9,
-                    fontWeight: 700,
-                    letterSpacing: "0.08em",
-                    textTransform: "uppercase",
-                    borderRadius: 99,
-                    cursor: "pointer",
-                    fontFamily: "inherit",
-                    border: `1px solid ${tableView === v ? T.accent : T.line2}`,
-                    background:
-                      tableView === v ? `${T.accent}18` : "transparent",
-                    color: tableView === v ? T.accent : T.textMute,
-                  }}
+                  style={
+                    m3
+                      ? {
+                          padding: "0 14px",
+                          height: 32,
+                          fontSize: 12,
+                          fontWeight: tableView === v ? 600 : 500,
+                          borderRadius: 16,
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                          border: "none",
+                          background:
+                            tableView === v ? T.accent : "transparent",
+                          color: tableView === v ? T.accentInk : T.textDim,
+                        }
+                      : {
+                          padding: "2px 8px",
+                          fontSize: 9,
+                          fontWeight: 700,
+                          letterSpacing: "0.08em",
+                          textTransform: "uppercase",
+                          borderRadius: 99,
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                          border: `1px solid ${tableView === v ? T.accent : T.line2}`,
+                          background:
+                            tableView === v ? `${T.accent}18` : "transparent",
+                          color: tableView === v ? T.accent : T.textMute,
+                        }
+                  }
                 >
                   {v === "orders" ? "Per Order" : "Per Item"}
                 </button>
@@ -749,9 +871,16 @@ export default function SalesTab() {
                 touchAction: "pan-x pan-y",
                 overscrollBehaviorX: "contain",
                 overscrollBehaviorY: "none",
+                ...(m3 && { padding: "0 8px 8px" }),
               }}
             >
-              <table style={{ borderCollapse: "collapse", minWidth: 1100 }}>
+              <table
+                style={{
+                  borderCollapse: "collapse",
+                  minWidth: 1100,
+                  ...m3Table,
+                }}
+              >
                 <thead>
                   <tr>
                     <th
@@ -790,9 +919,10 @@ export default function SalesTab() {
                   {[...filteredLines]
                     .sort((a, b) => a.ts - b.ts)
                     .map((l, i) => {
-                      const rowBg = i % 2 === 0 ? T.surface : T.bg;
+                      const rowBg =
+                        m3RowBg(i) ?? (i % 2 === 0 ? T.surface : T.bg);
                       return (
-                        <tr key={l.id} style={{ background: rowBg }}>
+                        <tr key={l.id} style={rowStyle(rowBg)}>
                           <td
                             style={td("left", {
                               position: "sticky",
@@ -801,6 +931,7 @@ export default function SalesTab() {
                               zIndex: 1,
                               fontFamily: T.mono,
                               color: T.textMute,
+                              ...m3First,
                             })}
                           >
                             {l.time}
@@ -856,6 +987,7 @@ export default function SalesTab() {
                           <td
                             style={td("right", {
                               color: l.serveMin != null ? T.info : T.textMute,
+                              ...m3Last,
                             })}
                           >
                             {l.serveMin != null ? `${l.serveMin}m` : "—"}
@@ -875,9 +1007,16 @@ export default function SalesTab() {
                 touchAction: "pan-x pan-y",
                 overscrollBehaviorX: "contain",
                 overscrollBehaviorY: "none",
+                ...(m3 && { padding: "0 8px 8px" }),
               }}
             >
-              <table style={{ borderCollapse: "collapse", minWidth: 900 }}>
+              <table
+                style={{
+                  borderCollapse: "collapse",
+                  minWidth: 900,
+                  ...m3Table,
+                }}
+              >
                 <thead>
                   <tr>
                     <th
@@ -980,9 +1119,10 @@ export default function SalesTab() {
                 </thead>
                 <tbody>
                   {sortedSummary.map((s, i) => {
-                    const rowBg = i % 2 === 0 ? T.surface : T.bg;
+                    const rowBg =
+                      m3RowBg(i) ?? (i % 2 === 0 ? T.surface : T.bg);
                     return (
-                      <tr key={s.itemName} style={{ background: rowBg }}>
+                      <tr key={s.itemName} style={rowStyle(rowBg)}>
                         <td
                           style={td("left", {
                             position: "sticky",
@@ -990,6 +1130,7 @@ export default function SalesTab() {
                             background: rowBg,
                             zIndex: 1,
                             color: T.textDim,
+                            ...m3First,
                           })}
                         >
                           {s.category}
@@ -1020,6 +1161,7 @@ export default function SalesTab() {
                         </td>
                         <td
                           style={td("right", {
+                            ...m3Last,
                             color:
                               s.margin >= 60
                                 ? T.ok

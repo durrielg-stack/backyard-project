@@ -20,6 +20,7 @@ interface MenuRow {
 
 export default function MenuTab() {
   const { T } = useTheme();
+  const m3 = T.m3;
 
   const [items, setItems] = useState<MenuRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -165,18 +166,24 @@ export default function MenuTab() {
             touchAction: "pan-x pan-y",
             overscrollBehaviorX: "contain",
             overscrollBehaviorY: "none",
+            ...(m3 && {
+              margin: "0 20px 20px",
+              background: m3.container,
+              borderRadius: 24,
+              boxShadow: m3.elev1,
+            }),
           }}
         >
-          <div style={{ minWidth: 560 }}>
+          <div style={{ minWidth: 560, ...(m3 && { padding: "0 8px 8px" }) }}>
             <div
               style={{
                 display: "grid",
                 gridTemplateColumns: "1fr 100px 80px 80px 120px",
-                padding: "0 24px",
-                height: 36,
+                padding: m3 ? "0 12px" : "0 24px",
+                height: m3 ? 44 : 36,
                 alignItems: "center",
-                borderBottom: `1px solid ${T.line}`,
-                background: T.surface2,
+                borderBottom: m3 ? "none" : `1px solid ${T.line}`,
+                background: m3 ? m3.container : T.surface2,
                 position: "sticky",
                 top: 0,
                 zIndex: 1,
@@ -200,11 +207,11 @@ export default function MenuTab() {
                     padding: 0,
                     cursor: "pointer",
                     fontFamily: "inherit",
-                    fontSize: 10,
+                    fontSize: m3 ? 11 : 10,
                     fontWeight: 600,
-                    letterSpacing: "0.12em",
+                    letterSpacing: m3 ? "0.04em" : "0.12em",
                     textTransform: "uppercase",
-                    color: T.headerText,
+                    color: m3 ? T.textMute : T.headerText,
                     display: "flex",
                     alignItems: "center",
                     gap: 3,
@@ -227,11 +234,18 @@ export default function MenuTab() {
                   style={{
                     display: "grid",
                     gridTemplateColumns: "1fr 100px 80px 80px 120px",
-                    padding: "0 24px",
+                    padding: m3 ? "0 12px" : "0 24px",
                     height: 44,
                     alignItems: "center",
-                    borderBottom: `1px solid ${T.line}`,
-                    background: i % 2 === 0 ? "transparent" : T.surface,
+                    borderBottom: m3 ? "none" : `1px solid ${T.line}`,
+                    background: m3
+                      ? i % 2 === 0
+                        ? m3.containerHigh
+                        : "transparent"
+                      : i % 2 === 0
+                        ? "transparent"
+                        : T.surface,
+                    ...(m3 && { borderRadius: 14 }),
                     opacity: isSaving ? 0.5 : item.isAvailable ? 1 : 0.45,
                   }}
                 >
@@ -263,11 +277,11 @@ export default function MenuTab() {
                         fontFamily: T.mono,
                         fontSize: 13,
                         fontWeight: 600,
-                        background: T.surface,
+                        background: m3 ? m3.containerHighest : T.surface,
                         border: `1px solid ${T.accent}88`,
                         color: T.text,
-                        borderRadius: T.radius,
-                        padding: "2px 6px",
+                        borderRadius: m3 ? 10 : T.radius,
+                        padding: m3 ? "6px 8px" : "2px 6px",
                         outline: "none",
                       }}
                     />
@@ -318,6 +332,18 @@ export default function MenuTab() {
                         color: item.isAvailable ? T.ok : T.bad,
                         borderRadius: T.radius,
                         cursor: "pointer",
+                        ...(m3 && {
+                          padding: "6px 12px",
+                          fontSize: 12,
+                          background: item.isAvailable
+                            ? m3.okContainer
+                            : m3.badContainer,
+                          border: "none",
+                          color: item.isAvailable
+                            ? m3.onOkContainer
+                            : m3.onBadContainer,
+                          borderRadius: 12,
+                        }),
                       }}
                     >
                       {item.isAvailable ? "Available" : "Unavailable"}

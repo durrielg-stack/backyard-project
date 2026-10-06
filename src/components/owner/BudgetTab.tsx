@@ -564,6 +564,48 @@ export default function BudgetTab() {
   const fmtSign = (v: number) => (v === 0 ? "—" : fmtPeso(v));
   const todayStr = currentShiftDate();
 
+  const m3 = T.m3;
+  const m3GroupChip: Record<string, { bg: string; fg: string }> = m3
+    ? {
+        starting: { bg: m3.containerHighest, fg: T.textDim },
+        expenses: { bg: m3.badContainer, fg: m3.onBadContainer },
+        incoming: { bg: m3.okContainer, fg: m3.onOkContainer },
+        ending: { bg: m3.primaryContainer, fg: m3.onPrimaryContainer },
+      }
+    : {};
+  const m3IconBtn: React.CSSProperties | undefined = m3
+    ? {
+        width: 36,
+        height: 36,
+        background: m3.containerHigh,
+        border: "none",
+        color: T.text,
+        borderRadius: 18,
+      }
+    : undefined;
+  const m3Input: React.CSSProperties | undefined = m3
+    ? {
+        background: m3.containerHigh,
+        border: "1px solid transparent",
+        borderRadius: 12,
+        minHeight: 40,
+        padding: "8px 12px",
+      }
+    : undefined;
+  const m3Label: React.CSSProperties = {
+    fontSize: 12,
+    fontWeight: 500,
+    color: T.textDim,
+    marginBottom: 6,
+  };
+  const m3HeadCell: React.CSSProperties = {
+    fontSize: 11,
+    fontWeight: 600,
+    letterSpacing: "0.04em",
+    textTransform: "uppercase",
+    color: T.textMute,
+  };
+
   const actionControls = (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
       {budgetView === "ledger" &&
@@ -581,13 +623,30 @@ export default function BudgetTab() {
                 border: `1px solid ${latest >= 0 ? T.ok : T.bad}44`,
                 padding: "2px 8px",
                 borderRadius: T.radius,
+                ...(m3 && {
+                  color: latest >= 0 ? m3.onOkContainer : m3.onBadContainer,
+                  background: latest >= 0 ? m3.okContainer : m3.badContainer,
+                  border: "none",
+                  padding: "4px 10px",
+                }),
               }}
             >
               {fmtPeso(latest)}
             </span>
           );
         })()}
-      <div style={{ display: "flex", gap: 2 }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 2,
+          ...(m3 && {
+            gap: 4,
+            padding: 3,
+            background: m3.track,
+            borderRadius: 18,
+          }),
+        }}
+      >
         {(["day", "ledger"] as const).map((v) => (
           <button
             key={v}
@@ -602,6 +661,14 @@ export default function BudgetTab() {
               border: `1px solid ${budgetView === v ? T.accent : T.line2}`,
               borderRadius: T.radius,
               cursor: "pointer",
+              ...(m3 && {
+                padding: "6px 16px",
+                fontSize: 13,
+                fontWeight: budgetView === v ? 600 : 500,
+                background: budgetView === v ? T.accent : "transparent",
+                border: "none",
+                borderRadius: 16,
+              }),
             }}
           >
             {v === "day" ? "Day" : "Ledger"}
@@ -624,6 +691,7 @@ export default function BudgetTab() {
               borderRadius: T.radius,
               cursor: "pointer",
               fontSize: 14,
+              ...m3IconBtn,
             }}
           >
             ‹
@@ -642,6 +710,8 @@ export default function BudgetTab() {
               padding: "4px 8px",
               outline: "none",
               cursor: "pointer",
+              ...m3Input,
+              ...(m3 && { minHeight: 36, padding: "6px 12px" }),
             }}
           />
           <button
@@ -658,6 +728,7 @@ export default function BudgetTab() {
               borderRadius: T.radius,
               cursor: "pointer",
               fontSize: 14,
+              ...m3IconBtn,
             }}
           >
             ›
@@ -674,6 +745,16 @@ export default function BudgetTab() {
                 border: `1px solid ${T.line2}`,
                 borderRadius: T.radius,
                 cursor: "pointer",
+                ...(m3 && {
+                  height: 36,
+                  padding: "0 16px",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  background: m3.containerHigh,
+                  color: T.text,
+                  border: "none",
+                  borderRadius: 18,
+                }),
               }}
             >
               Today
@@ -691,10 +772,22 @@ export default function BudgetTab() {
         display: "flex",
         flexDirection: "column",
         minHeight: 0,
+        ...(m3 && {
+          margin: isMobile ? 12 : "16px 20px 20px",
+          background: m3.container,
+          borderRadius: 24,
+          boxShadow: m3.elev1,
+          overflow: "hidden",
+        }),
       }}
     >
       {isMobile ? (
-        <div style={{ flexShrink: 0, borderBottom: `1px solid ${T.line}` }}>
+        <div
+          style={{
+            flexShrink: 0,
+            borderBottom: m3 ? "none" : `1px solid ${T.line}`,
+          }}
+        >
           {/* Row 1: title + badge */}
           <div
             style={{
@@ -706,13 +799,17 @@ export default function BudgetTab() {
             }}
           >
             <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: T.headerText,
-              }}
+              style={
+                m3
+                  ? { fontSize: 16, fontWeight: 600, color: T.text }
+                  : {
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
+                      color: T.headerText,
+                    }
+              }
             >
               {budgetView === "day" ? "Daily Budget" : "Running Ledger"}
             </span>
@@ -726,6 +823,12 @@ export default function BudgetTab() {
                 border: `1px solid ${T.accent}44`,
                 padding: "2px 8px",
                 borderRadius: T.radius,
+                ...(m3 && {
+                  color: m3.onPrimaryContainer,
+                  background: m3.primaryContainer,
+                  border: "none",
+                  padding: "4px 10px",
+                }),
               }}
             >
               {budgetView === "day"
@@ -737,7 +840,7 @@ export default function BudgetTab() {
           <div
             className="bp-no-scrollbar"
             style={{
-              height: 44,
+              height: m3 ? 52 : 44,
               overflowX: "auto",
               touchAction: "pan-x pan-y",
               overscrollBehaviorX: "contain",
@@ -782,9 +885,22 @@ export default function BudgetTab() {
             alignItems: "center",
             gap: 12,
             flexShrink: 0,
+            ...(m3 && {
+              padding: "12px 16px 12px 20px",
+              margin: "0 20px 12px",
+              background: m3.warnContainer,
+              borderBottom: "none",
+              borderRadius: 16,
+            }),
           }}
         >
-          <span style={{ fontSize: 13, color: T.warn, flex: 1 }}>
+          <span
+            style={{
+              fontSize: 13,
+              color: m3 ? m3.onWarnContainer : T.warn,
+              flex: 1,
+            }}
+          >
             Set opening balances to start tracking your budget from June 1.
           </span>
           <button
@@ -799,6 +915,14 @@ export default function BudgetTab() {
               border: "none",
               borderRadius: T.radius,
               cursor: "pointer",
+              ...(m3 && {
+                height: 40,
+                padding: "0 20px",
+                fontWeight: 600,
+                background: m3.onWarnContainer,
+                color: m3.warnContainer,
+                borderRadius: 20,
+              }),
             }}
           >
             Set Opening Balance
@@ -814,15 +938,31 @@ export default function BudgetTab() {
             background: T.surface2,
             borderBottom: `1px solid ${T.line}`,
             flexShrink: 0,
+            ...(m3 && {
+              padding: "16px 20px",
+              margin: "0 20px 12px",
+              background: m3.containerHigh,
+              borderBottom: "none",
+              borderRadius: 20,
+            }),
           }}
         >
           <div
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              color: T.text,
-              marginBottom: 12,
-            }}
+            style={
+              m3
+                ? {
+                    fontSize: 16,
+                    fontWeight: 600,
+                    color: T.text,
+                    marginBottom: 12,
+                  }
+                : {
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: T.text,
+                    marginBottom: 12,
+                  }
+            }
           >
             Opening Balances
           </div>
@@ -837,14 +977,18 @@ export default function BudgetTab() {
             {BUDGET_CATS.map((c) => (
               <div key={c.id}>
                 <div
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 600,
-                    letterSpacing: "0.10em",
-                    textTransform: "uppercase",
-                    color: T.textMute,
-                    marginBottom: 4,
-                  }}
+                  style={
+                    m3
+                      ? m3Label
+                      : {
+                          fontSize: 10,
+                          fontWeight: 600,
+                          letterSpacing: "0.10em",
+                          textTransform: "uppercase",
+                          color: T.textMute,
+                          marginBottom: 4,
+                        }
+                  }
                 >
                   {c.label}
                 </div>
@@ -869,13 +1013,22 @@ export default function BudgetTab() {
                     padding: "6px 8px",
                     outline: "none",
                     boxSizing: "border-box",
+                    ...(m3 && { ...m3Input, background: m3.container }),
                   }}
                 />
               </div>
             ))}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ fontSize: 11, color: T.textMute }}>Seed date:</div>
+            <div
+              style={
+                m3
+                  ? { fontSize: 12, fontWeight: 500, color: T.textDim }
+                  : { fontSize: 11, color: T.textMute }
+              }
+            >
+              Seed date:
+            </div>
             <input
               type="date"
               value={seedDate}
@@ -889,6 +1042,7 @@ export default function BudgetTab() {
                 borderRadius: T.radius,
                 padding: "4px 8px",
                 outline: "none",
+                ...(m3 && { ...m3Input, background: m3.container }),
               }}
             />
             <div style={{ flex: 1 }} />
@@ -903,6 +1057,16 @@ export default function BudgetTab() {
                 border: `1px solid ${T.line2}`,
                 borderRadius: T.radius,
                 cursor: "pointer",
+                ...(m3 && {
+                  height: 40,
+                  padding: "0 20px",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  background: m3.containerHighest,
+                  color: T.text,
+                  border: "none",
+                  borderRadius: 20,
+                }),
               }}
             >
               Cancel
@@ -920,6 +1084,13 @@ export default function BudgetTab() {
                 border: "none",
                 borderRadius: T.radius,
                 cursor: "pointer",
+                ...(m3 && {
+                  height: 40,
+                  padding: "0 24px",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  borderRadius: 20,
+                }),
               }}
             >
               Save
@@ -956,7 +1127,9 @@ export default function BudgetTab() {
                 overscrollBehaviorY: "none",
               }}
             >
-              <div style={{ minWidth: 560 }}>
+              <div
+                style={{ minWidth: 560, ...(m3 && { padding: "0 12px 8px" }) }}
+              >
                 {/* Column header */}
                 <div
                   style={{
@@ -970,6 +1143,11 @@ export default function BudgetTab() {
                     position: "sticky",
                     top: 0,
                     zIndex: 1,
+                    ...(m3 && {
+                      padding: "0 12px",
+                      borderBottom: "none",
+                      background: m3.container,
+                    }),
                   }}
                 >
                   {[
@@ -981,13 +1159,17 @@ export default function BudgetTab() {
                   ].map((h) => (
                     <span
                       key={h}
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 600,
-                        letterSpacing: "0.12em",
-                        textTransform: "uppercase",
-                        color: T.headerText,
-                      }}
+                      style={
+                        m3
+                          ? m3HeadCell
+                          : {
+                              fontSize: 10,
+                              fontWeight: 600,
+                              letterSpacing: "0.12em",
+                              textTransform: "uppercase",
+                              color: T.headerText,
+                            }
+                      }
                     >
                       {h}
                     </span>
@@ -1009,6 +1191,13 @@ export default function BudgetTab() {
                         alignItems: "center",
                         borderBottom: `1px solid ${T.line}`,
                         background: i % 2 === 0 ? "transparent" : T.surface,
+                        ...(m3 && {
+                          padding: "0 12px",
+                          borderBottom: "none",
+                          borderRadius: 14,
+                          background:
+                            i % 2 === 0 ? m3.containerHigh : "transparent",
+                        }),
                       }}
                     >
                       <span
@@ -1069,16 +1258,26 @@ export default function BudgetTab() {
                     height: 52,
                     alignItems: "center",
                     background: T.surface2,
+                    ...(m3 && {
+                      padding: "0 12px",
+                      marginTop: 6,
+                      borderRadius: 14,
+                      background: m3.containerHighest,
+                    }),
                   }}
                 >
                   <span
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 700,
-                      letterSpacing: "0.08em",
-                      textTransform: "uppercase",
-                      color: T.headerText,
-                    }}
+                    style={
+                      m3
+                        ? { fontSize: 14, fontWeight: 600, color: T.text }
+                        : {
+                            fontSize: 12,
+                            fontWeight: 700,
+                            letterSpacing: "0.08em",
+                            textTransform: "uppercase",
+                            color: T.headerText,
+                          }
+                    }
                   >
                     Total
                   </span>
@@ -1132,8 +1331,8 @@ export default function BudgetTab() {
           )}
           <div
             style={{
-              padding: "10px 24px",
-              borderTop: `1px solid ${T.line}`,
+              padding: m3 ? "10px 24px 14px" : "10px 24px",
+              borderTop: m3 ? "none" : `1px solid ${T.line}`,
               flexShrink: 0,
               fontSize: 11,
               color: T.textMute,
@@ -1175,20 +1374,27 @@ export default function BudgetTab() {
                 DATE_W +
                 GROUPS_L.length * (BUDGET_CATS.length * COL_W + TOT_W + 1);
               return (
-                <div style={{ minWidth: totalW }}>
+                <div
+                  style={
+                    m3
+                      ? { minWidth: totalW + 24, padding: "0 12px 12px" }
+                      : { minWidth: totalW }
+                  }
+                >
                   {/* Sticky double-header */}
                   <div
                     style={{
                       position: "sticky",
                       top: 0,
                       zIndex: 3,
-                      background: T.surface2,
+                      background: m3 ? m3.container : T.surface2,
                     }}
                   >
                     <div
                       style={{
                         display: "flex",
-                        borderBottom: `1px solid ${T.line}`,
+                        borderBottom: m3 ? "none" : `1px solid ${T.line}`,
+                        ...(m3 && { paddingTop: 4 }),
                       }}
                     >
                       <div
@@ -1197,7 +1403,7 @@ export default function BudgetTab() {
                           flexShrink: 0,
                           position: "sticky",
                           left: 0,
-                          background: T.surface2,
+                          background: m3 ? m3.container : T.surface2,
                           zIndex: 4,
                         }}
                       />
@@ -1206,26 +1412,39 @@ export default function BudgetTab() {
                           key={g.key}
                           style={{
                             display: "flex",
-                            borderLeft: `1px solid ${T.line}`,
+                            borderLeft: m3
+                              ? "1px solid transparent"
+                              : `1px solid ${T.line}`,
                           }}
                         >
                           <div
                             style={{
                               width: BUDGET_CATS.length * COL_W + TOT_W,
-                              height: 30,
+                              height: m3 ? 36 : 30,
                               display: "flex",
                               alignItems: "center",
-                              paddingLeft: 14,
+                              paddingLeft: m3 ? 8 : 14,
                             }}
                           >
                             <span
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                letterSpacing: "0.12em",
-                                textTransform: "uppercase",
-                                color: g.color,
-                              }}
+                              style={
+                                m3
+                                  ? {
+                                      fontSize: 12,
+                                      fontWeight: 600,
+                                      padding: "4px 12px",
+                                      borderRadius: 10,
+                                      background: m3GroupChip[g.key].bg,
+                                      color: m3GroupChip[g.key].fg,
+                                    }
+                                  : {
+                                      fontSize: 11,
+                                      fontWeight: 700,
+                                      letterSpacing: "0.12em",
+                                      textTransform: "uppercase",
+                                      color: g.color,
+                                    }
+                              }
                             >
                               {g.label}
                             </span>
@@ -1236,7 +1455,9 @@ export default function BudgetTab() {
                     <div
                       style={{
                         display: "flex",
-                        borderBottom: `2px solid ${T.line}`,
+                        borderBottom: m3
+                          ? "2px solid transparent"
+                          : `2px solid ${T.line}`,
                       }}
                     >
                       <div
@@ -1249,18 +1470,22 @@ export default function BudgetTab() {
                           paddingLeft: 14,
                           position: "sticky",
                           left: 0,
-                          background: T.surface2,
+                          background: m3 ? m3.container : T.surface2,
                           zIndex: 4,
                         }}
                       >
                         <span
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 600,
-                            letterSpacing: "0.1em",
-                            textTransform: "uppercase",
-                            color: T.headerText,
-                          }}
+                          style={
+                            m3
+                              ? m3HeadCell
+                              : {
+                                  fontSize: 10,
+                                  fontWeight: 600,
+                                  letterSpacing: "0.1em",
+                                  textTransform: "uppercase",
+                                  color: T.headerText,
+                                }
+                          }
                         >
                           Date
                         </span>
@@ -1270,7 +1495,9 @@ export default function BudgetTab() {
                           key={g.key}
                           style={{
                             display: "flex",
-                            borderLeft: `1px solid ${T.line}`,
+                            borderLeft: m3
+                              ? "1px solid transparent"
+                              : `1px solid ${T.line}`,
                           }}
                         >
                           {BUDGET_CATS.map((c) => (
@@ -1307,7 +1534,9 @@ export default function BudgetTab() {
                               alignItems: "center",
                               justifyContent: "flex-end",
                               paddingRight: 14,
-                              borderLeft: `1px solid ${T.line2}`,
+                              borderLeft: m3
+                                ? "1px solid transparent"
+                                : `1px solid ${T.line2}`,
                             }}
                           >
                             <span
@@ -1315,6 +1544,7 @@ export default function BudgetTab() {
                                 fontSize: 10,
                                 fontWeight: 700,
                                 color: g.color,
+                                ...(m3 && { fontSize: 11 }),
                               }}
                             >
                               Total
@@ -1338,14 +1568,29 @@ export default function BudgetTab() {
                       : ri % 2 === 0
                         ? T.bg
                         : T.surface;
+                    const m3RowBg = m3
+                      ? isToday
+                        ? m3.containerHighest
+                        : ri % 2 === 0
+                          ? m3.containerHigh
+                          : m3.container
+                      : undefined;
                     return (
                       <div
                         key={row.date}
-                        style={{
-                          display: "flex",
-                          borderBottom: `1px solid ${T.line}`,
-                          background: rowBg,
-                        }}
+                        style={
+                          m3
+                            ? {
+                                display: "flex",
+                                borderRadius: 14,
+                                background: m3RowBg,
+                              }
+                            : {
+                                display: "flex",
+                                borderBottom: `1px solid ${T.line}`,
+                                background: rowBg,
+                              }
+                        }
                       >
                         <div
                           style={{
@@ -1360,6 +1605,11 @@ export default function BudgetTab() {
                             background: dateCellBg,
                             zIndex: 1,
                             borderRight: `1px solid ${T.line2}`,
+                            ...(m3 && {
+                              background: m3RowBg,
+                              borderRight: "1px solid transparent",
+                              borderRadius: "14px 0 0 14px",
+                            }),
                           }}
                         >
                           <div>
@@ -1412,7 +1662,9 @@ export default function BudgetTab() {
                               key={g.key}
                               style={{
                                 display: "flex",
-                                borderLeft: `1px solid ${T.line}`,
+                                borderLeft: m3
+                                  ? "1px solid transparent"
+                                  : `1px solid ${T.line}`,
                               }}
                             >
                               {BUDGET_CATS.map((c) => {
@@ -1458,7 +1710,9 @@ export default function BudgetTab() {
                                   alignItems: "center",
                                   justifyContent: "flex-end",
                                   paddingRight: 14,
-                                  borderLeft: `1px solid ${T.line2}`,
+                                  borderLeft: m3
+                                    ? "1px solid transparent"
+                                    : `1px solid ${T.line2}`,
                                 }}
                               >
                                 <span
