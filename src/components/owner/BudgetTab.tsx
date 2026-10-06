@@ -13,6 +13,7 @@ import {
 } from "@/lib/dateNav";
 import { useBreakpoint } from "@/hooks/useBreakpoint";
 import { computeDailyOpex } from "./OpexTab";
+import BudgetLedgerM3 from "./BudgetLedgerM3";
 import type { OpexItem, MonthConfig } from "./OpexTab";
 
 // ── Category config ───────────────────────────────────────────────────────────
@@ -82,7 +83,7 @@ interface DayData {
   expenses: Record<string, number>;
 }
 
-interface LedgerRow {
+export interface LedgerRow {
   date: string;
   starting: Record<string, number>;
   expenses: Record<string, number>;
@@ -606,6 +607,49 @@ export default function BudgetTab() {
     color: T.textMute,
   };
 
+  const viewSwitch = (
+    <div
+      style={{
+        display: "flex",
+        gap: 2,
+        ...(m3 && {
+          gap: 4,
+          padding: 3,
+          background: m3.track,
+          borderRadius: 18,
+        }),
+      }}
+    >
+      {(["day", "ledger"] as const).map((v) => (
+        <button
+          key={v}
+          onClick={() => setBudgetView(v)}
+          style={{
+            padding: "4px 12px",
+            fontSize: 11,
+            fontFamily: "inherit",
+            fontWeight: budgetView === v ? 600 : 400,
+            background: budgetView === v ? T.accent : T.chip,
+            color: budgetView === v ? T.accentInk : T.textDim,
+            border: `1px solid ${budgetView === v ? T.accent : T.line2}`,
+            borderRadius: T.radius,
+            cursor: "pointer",
+            ...(m3 && {
+              padding: "6px 16px",
+              fontSize: 13,
+              fontWeight: budgetView === v ? 600 : 500,
+              background: budgetView === v ? T.accent : "transparent",
+              border: "none",
+              borderRadius: 16,
+            }),
+          }}
+        >
+          {v === "day" ? "Day" : "Ledger"}
+        </button>
+      ))}
+    </div>
+  );
+
   const actionControls = (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
       {budgetView === "ledger" &&
@@ -635,46 +679,7 @@ export default function BudgetTab() {
             </span>
           );
         })()}
-      <div
-        style={{
-          display: "flex",
-          gap: 2,
-          ...(m3 && {
-            gap: 4,
-            padding: 3,
-            background: m3.track,
-            borderRadius: 18,
-          }),
-        }}
-      >
-        {(["day", "ledger"] as const).map((v) => (
-          <button
-            key={v}
-            onClick={() => setBudgetView(v)}
-            style={{
-              padding: "4px 12px",
-              fontSize: 11,
-              fontFamily: "inherit",
-              fontWeight: budgetView === v ? 600 : 400,
-              background: budgetView === v ? T.accent : T.chip,
-              color: budgetView === v ? T.accentInk : T.textDim,
-              border: `1px solid ${budgetView === v ? T.accent : T.line2}`,
-              borderRadius: T.radius,
-              cursor: "pointer",
-              ...(m3 && {
-                padding: "6px 16px",
-                fontSize: 13,
-                fontWeight: budgetView === v ? 600 : 500,
-                background: budgetView === v ? T.accent : "transparent",
-                border: "none",
-                borderRadius: 16,
-              }),
-            }}
-          >
-            {v === "day" ? "Day" : "Ledger"}
-          </button>
-        ))}
-      </div>
+      {viewSwitch}
       {budgetView === "day" && (
         <>
           <button
@@ -764,6 +769,20 @@ export default function BudgetTab() {
       )}
     </div>
   );
+
+  // Material themes get the redesigned ledger (BudgetLedgerM3); the seed
+  // setup flow and the Day view keep the panel below.
+  if (m3 && budgetView === "ledger" && seed && !showSeedForm) {
+    return (
+      <BudgetLedgerM3
+        rows={ledgerRows}
+        cats={BUDGET_CATS}
+        seedDate={seed.date}
+        loading={loading}
+        viewSwitch={viewSwitch}
+      />
+    );
+  }
 
   return (
     <div

@@ -8,6 +8,7 @@ import {
   navigateDay,
   shiftHoursUpToNow,
   expenseDateRange,
+  ledgerRangeStart,
   weekBounds,
   monthBounds,
 } from "./dateNav";
@@ -109,6 +110,21 @@ describe("expenseDateRange", () => {
       from: "2026-09-30",
       to: "2026-10-06",
     });
+  });
+});
+
+describe("ledgerRangeStart", () => {
+  it("returns null for all", () => {
+    expect(ledgerRangeStart("all", "2026-10-06")).toBeNull();
+  });
+  it("starts the month on the 1st", () => {
+    expect(ledgerRangeStart("month", "2026-10-06")).toBe("2026-10-01");
+  });
+  it("starts the work week on Wednesday", () => {
+    expect(ledgerRangeStart("week", "2026-10-05")).toBe("2026-09-30");
+  });
+  it("covers 14 days including today for 2 weeks", () => {
+    expect(ledgerRangeStart("2weeks", "2026-10-06")).toBe("2026-09-23");
   });
 });
 

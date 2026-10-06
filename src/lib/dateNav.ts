@@ -205,3 +205,22 @@ export function todayLabel(dateStr: string): string {
     year: "numeric",
   });
 }
+
+// First business date (YYYY-MM-DD) shown by a ledger range filter, or null
+// for "all". `today` is the current business date (currentShiftDate()).
+export type LedgerRange = "week" | "2weeks" | "month" | "all";
+
+export function ledgerRangeStart(
+  range: LedgerRange,
+  today: string,
+): string | null {
+  if (range === "all") return null;
+  if (range === "month") return `${today.slice(0, 7)}-01`;
+  if (range === "week") {
+    const { start, end } = weekBounds(parseLocalDate(today));
+    return expenseDateRange(start, end).from;
+  }
+  const d = parseLocalDate(today);
+  d.setDate(d.getDate() - 13);
+  return localDateStr(d);
+}
