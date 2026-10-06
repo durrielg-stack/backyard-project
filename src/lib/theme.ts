@@ -37,6 +37,7 @@ export interface Theme {
 // byp-pos-v2/docs/design/owner-reports-mockup.dc.html, teal seed).
 export interface M3Tokens {
   topBar: string;
+  navTrack: string; // pill track behind the main tabs in the top bar
   track: string; // segmented-control track
   container: string; // cards and KPI tiles
   containerHigh: string; // rows and tiles inside a card
@@ -173,6 +174,7 @@ export const M3_DARK_THEME: Theme = {
 
   m3: {
     topBar: "#14181A",
+    navTrack: "#1B2022",
     track: "#14181A",
     container: "#1B2022",
     containerHigh: "#20262A",
@@ -230,6 +232,7 @@ export const M3_LIGHT_THEME: Theme = {
 
   m3: {
     topBar: "#FFFFFF",
+    navTrack: "#E9EFEC",
     track: "#E9EFEC",
     container: "#FFFFFF",
     containerHigh: "#F4F8F6",

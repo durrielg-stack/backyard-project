@@ -181,7 +181,11 @@ export default function BudgetTab() {
     { key: "ending", label: "Ending", color: T.accent },
   ] as const;
 
-  const [budgetView, setBudgetView] = useState<"day" | "ledger">("day");
+  // Material opens straight on the ledger (owner, 2026-10-06: no Day view);
+  // classic keeps its Day default and Day/Ledger switch.
+  const [budgetView, setBudgetView] = useState<"day" | "ledger">(() =>
+    T.m3 ? "ledger" : "day",
+  );
   const [date, setDate] = useState(() => currentShiftDate());
   const [dayData, setDayData] = useState<DayData>({
     incoming: emptyBycat(),
@@ -779,7 +783,6 @@ export default function BudgetTab() {
         cats={BUDGET_CATS}
         seedDate={seed.date}
         loading={loading}
-        viewSwitch={viewSwitch}
       />
     );
   }
