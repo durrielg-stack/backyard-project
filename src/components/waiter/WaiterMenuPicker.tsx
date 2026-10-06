@@ -343,8 +343,8 @@ export default function WaiterMenuPicker({
               whiteSpace: "nowrap",
               cursor: "pointer",
               fontFamily: "inherit",
-              background: group === g.id ? T.accent : T.surface,
-              color: group === g.id ? T.accentInk : T.textDim,
+              background: group === g.id ? T.sel : T.surface,
+              color: group === g.id ? T.onSel : T.textDim,
               border: `1px solid ${group === g.id ? T.accent : T.line2}`,
               transition: "all 0.1s",
               ...(m3 && {
@@ -352,7 +352,7 @@ export default function WaiterMenuPicker({
                 minHeight: 40,
                 fontSize: 13,
                 border: "none",
-                background: group === g.id ? T.accent : m3.containerHigh,
+                background: group === g.id ? T.sel : m3.containerHigh,
               }),
             }}
           >

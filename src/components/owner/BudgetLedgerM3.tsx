@@ -205,16 +205,16 @@ export default function BudgetLedgerM3({
     fontFamily: "inherit",
     cursor: "pointer",
     whiteSpace: "nowrap",
-    background: on ? T.accent : "transparent",
-    color: on ? T.accentInk : T.textDim,
+    background: on ? T.sel : "transparent",
+    color: on ? T.onSel : T.textDim,
     fontWeight: on ? 700 : 500,
   });
   const headCell = (right: boolean): React.CSSProperties => ({
-    fontSize: 11,
+    fontSize: 12,
+    lineHeight: "16px",
     fontWeight: 600,
-    letterSpacing: "0.04em",
-    textTransform: "uppercase",
-    color: T.textMute,
+    letterSpacing: 0.5,
+    color: T.textDim,
     textAlign: right ? "right" : "left",
   });
 
@@ -240,7 +240,14 @@ export default function BudgetLedgerM3({
           overflowX: "auto",
         }}
       >
-        <span style={{ fontSize: 22, fontWeight: 600, color: T.text }}>
+        <span
+          style={{
+            fontSize: 22,
+            lineHeight: "28px",
+            fontWeight: 600,
+            color: T.text,
+          }}
+        >
           Budget
         </span>
         {seedDate && (
@@ -385,7 +392,8 @@ export default function BudgetLedgerM3({
                   <span
                     style={{
                       fontFamily: T.mono,
-                      fontSize: 22,
+                      fontSize: 24,
+                      lineHeight: "32px",
                       fontWeight: 700,
                       color: t.hero
                         ? m3.onPrimaryContainerStrong
@@ -445,7 +453,8 @@ export default function BudgetLedgerM3({
           >
             <span
               style={{
-                fontSize: 18,
+                fontSize: 16,
+                lineHeight: "24px",
                 fontWeight: 600,
                 color: T.text,
                 whiteSpace: "nowrap",

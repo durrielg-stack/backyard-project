@@ -342,7 +342,13 @@ export function PanelHd({
       <span
         style={
           m3
-            ? { fontSize: 16, fontWeight: 600, color: T.text }
+            ? {
+                fontSize: 16,
+                lineHeight: "24px",
+                fontWeight: 600,
+                letterSpacing: 0.15,
+                color: T.text,
+              }
             : {
                 fontSize: 11,
                 fontWeight: 600,
@@ -616,7 +622,7 @@ function KpiStrip({
                 letterSpacing: "-0.02em",
                 color: hero ? m3.onPrimaryContainerStrong : T.text,
                 fontVariantNumeric: "tabular-nums",
-                lineHeight: 1,
+                lineHeight: m3 ? (i <= 1 ? "36px" : "32px") : 1,
               }}
             >
               {k.value}
@@ -1083,8 +1089,8 @@ function NewTableCard({
                       fontSize: 13,
                       fontFamily: T.mono,
                       fontWeight: 600,
-                      background: cap === n ? T.accent : T.chip,
-                      color: cap === n ? T.accentInk : T.textDim,
+                      background: cap === n ? T.sel : T.chip,
+                      color: cap === n ? T.onSel : T.textDim,
                       border: `1px solid ${cap === n ? T.accent : T.line2}`,
                       borderRadius: T.radius,
                       cursor: "pointer",
@@ -1286,7 +1292,15 @@ function FloorPanel({
         {/* Section title — hidden on mobile to save space */}
         {!isMobile &&
           (T.m3 ? (
-            <span style={{ fontSize: 16, fontWeight: 600, color: T.text }}>
+            <span
+              style={{
+                fontSize: 16,
+                lineHeight: "24px",
+                fontWeight: 600,
+                letterSpacing: 0.15,
+                color: T.text,
+              }}
+            >
               Floor
             </span>
           ) : (

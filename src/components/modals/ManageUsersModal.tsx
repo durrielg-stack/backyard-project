@@ -241,16 +241,16 @@ export default function ManageUsersModal({
                 padding: "5px 12px",
                 fontSize: 12,
                 fontWeight: 600,
-                background: tab === t ? T.accent : T.surface2,
-                color: tab === t ? T.accentInk : T.textMute,
+                background: tab === t ? T.sel : T.surface2,
+                color: tab === t ? T.onSel : T.textMute,
                 border: `1px solid ${tab === t ? T.accent : T.line2}`,
                 borderRadius: T.radius,
                 cursor: "pointer",
                 fontFamily: "inherit",
                 ...(m3 && {
                   ...m3Pill,
-                  background: tab === t ? T.accent : "transparent",
-                  color: tab === t ? T.accentInk : T.textDim,
+                  background: tab === t ? T.sel : "transparent",
+                  color: tab === t ? T.onSel : T.textDim,
                 }),
               }}
             >

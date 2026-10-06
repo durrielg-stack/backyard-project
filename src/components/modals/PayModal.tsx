@@ -442,8 +442,8 @@ function QRFlow({
                   padding: "0 22px",
                   border: "none",
                   borderRadius: 20,
-                  background: active ? T.accent : "transparent",
-                  color: active ? T.accentInk : T.textDim,
+                  background: active ? T.sel : "transparent",
+                  color: active ? T.onSel : T.textDim,
                 }),
               }}
             >
@@ -679,8 +679,8 @@ export default function PayModal({
                   padding: 0,
                   border: "none",
                   borderRadius: 22,
-                  background: active ? T.accent : "transparent",
-                  color: active ? T.accentInk : T.textDim,
+                  background: active ? T.sel : "transparent",
+                  color: active ? T.onSel : T.textDim,
                 }),
               }}
             >

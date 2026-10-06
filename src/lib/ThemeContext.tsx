@@ -65,6 +65,22 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       setMode(saved as ThemeMode);
   }, []);
 
+  // Expose the active design system to global CSS (focus ring, state
+  // layers, tabular numerals — see "Material 3" in globals.css).
+  useEffect(() => {
+    const T = THEMES[mode];
+    const root = document.documentElement;
+    if (T.m3) {
+      root.dataset.ds = "m3";
+      root.style.setProperty("--m3-focus", T.m3.secondary);
+      root.style.colorScheme = mode === "m3light" ? "light" : "dark";
+    } else {
+      delete root.dataset.ds;
+      root.style.removeProperty("--m3-focus");
+      root.style.removeProperty("color-scheme");
+    }
+  }, [mode]);
+
   function toggle() {
     setMode((current) => {
       const next = CYCLE[(CYCLE.indexOf(current) + 1) % CYCLE.length];

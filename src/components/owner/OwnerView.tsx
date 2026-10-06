@@ -99,7 +99,13 @@ function SectionHd({
       <span
         style={
           m3
-            ? { fontSize: 16, fontWeight: 600, color: T.text }
+            ? {
+                fontSize: 16,
+                lineHeight: "24px",
+                fontWeight: 600,
+                letterSpacing: 0.15,
+                color: T.text,
+              }
             : {
                 fontSize: 11,
                 fontWeight: 700,
@@ -150,8 +156,8 @@ function Pill({
         padding: "4px 14px",
         fontSize: 12,
         fontFamily: "inherit",
-        background: active ? T.accent : T.chip,
-        color: active ? T.accentInk : T.textDim,
+        background: active ? T.sel : T.chip,
+        color: active ? T.onSel : T.textDim,
         border: `1px solid ${active ? T.accent : T.line2}`,
         borderRadius: T.radius,
         cursor: "pointer",

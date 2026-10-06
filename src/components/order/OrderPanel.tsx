@@ -548,8 +548,8 @@ export default function OrderPanel({
             fontSize: 11,
             fontFamily: "inherit",
             fontWeight: 500,
-            background: selectedSeat === 0 ? T.accent : T.chip,
-            color: selectedSeat === 0 ? T.accentInk : T.textDim,
+            background: selectedSeat === 0 ? T.sel : T.chip,
+            color: selectedSeat === 0 ? T.onSel : T.textDim,
             border: `1px solid ${selectedSeat === 0 ? T.accent : T.line2}`,
             borderRadius: T.radius,
             cursor: "pointer",
@@ -562,7 +562,7 @@ export default function OrderPanel({
               minWidth: 44,
               padding: "0 14px",
               fontSize: 13,
-              background: selectedSeat === 0 ? T.accent : m3.containerHigh,
+              background: selectedSeat === 0 ? T.sel : m3.containerHigh,
             }),
           }}
         >
@@ -578,8 +578,8 @@ export default function OrderPanel({
               fontSize: 11,
               fontFamily: T.mono,
               fontWeight: 500,
-              background: selectedSeat === s ? T.accent : T.chip,
-              color: selectedSeat === s ? T.accentInk : T.textDim,
+              background: selectedSeat === s ? T.sel : T.chip,
+              color: selectedSeat === s ? T.onSel : T.textDim,
               border: `1px solid ${selectedSeat === s ? T.accent : T.line2}`,
               borderRadius: T.radius,
               cursor: "pointer",
@@ -592,7 +592,7 @@ export default function OrderPanel({
                 minWidth: 44,
                 padding: "0 14px",
                 fontSize: 13,
-                background: selectedSeat === s ? T.accent : m3.containerHigh,
+                background: selectedSeat === s ? T.sel : m3.containerHigh,
               }),
             }}
           >
