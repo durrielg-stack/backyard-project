@@ -711,7 +711,7 @@ export default function ReportsTab() {
             {loading ? (
               <div
                 style={{
-                  height: 260,
+                  ...(isMobile ? { height: 260 } : { flex: 1, minHeight: 260 }),
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -737,7 +737,7 @@ export default function ReportsTab() {
                 </div>
               </div>
             ) : (
-              <TrendLineChart bars={bars} height={260} />
+              <TrendLineChart bars={bars} height="fill" />
             )}
 
             {/* Payment method breakdown */}
