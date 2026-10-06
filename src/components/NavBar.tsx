@@ -256,7 +256,7 @@ export default function NavBar({
   onChangePassword,
   onManageUsers,
 }: NavBarProps) {
-  const { T, mode, toggle } = useTheme();
+  const { T, mode, isDark, toggle } = useTheme();
   const m3 = T.m3;
   const nextMode =
     THEME_CYCLE[(THEME_CYCLE.indexOf(mode) + 1) % THEME_CYCLE.length];
@@ -514,7 +514,7 @@ export default function NavBar({
           color: T.textDim,
         }}
       >
-        {/* Theme toggle — cycles THEME_CYCLE, names the current theme */}
+        {/* Theme toggle — cycles THEME_CYCLE (Material dark ↔ light) */}
         <button
           onClick={toggle}
           title={`Theme: ${THEME_NAMES[mode]}. Click for ${THEME_NAMES[nextMode]}`}
@@ -523,9 +523,8 @@ export default function NavBar({
             border: "none",
             cursor: "pointer",
             color: T.textDim,
-            fontSize: 11,
+            fontSize: 14,
             fontFamily: "inherit",
-            fontWeight: 600,
             lineHeight: 1,
             padding: "7px 10px",
             borderRadius: m3 ? 16 : T.radius,
@@ -534,7 +533,7 @@ export default function NavBar({
             whiteSpace: "nowrap",
           }}
         >
-          {isMobile ? THEME_NAMES[mode].split(" ")[1] : THEME_NAMES[mode]}
+          {isDark ? "☀" : "🌙"}
         </button>
 
         {!isMobile && (

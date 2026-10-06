@@ -128,7 +128,7 @@ Two tiers:
 ### Styling
 
 - **No CSS classes for layout** — all layout is inline `style` props with values from `THEME`
-- **`src/lib/theme.ts`** — token sets: `THEME` (Classic dark, `radius` 2px), `LIGHT_THEME`, and `M3_DARK_THEME` / `M3_LIGHT_THEME` (Google Material 3, teal seed, values pinned by `byp-pos-v2/docs/design/*.dc.html`). `ThemeContext` cycles them via the NavBar theme button (stored in `localStorage` `bp-theme`, default Classic dark)
+- **`src/lib/theme.ts`** — token sets: `THEME` (Classic dark, `radius` 2px), `LIGHT_THEME`, and `M3_DARK_THEME` / `M3_LIGHT_THEME` (Google Material 3, teal seed, values pinned by `byp-pos-v2/docs/design/*.dc.html`). Material dark is the default and the NavBar ☀/🌙 button toggles Material dark ↔ light (`THEME_CYCLE`, stored in `localStorage` `bp-theme`; saved classic values map to their Material twin). Classic themes stay defined for rollback but are not offered
 - **Material 3 rule (2026-10-06):** only the M3 themes set `T.m3` (tonal roles: `container`, `primaryContainer`, `okContainer`… `elev1/2`). Components branch `T.m3 ? m3Style : classicStyle`; the classic branch must stay byte-identical so Classic themes never change. New UI must ship both branches
 - **Global CSS** (`src/styles/globals.css`) — only scrollbar hiding (`.bp-no-scrollbar`) and the `@keyframes bp-attn` pulse for tables needing attention
 - Tailwind is installed but not used for component styles

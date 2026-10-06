@@ -30,8 +30,16 @@ export const THEME_NAMES: Record<ThemeMode, string> = {
   m3light: "Material light",
 };
 
-export const THEME_CYCLE: ThemeMode[] = ["dark", "light", "m3dark", "m3light"];
+// Material 3 is the app's look. The classic themes stay defined for a quick
+// rollback (put them back in THEME_CYCLE / DEFAULT_MODE) but are not offered.
+export const THEME_CYCLE: ThemeMode[] = ["m3dark", "m3light"];
 const CYCLE = THEME_CYCLE;
+const DEFAULT_MODE: ThemeMode = "m3dark";
+// A device that saved a classic theme moves to the matching Material one.
+const LEGACY: Partial<Record<string, ThemeMode>> = {
+  dark: "m3dark",
+  light: "m3light",
+};
 
 interface ThemeContextValue {
   T: ThemeTokens;
@@ -41,17 +49,18 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
-  T: THEME,
-  mode: "dark",
+  T: THEMES[DEFAULT_MODE],
+  mode: DEFAULT_MODE,
   isDark: true,
   toggle: () => {},
 });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [mode, setMode] = useState<ThemeMode>("dark");
+  const [mode, setMode] = useState<ThemeMode>(DEFAULT_MODE);
 
   useEffect(() => {
-    const saved = localStorage.getItem("bp-theme") as ThemeMode | null;
+    const raw = localStorage.getItem("bp-theme");
+    const saved = raw ? (LEGACY[raw] ?? raw) : null;
     if (saved && (CYCLE as string[]).includes(saved))
       setMode(saved as ThemeMode);
   }, []);
