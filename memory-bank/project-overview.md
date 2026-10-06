@@ -60,4 +60,4 @@ The public-facing live availability page previously served at `byp.theserverproj
 
 ## Target Display
 
-POS targets **1920×1080** fixed display. Themes: Classic dark (default), Classic light, Material 3 dark/light (added 2026-10-06, opt-in via the NavBar theme button). No responsive/mobile layout for POS. The `/waiter` and `/kitchen` routes are the mobile interfaces.
+POS targets **1920×1080** fixed display. Themes: Material 3 dark (default) and Material 3 light, toggled by the NavBar ☀/🌙 button (2026-10-06). Classic dark/light are kept in code for rollback only. No responsive/mobile layout for POS. The `/waiter` and `/kitchen` routes are the mobile interfaces.
