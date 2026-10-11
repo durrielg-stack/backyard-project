@@ -96,6 +96,7 @@ So the litmus test pairs with §1: **derive if the inputs are supposed to move w
 ---
 
 ## 7. When automation owns a value, remove the manual write path.
+> **CORRECTED (2026-10-11, production backport) (example detail only):** "sale-side deduction via `deduct_inventory`" and "the sale RPCs" below now mean the DB trigger `trg_sync_inventory_on_order_item` (2026-07-11); the client never calls them. The principle is unchanged.
 
 **The decision:** The moment beer stock became fully automated (sale-side deduction via `deduct_inventory` + expense-side restock via trigger), the manual ±/+10 buttons for beer rows were disabled — greyed out with a tooltip, same day, at the owner's request but it should have been proposed proactively.
 

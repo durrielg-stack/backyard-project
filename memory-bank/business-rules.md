@@ -28,11 +28,17 @@
 - `aging` → has open order, 6–10 min (amber visual)
 - `attention` → has open order, > 10 min (red pulse animation)
 
+> **CORRECTED (2026-10-11, production backport):** table status does not use minutes since the order opened. `useAutoStatus` takes the worst KDS ticket on the table: any `late` ticket → `attention`, any `aging` ticket → `aging`, otherwise an open order or cart → `occupied`; `reserved` overrides. The 6/10-minute thresholds above are stale; do not change the code to match them.
+
+
 ## KDS Timing Thresholds
 | Category | Aging (amber) | Late (red) |
 |----------|--------------|------------|
 | Bar (Beer, Cocktails, Hard Drinks, Non-Alcohol, Palit Bote) | 5 min | 10 min |
 | Kitchen (all others) | 10 min | 20 min |
+
+> **CORRECTED (2026-10-11, production backport):** kitchen is **15 min** amber / 20 min red in the code (`src/hooks/useTickets.ts` `getThresholds`: 900 s / 1200 s, since commit 9b1b052 on 2026-07-04). The 10-minute figure above is stale; do not change the code to match it. Bar 5/10 is correct.
+
 
 ## KDS Item Routing
 - Bar station: `Beer`, `Cocktails`, `Hard Drinks`, `Palit Bote`, `Non-Alcohol`

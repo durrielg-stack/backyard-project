@@ -68,6 +68,7 @@
 - Inventory view (Owner): `src/components/floor/InventoryPanel.tsx`, `src/components/owner/InventoryTab.tsx`
 - Auto-deduct on sale: `useOrder.ts` calls `deduct_inventory` RPC
 - Auto-restore on void: `useOrder.ts` calls `restore_inventory` RPC
+  - **CORRECTED (2026-10-11, production backport):** both lines above are stale. Sale deduction and void restore run in the DB trigger `trg_sync_inventory_on_order_item` since 2026-07-11; `useOrder.ts` must not call these RPCs.
 
 ### Public Availability Page
 Moved to the standalone `backyard-byp` repo/project on 2026-08-16 (formerly `src/app/public/page.tsx` + `src/middleware.ts` domain rewrite). Still reads `restaurant_tables`/`orders` anonymously from this project's Supabase database.
@@ -92,3 +93,6 @@ Moved to the standalone `backyard-byp` repo/project on 2026-08-16 (formerly `src
 | `payments` | `useOrder.closeOrder/payPartial`, `SalesTab`, `BudgetTab` |
 | `users` | `StaffPicker`, `WaiterLogin`, `KitchenLogin` |
 | `inventory` | `InventoryPanel`, `InventoryTab`, `useOrder` (via RPC) |
+
+> **CORRECTED (2026-10-11, production backport):** "`useOrder` (via RPC)" is stale: inventory moves via the DB trigger, not RPCs from `useOrder`.
+

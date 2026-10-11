@@ -169,6 +169,7 @@ window.visualViewport?.addEventListener('resize', on)
 ```
 
 ## Date + Timezone Pattern
+> **CORRECTED (2026-10-11, production backport):** not the POS pattern. Use the `dateNav.ts` helpers (`shiftLocalDate`, `localDateStr`, `expenseDateRange`, 6 AM `SHIFT_CUTOFF_HOUR`) and never slice a UTC ISO string for a local date. The snippet below is history.
 
 ```tsx
 const MANILA_OFFSET_MS = 8 * 60 * 60 * 1000

@@ -117,6 +117,7 @@ All hooks use the Supabase browser singleton from `src/lib/supabase.ts` (`getCli
 - **`useMenuItems`** — full menu, cached in module scope between renders
 - **`useTickets`** — KDS tickets derived from open order items; `bump()` marks items served
 - **`useAutoStatus`** — pure derivation: maps raw tables → `TableWithStatus` (aging at 6 min, attention at 10 min)
+  - **CORRECTED (2026-10-11, production backport):** aging/attention come from the table's worst KDS ticket (`aging`/`late`), not minutes since opening. KDS thresholds: kitchen 15/20 min, bar 5/10 (`useTickets.ts`).
 
 ### Types (`src/lib/types.ts`)
 
