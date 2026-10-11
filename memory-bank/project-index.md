@@ -74,6 +74,9 @@ AI-optimized fast lookup. Use this before scanning the repository.
 | `users` | `StaffPicker`, `WaiterLogin`, `KitchenLogin` |
 | `inventory` | `InventoryPanel`, `InventoryTab`, `useOrder` (via RPC) |
 
+> **DEPRECATED (2026-10-11, Backyard migration audit):** "`useOrder` (via RPC)": inventory now moves via the DB trigger `trg_sync_inventory_on_order_item`.
+
+
 ---
 
 ## Shared Utilities
@@ -96,6 +99,8 @@ AI-optimized fast lookup. Use this before scanning the repository.
 
 ### Adding an Order Item
 `MenuPanel` → user taps item → `useOrder.addItem(item, qty, mods, seat, orderType)` → optimistic `CartLine` + DB `order_items` insert → `deduct_inventory` RPC
+
+> **DEPRECATED (2026-10-11, Backyard migration audit):** the last step is now the DB trigger on `order_items` insert/update/delete, not a client RPC.
 
 ### Bumping a KDS Ticket
 `KitchenView` / `KdsPanel` → tap bump → `useTickets.bump(itemIds)` → optimistic remove + `order_items.status = 'served'`

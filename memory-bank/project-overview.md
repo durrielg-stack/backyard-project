@@ -57,7 +57,9 @@ The public-facing live availability page previously served at `byp.theserverproj
 
 - All work: commit to `main` → push `main` → merge into `dev` → push `dev`
 - Pattern: `git push origin main && git checkout dev && git merge main && git push origin dev && git checkout main`
+> **DEPRECATED (2026-10-11, Backyard migration audit):** reversed flow. Current rule (CLAUDE.md): branch off `dev`, merge to `dev`, merge to `main` only on the owner's word.
 
 ## Target Display
 
 POS targets **1920×1080** fixed display. Themes: Material 3 dark (default) and Material 3 light, toggled by the NavBar ☀/🌙 button (2026-10-06). Classic dark/light are kept in code for rollback only. No responsive/mobile layout for POS. The `/waiter` and `/kitchen` routes are the mobile interfaces.
+> **DEPRECATED (2026-10-11, Backyard migration audit):** "No responsive/mobile layout" is stale: `useBreakpoint` mobile/tablet layouts exist across the POS (see CLAUDE.md).
