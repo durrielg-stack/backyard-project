@@ -5,7 +5,7 @@ The POS look is **Google Material 3 (M3)**, owner decision 2026-10-06 after comp
 **Sources (verified, not from memory):**
 - `material-components/material-web` design tokens v0.192 (`tokens/versions/v0_192/_md-sys-*.scss`, `_md-comp-*.scss`) and its docs (`docs/theming/*`, `docs/components/*`).
 - `@material/material-color-utilities` 0.3.0 `SchemeTonalSpot`, seed `#006A60`, which generated the colour roles.
-- The owner-approved v2 mockups (`byp-pos-v2/docs/design/*.dc.html`) pin primary and the surface ladder.
+- The owner-approved v2 mockups (`../POSv2/docs/design/*.dc.html`, the v2 repo beside this one) pin primary and the surface ladder.
 - m3.material.io renders client-side and can't be fetched. Where this file states guidance (emphasis, roles), it matches the material-web docs text.
 
 **Where it lives in code:**

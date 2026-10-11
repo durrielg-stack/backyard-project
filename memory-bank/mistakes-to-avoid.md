@@ -30,6 +30,7 @@ All entries here are root-caused bugs or rejected patterns from actual developme
 **What:** Day boundary calculations used raw UTC midnight.
 **Why it breaks:** In UTC+8, local midnight is 8 hours off from UTC midnight.
 **Fix:** Always use `MANILA_OFFSET_MS = 8 * 60 * 60 * 1000` when computing day boundaries.
+> **DEPRECATED (2026-10-11, Backyard migration audit):** no such constant exists in `src/`; v1 uses the browser's local clock with the 6 AM cutoff (`SHIFT_CUTOFF_HOUR` in `dateNav.ts`). See business-rules.md (Venue timezone; Business day cuts at 6 AM). `MANILA_OFFSET_MS` is real only in the public site (Site repo).
 
 ### Tables stranded as "occupied" after the last item was removed (fixed 2026-07-21)
 **What:** Voiding the last item on a table (`voidItem`), paying off the last unpaid line (`payPartial`), or moving the last remaining lines to another table (`moveItems`) all auto-close the order and free the table. But each one nulled local `orderId`/`lines` state unconditionally, even when the `orders.status = 'closed'` write failed. The DB row stayed `open`, the client believed it was closed, and the table showed occupied forever with no items in the cart to void it out of.
@@ -41,6 +42,7 @@ All entries here are root-caused bugs or rejected patterns from actual developme
 **What (fixed 2026-07-09):** `useOrder.updateQty` (the cart's ± stepper) updated `order_items.qty` without calling `deduct_inventory`/`restore_inventory`, while `voidItem` restored the line's **full final qty**. A stepper-built line under-deducted on the way up but over-restored on void — observed live: a 10-stick line built with +, voided, and re-sold left the counter 9 sticks too high within minutes of a fresh physical baseline.
 **Why it breaks:** Deduct/restore asymmetry doesn't just drift — it manufactures phantom stock on every void of a stepped-up line, in the direction that hides shrinkage.
 **Fix:** `updateQty` now deducts/restores the applied (post-floor) delta. Rule: enumerate every writer of `order_items.qty` (`addItem` stack + insert, `updateQty`, discount split in `payFull`) and confirm each either adjusts inventory by its delta or provably leaves total qty unchanged (the discount split does — it moves qty between rows).
+> **DEPRECATED (2026-10-11, Backyard migration audit):** the client-side delta was superseded on 2026-07-11 by the DB trigger `trg_sync_inventory_on_order_item`; the client never calls the deduct/restore RPCs (`useOrder.ts`). The lesson (every writer of `order_items.qty` must move stock) still holds and is now enforced by the trigger.
 
 ---
 
@@ -113,11 +115,13 @@ All entries here are root-caused bugs or rejected patterns from actual developme
 **What:** Inventory deduction in a `useEffect` captured stale state.
 **Why it breaks:** Deduction silently skipped because the captured reference was outdated.
 **Fix:** Inventory deduction reads fresh state via refs or is called directly after the state update.
+> **DEPRECATED (2026-10-11, Backyard migration audit):** inventory deduction is no longer client-side (DB trigger since 2026-07-11, database-schema.md).
 
 ### Always check the `error` from `sb.rpc(...)` calls
 **What (found 2026-07-04):** `deduct_inventory` had `p_menu_item_id` typed `text` against a `uuid` column, so every call raised `operator does not exist: uuid = text`. `useOrder.ts` called it as `await sb.rpc(...)` without destructuring `error`, so this failed silently on every single sale since the function was created — inventory never actually decremented, and nothing anywhere surfaced it.
 **Why it breaks:** A non-2xx/error response from an RPC call doesn't throw in supabase-js — it just returns `{ data, error }`. Ignoring the return value makes a permanently-broken RPC indistinguishable from a working no-op.
 **Fix:** Destructure and check `error` on every `sb.rpc(...)` call that matters (inventory, payments, anything with a side effect), at minimum with `console.error`. See `deduct_inventory`/`restore_inventory` call sites in `useOrder.ts`.
+> **DEPRECATED (2026-10-11, Backyard migration audit) (call-site pointer only):** the `deduct_inventory`/`restore_inventory` call sites in `useOrder.ts` were removed on 2026-07-11 (DB trigger). The rule to check `error` on every `sb.rpc(...)` stays valid.
 
 ### Don't trust `localStorage` as a proxy for a valid Supabase session
 **What (found 2026-07-03):** `POSApp`/`WaiterApp`/`KitchenApp` derived "signed in" purely from a `bp_staff`/`bp_waiter`/`bp_kitchen` flag in `localStorage`, never checking whether the underlying Supabase Auth session was still valid.

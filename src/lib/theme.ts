@@ -39,7 +39,7 @@ export interface Theme {
 }
 
 // Material 3 tonal roles (pinned by the v2 mockups in
-// byp-pos-v2/docs/design/owner-reports-mockup.dc.html, teal seed).
+// ../POSv2/docs/design/owner-reports-mockup.dc.html, teal seed).
 export interface M3Tokens {
   topBar: string;
   navTrack: string; // pill track behind the main tabs in the top bar

@@ -169,6 +169,7 @@ window.visualViewport?.addEventListener('resize', on)
 ```
 
 ## Date + Timezone Pattern
+> **DEPRECATED (2026-10-11, Backyard migration audit):** v1 has no `MANILA_OFFSET_MS`; use the `dateNav.ts` helpers (`shiftLocalDate`, `localDateStr`, `expenseDateRange`, 6 AM `SHIFT_CUTOFF_HOUR`) and never slice UTC ISO strings for a local date. See business-rules.md. Kept below as history.
 
 ```tsx
 const MANILA_OFFSET_MS = 8 * 60 * 60 * 1000

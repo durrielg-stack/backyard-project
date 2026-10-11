@@ -21,6 +21,9 @@ Source of truth: `src/lib/types.ts` (Database interface). All types mirror the l
 | `table_id` | string | FK → `restaurant_tables.id` |
 | `opened_by` | string \| null | UUID FK → `users.id` (ON DELETE SET NULL) |
 | `opened_at` | string | ISO timestamp; **use this for date filtering, not `closed_at`** |
+
+> **DEPRECATED (2026-10-11, Backyard migration audit):** "use this for date filtering, not `closed_at`" is stale for Daily/Sales, which key by `closed_at` (closed orders only); Budget/Reports key by `opened_at`. See business-rules.md.
+
 | `closed_at` | string \| null | Set on payment/close |
 | `status` | `OrderStatus` | `'open' \| 'closed' \| 'voided'` |
 

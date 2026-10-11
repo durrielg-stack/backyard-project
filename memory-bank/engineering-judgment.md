@@ -96,6 +96,7 @@ So the litmus test pairs with §1: **derive if the inputs are supposed to move w
 ---
 
 ## 7. When automation owns a value, remove the manual write path.
+> **DEPRECATED (2026-10-11, Backyard migration audit) (example detail only):** "sale-side deduction via `deduct_inventory`" and "the sale RPCs" below are superseded by the DB trigger `trg_sync_inventory_on_order_item` (2026-07-11). The principle is unchanged.
 
 **The decision:** The moment beer stock became fully automated (sale-side deduction via `deduct_inventory` + expense-side restock via trigger), the manual ±/+10 buttons for beer rows were disabled — greyed out with a tooltip, same day, at the owner's request but it should have been proposed proactively.
 
@@ -138,6 +139,7 @@ And a workflow consequence of `cost_mode` worth internalizing: **a confirmed rec
 ## 10. Verification without a test suite.
 
 There are no tests. The verification stack, in order, is:
+> **DEPRECATED (2026-10-11, Backyard migration audit):** a Vitest suite exists (pure `src/lib` helpers such as `dateNav`, `discounts`, `format`, run in CI; see CLAUDE.md). The verification stack below still applies on top of it.
 
 1. `npx tsc --noEmit` after every change — the non-negotiable floor. Type errors are the only automated tripwire this repo has, which is also why types should be kept honest (no `as any` on data paths; the one `sb as any` escape hatch is a known debt, not a pattern to extend).
 2. **Query the DB to verify data-level effects.** After a trigger, RPC, or migration: select the affected rows and check the numbers. Never trust the success response (§4).

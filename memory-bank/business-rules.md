@@ -8,8 +8,10 @@
 ## Time & Dates
 - Venue timezone: **Manila (UTC+8)**. There is no timezone constant in the code — `shiftLocalDate`/`localDateStr` in `dateNav.ts` read the **viewer's browser local time** (`Date.getHours()`), so every business day in the reports is whatever day the *viewing device* thinks it is. Correct only while the POS/reporting device is set to Manila; the same order reads a different day on a device in another timezone (verified 2026-09-13: an 18:20 Manila order buckets to 09-13 on Manila, 09-12 on US Pacific, because 03:20 falls before the 6am cutoff). A doc-only `MANILA_OFFSET_MS` was referenced here until 2026-09-13; it never existed in `src/`
 - Work week runs **Wed–Mon** (not Mon–Sun); week navigation in date pickers reflects this
+  - **NEEDS RECONCILIATION (2026-10-11):** conflicts with the 6 AM rule below (weeks Wed 6 AM → Wed 6 AM, labelled Wed–Tue). Confirm against `dateNav.ts` / the owner before relying on either.
 - Operating hours: **4 PM – 12 MN Manila time** (tabs are often billed after midnight)
 - Pre-open states between 2–4 PM: `preparing` then `opening-soon`
+  - **DEPRECATED (2026-10-11, Backyard migration audit):** public-page logic; canonical in the Site repo's business-rules.md.
 - **Business day cuts at 6 AM, not midnight** (owner decision 2026-07-12): anything billed before 6 AM belongs to the previous night. `SHIFT_CUTOFF_HOUR` in `dateNav.ts` is the single source; `shiftLocalDate`/`currentShiftDate`/`dayBounds`/`weekBounds`/`monthBounds` all honor it, and Daily/Budget ledgers key orders by `shiftLocalDate` (was calendar date — caused Jul 11's ₱17,028 night to show as ₱1,685 because ₱15,568 was billed after midnight). Cutoff was previously 4 AM in the shift helpers only. `dayBounds` runs 6 AM → 6 AM (owner decision 2026-10-04); it used to start at 2 PM, so orders opened 6 AM–2 PM belonged to no day and vanished from Floor "Projected · Today" and opened_at-keyed reports (Oct 4: a ₱20,995 T1 order opened 11:40 AM showed as ₱200 projected). Hourly "Today" charts still start at 2 PM unless an earlier hour has sales (`shiftHoursUpToNow`). `expense_date` (a DATE) ranges come from `expenseDateRange(start, end)` — never `isoString.slice(0, 10)`: the ISO bound is UTC, so 6 AM Manila slices to the previous date (Oct 4 2026: Expenses "today" showed Oct 3 + Oct 4). Weeks run Wed 6 AM → next Wed 6 AM so the closed Tuesday still belongs to a week; the label still reads Wed–Tue
 - Sales/COGS date filtering: DailyTab and SalesTab key by `closed_at` (cash basis — revenue lands when billed); BudgetTab and ReportsTab key by `opened_at`; both run through `shiftLocalDate` so the business-day cutoff applies everywhere
 
@@ -74,6 +76,7 @@
 - Normalized against `COORD_MAX = 640` for display positioning
 
 ## Public Page Status / Tone
+> **DEPRECATED (2026-10-11, Backyard migration audit):** the public page moved to its own repo (Site, `backyard-byp`) on 2026-08-16 and uses occupancy-percentage thresholds; its memory-bank/business-rules.md is canonical. Kept here as history.
 | Tone | Condition (free tables) | Status Card | Top Bar Pill |
 |------|------------------------|-------------|--------------|
 | `open` | ≥ 9 free | We're Open | We're open |
