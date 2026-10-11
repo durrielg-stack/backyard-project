@@ -1,3 +1,5 @@
+> **Note (2026-10-11):** the shared, maintained rule base is `../../references/design-system-m3.md` (Backyard ecosystem root). This file is V1's earlier copy; where they differ, the shared one wins.
+
 # Design system — Material 3 rule base
 
 The POS look is **Google Material 3 (M3)**, owner decision 2026-10-06 after comparing it with Polaris, Fluent 2, Carbon and Apple Liquid Glass. This file is the rule base for every UI change and for the design refactor. Read it before touching any component's styling.

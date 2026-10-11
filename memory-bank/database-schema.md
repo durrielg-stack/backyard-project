@@ -160,3 +160,4 @@ Derived by `useTickets` from DB items:
 Derived by `useAutoStatus`:
 - `status: 'available' | 'occupied' | 'aging' | 'attention' | 'reserved'`
 - Aging threshold: **6 min**; Attention threshold: **10 min**
+  - **CORRECTED (2026-10-11, checked against code):** stale; status comes from the worst KDS ticket band (see business-rules.md, Table Status Thresholds).

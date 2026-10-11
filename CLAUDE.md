@@ -31,6 +31,7 @@ A full knowledge base lives in `memory-bank/`. **Read these first before scannin
 9. `memory-bank/skill-owner-intent-translation.md` — loadable skill: turning the owner's requests/feedback into correct behavior; vocabulary collisions, ask-vs-decide, correction generalization; **load before designing features or interpreting feedback**
 10. `memory-bank/skill-verification-without-a-net.md` — loadable skill: constructing justified confidence with no test suite; the verification ladder, round-trip testing, failure prediction; **load before claiming any change is done**
     10b. `memory-bank/design-system-m3.md` — **the Material 3 rule base** (colour roles, type scale, shape, states, components, data-presentation rules, refactor backlog); **read before any UI/styling change**
+    - The shared, newer rule base is `../references/design-system-m3.md` (Backyard ecosystem root, used by V1 and V2). This memory-bank copy is V1's earlier version; where they differ, follow the shared one and flag the difference.
 11. `memory-bank/architecture.md` — component hierarchy, data flow, styling system
 12. `memory-bank/database-schema.md` — all tables, columns, and types with notes
 13. `memory-bank/coding-patterns.md` — reusable patterns (theme, scroll, optimistic updates, visualViewport)
@@ -120,6 +121,7 @@ All hooks use the Supabase browser singleton from `src/lib/supabase.ts` (`getCli
 - **`useMenuItems`** — full menu, cached in module scope between renders
 - **`useTickets`** — KDS tickets derived from open order items; `bump()` marks items served
 - **`useAutoStatus`** — pure derivation: maps raw tables → `TableWithStatus` (aging at 6 min, attention at 10 min)
+  - **CORRECTED (2026-10-11, checked against code):** aging/attention come from the table's worst KDS ticket (`aging`/`late`), not minutes since opening; KDS kitchen thresholds are 15/20 min, bar 5/10 (`useTickets.ts`).
 
 ### Types (`src/lib/types.ts`)
 
