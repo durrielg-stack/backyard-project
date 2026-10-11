@@ -33,5 +33,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Supabase CLI link state (machine-local; may hold connection details)
-supabase/.temp/
+# Supabase CLI link state (machine-local; may hold connection details). No trailing
+# slash: the path may be a symlink into the encrypted secrets volume.
+supabase/.temp
